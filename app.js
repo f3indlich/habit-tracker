@@ -2163,6 +2163,22 @@ function renderSettings() {
     </button>`).join('');
   renderCatsInfo();
   renderAccount();
+  renderAbout();
+}
+const APP_SRC = document.querySelector('script[src*="app.js"]')?.src || '';
+const APP_VERSION = (APP_SRC.match(/\?v(\d+)/) || [])[1] || '';
+let aboutDone = false;
+async function renderAbout() {
+  $('appVersion').textContent = APP_VERSION ? `Версия ${APP_VERSION}` : 'Версия неизвестна';
+  if (aboutDone || !APP_SRC) return;
+  try {
+    const lm = (await fetch(APP_SRC)).headers.get('last-modified');
+    const d = lm && new Date(lm);
+    if (!d || isNaN(d)) return;
+    aboutDone = true;
+    $('appUpdated').textContent = `Обновлено ${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).replace(/\s?г\.$/, '')} в ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    $('appUpdated').hidden = false;
+  } catch {}
 }
 $('setBtn').onclick = () => { renderSettings(); openOverlay($('setOv')); };
 $('setCats').onclick = openCats;
