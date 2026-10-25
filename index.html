@@ -1010,7 +1010,10 @@ const VIEW_STORE = 'habit-tracker-view';
 const GROUP_STORE = 'habit-tracker-group';
 const ICON_STORE = 'habit-tracker-icons';
 // Cloud sync state (the sync code itself is at the end of the script; save() needs this early)
-const cloudCfg = window.HABIT_CONFIG || {};
+const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
+// accept a pasted endpoint like https://xxx.supabase.co/rest/v1/ — the client needs just the project origin
+cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');
+cloudCfg.supabaseKey = String(cloudCfg.supabaseKey || '').trim();
 const cloud = {
   enabled: /^https:\/\/[^/]+\.supabase\.(co|in)\/?$/.test(cloudCfg.supabaseUrl || '') && (cloudCfg.supabaseKey || '').length > 20,
   sb: null, session: null, channel: null,
@@ -3117,11 +3120,11 @@ async function initCloud(client) {
     if (!client) {
       await new Promise((res, rej) => {
         const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+        s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.min.js';
         s.onload = res; s.onerror = () => rej(new Error('Не удалось загрузить библиотеку Supabase'));
         document.head.append(s);
       });
-      client = window.supabase.createClient(cloudCfg.supabaseUrl.replace(/\/$/, ''), cloudCfg.supabaseKey, {
+      client = window.supabase.createClient(cloudCfg.supabaseUrl, cloudCfg.supabaseKey, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' },
       });
     }
