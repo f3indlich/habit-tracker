@@ -84,5 +84,12 @@ ok('check pulls data when version changed', selects.includes('version') && selec
 cloud.session = null; cloud.sb = null; setSync('off');
 try { localStorage.removeItem(BASE_STORE); } catch {}
 
+renderSettings(); openOverlay($('setOv')); await wait(700);
+const ver = (document.querySelector('script[src*="app.js"]').src.match(/\?v(\d+)/) || [])[1];
+ok('about version', $('appVersion').textContent === `Версия ${ver}`, $('appVersion').textContent);
+ok('about updated date', !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} в \d\d:\d\d$/.test($('appUpdated').textContent), $('appUpdated').textContent);
+ok('about note', $('setOv').querySelector('.about-txt small').textContent === 'Реализовано для удобства');
+ok('about is last in data block', $('importFile').nextElementSibling.classList.contains('app-about'));
+closeOverlay($('setOv')); await wait(400);
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

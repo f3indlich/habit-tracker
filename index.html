@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v25">
+<link rel="stylesheet" href="styles.css?v26">
 </head>
 <body>
 <div class="wrap">
@@ -217,6 +217,15 @@
         </button>
       </div>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <div class="app-about">
+        <img src="icons/icon-192.png" alt="" width="44" height="44">
+        <div class="about-txt">
+          <b>Трекер привычек</b>
+          <span id="appVersion"></span>
+          <span id="appUpdated" hidden></span>
+          <small>Реализовано для удобства</small>
+        </div>
+      </div>
     </section>
   </div>
 </div>
@@ -532,6 +541,6 @@
 
 <div class="toast" id="toast"><span id="toastText"></span><button id="toastUndo">Отменить</button></div>
 
-<script src="app.js?v25"></script>
+<script src="app.js?v26"></script>
 </body>
 </html>

@@ -19,6 +19,7 @@ while ($l.IsListening) {
     $ext = [IO.Path]::GetExtension($file).ToLower()
     $ctx.Response.ContentType = $(if ($types[$ext]) { $types[$ext] } else { 'application/octet-stream' })
     $ctx.Response.Headers.Add('Cache-Control', 'no-cache')
+    $ctx.Response.Headers.Add('Last-Modified', (Get-Item $file).LastWriteTimeUtc.ToString('R'))
     $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
   } else { $ctx.Response.StatusCode = 404 }
   $ctx.Response.Close()
