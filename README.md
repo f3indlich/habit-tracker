@@ -8,7 +8,7 @@
 ## Синхронизация между устройствами (необязательно)
 
 1. Создайте проект на [supabase.com](https://supabase.com) и выполните `supabase-setup.sql` в SQL Editor.
-2. Впишите Project URL и публичный ключ (anon / publishable) в `config.js`.
+2. Впишите Project URL и публичный ключ (anon / publishable) в `config.js`. Ключ `service_role` / `secret` туда вписывать нельзя.
 3. В Authentication → URL Configuration добавьте адрес этого сайта в Site URL и Redirect URLs.
 
 Пока `config.js` пустой, данные хранятся только в браузере на устройстве.

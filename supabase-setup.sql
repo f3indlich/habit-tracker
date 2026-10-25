@@ -1,8 +1,3 @@
--- Трекер привычек: таблица для синхронизации.
--- Вставьте целиком в Supabase → SQL Editor → New query → Run.
-
--- Одна строка на пользователя: всё состояние трекера в JSON + номер версии
--- (версия нужна, чтобы два устройства не затёрли изменения друг друга).
 create table if not exists public.habit_data (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   data       jsonb       not null default '{}'::jsonb,
@@ -10,7 +5,6 @@ create table if not exists public.habit_data (
   updated_at timestamptz not null default now()
 );
 
--- Row Level Security: каждый видит и меняет только свою строку.
 alter table public.habit_data enable row level security;
 
 drop policy if exists "habit_data: read own"   on public.habit_data;
@@ -23,7 +17,6 @@ create policy "habit_data: insert own" on public.habit_data for insert with chec
 create policy "habit_data: update own" on public.habit_data for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "habit_data: delete own" on public.habit_data for delete using (auth.uid() = user_id);
 
--- Мгновенная синхронизация между открытыми устройствами (Realtime).
 do $$
 begin
   alter publication supabase_realtime add table public.habit_data;
