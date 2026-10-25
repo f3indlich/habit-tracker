@@ -1,6 +1,6 @@
 // Offline support: the app shell is precached; pages are network-first so updates
 // arrive as soon as you're online, everything else is served from cache first.
-const VERSION = 'v11'; // bump on every release so old caches are dropped
+const VERSION = 'v12'; // bump on every release so old caches are dropped
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const SHELL_FILES = [
