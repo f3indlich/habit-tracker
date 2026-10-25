@@ -13,4 +13,14 @@
 
 Пока `config.js` пустой, данные хранятся только в браузере на устройстве.
 
+## Напоминания (push-уведомления)
+
+1. Выполните `supabase-push.sql` в SQL Editor.
+2. Создайте Edge Function `send-reminders` с кодом из `supabase/functions/send-reminders/index.ts` и выключите у неё проверку JWT.
+3. Добавьте секреты функции: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`.
+4. Запланируйте вызов функции каждые 5 минут через `pg_cron` с заголовком `x-cron-secret`.
+5. Публичный VAPID-ключ впишите в `config.js` (`vapidPublicKey`).
+
+На iPhone уведомления работают только в приложении, добавленном на экран «Домой» (iOS 16.4+).
+
 `demo-data.json` — пример данных за год для проверки (кнопка «Импорт» внизу приложения).

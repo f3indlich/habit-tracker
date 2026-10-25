@@ -368,6 +368,17 @@
   .set-row + .set-row, .set-user + .set-error + .set-row, .set-user + .set-row { border-top: 1px solid var(--border); }
   .set-row:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
   .set-row.danger, .set-row.danger .set-ic { color: var(--danger); }
+  .set-row.static { cursor: default; }
+  .set-row.static:hover { background: none; }
+  #pushIc[data-on=true] { background: color-mix(in srgb, var(--good) 16%, var(--card)); color: var(--good); }
+  .remind-row { display: flex; align-items: center; gap: 12px; }
+  .remind-row input[type=time] {
+    font: inherit; font-variant-numeric: tabular-nums; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; min-width: 120px; min-height: 44px;
+  }
+  .field-hint { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+  .field-hint:empty { display: none; }
+  .field-hint button { padding: 0; background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
   .set-ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--track); color: var(--muted); }
   .set-ic svg.ic { width: 18px; height: 18px; }
   .set-txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
@@ -882,6 +893,28 @@
         </button>
       </div>
     </section>
+    <section class="set-group" id="pushGroup">
+      <h3>Напоминания</h3>
+      <div class="set-card">
+        <div class="set-row static">
+          <span class="set-ic" id="pushIc"><svg class="ic" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0 1 12 0c0 4.5 2 6 2 6H4s2-1.5 2-6M10 20a2.2 2.2 0 0 0 4 0"/></svg></span>
+          <span class="set-txt"><b id="pushTitle"></b><small id="pushText"></small></span>
+        </div>
+        <button type="button" class="set-row" id="pushOn">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+          <span class="set-txt"><b id="pushOnLabel">Включить напоминания</b></span>
+        </button>
+        <button type="button" class="set-row" id="pushTest">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></span>
+          <span class="set-txt"><b>Проверить уведомление</b><small>Покажет пример напоминания на этом устройстве</small></span>
+        </button>
+        <button type="button" class="set-row danger" id="pushOff">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0 1 12 0c0 4.5 2 6 2 6H4s2-1.5 2-6M4 4l16 16"/></svg></span>
+          <span class="set-txt"><b>Выключить на этом устройстве</b></span>
+        </button>
+      </div>
+      <p class="set-hint">Время напоминания задаётся в каждой привычке. Напоминание придёт, только если привычка на сегодня ещё не выполнена.</p>
+    </section>
     <section class="set-group">
       <h3>Тема</h3>
       <div class="pseg pseg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
@@ -963,6 +996,14 @@
       <div class="field">
         <span class="lbl">Время дня</span>
         <div class="seg" id="timeSeg"></div>
+      </div>
+      <div class="field">
+        <span class="lbl">Напоминание <span style="font-weight:400">— необязательно</span></span>
+        <div class="remind-row">
+          <input type="time" id="remind" step="300" aria-label="Время напоминания">
+          <button type="button" class="link-btn" id="remindClear">Без напоминания</button>
+        </div>
+        <p class="field-hint" id="remindHint"></p>
       </div>
       <div class="field">
         <span class="lbl lbl-row">Тип <button type="button" class="link-btn" id="formManageCats">Настроить типы</button></span>
@@ -1127,6 +1168,7 @@ const ICON_STORE = 'habit-tracker-icons';
 const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
 cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');
 cloudCfg.supabaseKey = String(cloudCfg.supabaseKey || '').trim();
+cloudCfg.vapidPublicKey = String(cloudCfg.vapidPublicKey || '').trim();
 const cloud = {
   enabled: /^https:\/\/[^/]+\.supabase\.(co|in)\/?$/.test(cloudCfg.supabaseUrl || '') && (cloudCfg.supabaseKey || '').length > 20,
   sb: null, session: null, channel: null,
@@ -1312,6 +1354,7 @@ function normalize(s) {
     if (!h.days?.length || h.days.length === 7) h.days = null;
     h.unit = typeof h.unit === 'string' ? h.unit.slice(0, 20) : '';
     h.why = typeof h.why === 'string' ? h.why.slice(0, 120) : '';
+    if (!(typeof h.remind === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(h.remind))) delete h.remind;
     if (!isKey(h.created)) h.created = todayKey();
     if (h.archived != null && !isKey(h.archived)) delete h.archived;
     if (h.updated != null && !isKey(h.updated)) delete h.updated;
@@ -2308,17 +2351,21 @@ function syncPreview() {
   $('fpName').textContent = name || 'Название привычки';
   $('fpName').classList.toggle('ph', !name);
   const n = clampTarget($('target').value), unit = $('unit').value.trim();
-  const goal = form.goal === 'multi' ? `${n}${unit ? ' ' + unit : ' раз'} в день` : 'Один раз в день';
+  const goal = form.goal === 'multi' ? `${n} ${unit || plural(n, 'раз', 'раза', 'раз')} в день` : 'Один раз в день';
   const sched = form.sched === 'daily' || form.days.length === 7 ? 'каждый день'
-    : form.days.length ? form.days.map(d => WEEKDAYS[d]).join(', ') : 'дни не выбраны';
+    : form.days.length ? schedText({ days: form.days }) : 'дни не выбраны';
   const time = TIMES.find(t => t.v === form.time);
-  $('fpMeta').textContent = [goal, sched, form.time !== 'any' && time ? time.label.toLowerCase() : ''].filter(Boolean).join(' · ');
+  const remind = $('remind').value;
+  $('fpMeta').textContent = [goal, sched, form.time !== 'any' && time ? time.label.toLowerCase() : '', remind ? '🔔 ' + remind : ''].filter(Boolean).join(' · ');
+  $('remindClear').hidden = !remind;
+  renderRemindHint();
   if (changed && !reducedMotion) {
     box.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.025)' }, { transform: 'scale(1)' }], { duration: 360, easing: 'cubic-bezier(.2, .8, .2, 1)' });
     $('fpIcon').animate([{ transform: 'scale(.82) rotate(-8deg)' }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
   }
 }
-for (const id of ['name', 'target', 'unit']) $(id).addEventListener('input', syncPreview);
+for (const id of ['name', 'target', 'unit', 'remind']) $(id).addEventListener('input', syncPreview);
+$('remindClear').onclick = () => { $('remind').value = ''; syncPreview(); };
 
 function syncForm() {
   const press = (box, fn) => box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', fn(b.dataset.v)));
@@ -2400,6 +2447,7 @@ function openForm(id = null) {
   $('target').value = h && h.target > 1 ? h.target : 8;
   $('unit').value = h?.unit || '';
   $('why').value = h?.why || '';
+  $('remind').value = h?.remind || '';
   $('formPrev').style.removeProperty('--c');
   drawIconPickers();
   syncForm();
@@ -2485,6 +2533,7 @@ $('form').onsubmit = e => {
     days: form.sched === 'days' && form.days.length < 7 ? [...form.days] : null,
     why: $('why').value.trim(),
     cat: form.cat && catName(form.cat) ? form.cat : null,
+    remind: /^([01]\d|2[0-3]):[0-5]\d$/.test($('remind').value) ? $('remind').value : undefined,
   };
   const h = editingId && findHabit(editingId);
   if (h) {
@@ -3142,6 +3191,7 @@ async function startSync() {
   }
   try { localStorage.setItem(OWNER_STORE, uid); } catch {}
   await cloudSync();
+  pushRefresh();
   cloud.channel?.unsubscribe();
   cloud.channel = cloud.sb.channel('habit_data:' + uid)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_data', filter: `user_id=eq.${uid}` }, p => {
@@ -3195,6 +3245,7 @@ async function initCloud(client) {
     }
   } catch (e) { setSync('error', e.message); }
   renderAccount();
+  if (!cloud.session) pushRefresh();
 }
 
 addEventListener('storage', async e => {
@@ -3225,6 +3276,7 @@ function renderAccount() {
   btn.hidden = !!cloud.session;
   $('setBtn').dataset.sync = cloud.session ? cloud.status : 'none';
   $('setAcctGroup').hidden = !cloud.session;
+  renderPush();
   if (cloud.session) {
     $('setEmail').textContent = cloud.session.user.email;
     const when = cloud.lastSync ? ` · ${cloud.lastSync.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : '';
@@ -3313,10 +3365,134 @@ $('setSyncNow').onclick = () => cloudSync();
 $('setSignOut').onclick = async () => {
   const ok = await askConfirm('Выйти из аккаунта?', 'Синхронизация остановится. Привычки останутся на этом устройстве, а в облаке — в Вашем аккаунте.', 'Выйти');
   if (!ok) return;
+  await pushDisable().catch(() => {});
   await cloud.sb.auth.signOut({ scope: 'local' });
   authStep = 'email';
   renderAccount();
 };
+
+const push = {
+  supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
+  sub: null, busy: false,
+};
+const pushTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const b64uBytes = s => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+function pushState() {
+  if (!cloudCfg.vapidPublicKey || !cloud.enabled) return 'off';
+  if (isIOS && !isStandalone()) return 'ios';
+  if (!push.supported) return 'unsupported';
+  if (!cloud.session) return 'login';
+  if (Notification.permission === 'denied') return 'denied';
+  return push.sub ? 'on' : 'ready';
+}
+const PUSH_TEXT = {
+  ios: ['Только в установленном приложении', 'На iPhone напоминания приходят, если трекер добавлен на экран «Домой» (iOS 16.4 и новее). Откройте его оттуда и включите здесь.'],
+  unsupported: ['Недоступны', 'Этот браузер не поддерживает push-уведомления.'],
+  login: ['Нужен вход в аккаунт', 'Напоминания отправляет сервер, поэтому сначала войдите — тогда он будет знать Ваши привычки.'],
+  denied: ['Запрещены', 'Уведомления заблокированы для этого сайта. Разрешите их в настройках браузера или iPhone и вернитесь сюда.'],
+  ready: ['Выключены', 'Включите, чтобы получать напоминания в заданное время.'],
+  on: ['Включены на этом устройстве', ''],
+};
+function renderPush() {
+  const st = pushState();
+  $('pushGroup').hidden = st === 'off';
+  if (st === 'off') return renderRemindHint();
+  const [title, text] = PUSH_TEXT[st];
+  $('pushTitle').textContent = title;
+  $('pushText').textContent = st === 'on' ? `Часовой пояс: ${pushTz()}` : text;
+  $('pushIc').dataset.on = st === 'on';
+  $('pushOn').hidden = !(st === 'ready' || st === 'login');
+  $('pushOnLabel').textContent = st === 'login' ? 'Войти в аккаунт' : 'Включить напоминания';
+  $('pushOn').disabled = push.busy;
+  $('pushTest').hidden = $('pushOff').hidden = st !== 'on';
+  renderRemindHint();
+}
+function renderRemindHint() {
+  const el = $('remindHint');
+  const st = pushState();
+  if (!$('remind').value || st === 'on' || st === 'off') { el.textContent = ''; return; }
+  el.innerHTML = st === 'ios'
+    ? 'Напоминания придут только в приложении, установленном на экран «Домой».'
+    : 'Чтобы напоминание пришло, включите уведомления в <button type="button" data-open-push>Настройках</button>.';
+}
+$('remindHint').onclick = e => {
+  if (!e.target.closest('[data-open-push]')) return;
+  closeOverlay($('formOv')); renderSettings(); openOverlay($('setOv'));
+};
+async function pushSave(sub) {
+  const j = sub.toJSON();
+  const { error } = await cloud.sb.from('push_subscriptions').upsert({
+    endpoint: j.endpoint, user_id: cloud.session.user.id, p256dh: j.keys.p256dh, auth: j.keys.auth,
+    tz: pushTz(), user_agent: navigator.userAgent.slice(0, 200), last_seen: new Date().toISOString(),
+  }, { onConflict: 'endpoint' });
+  if (error) throw error;
+}
+async function pushRefresh() {
+  if (!push.supported || !cloudCfg.vapidPublicKey) return renderPush();
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    push.sub = reg ? await reg.pushManager.getSubscription() : null;
+    if (push.sub && Notification.permission !== 'granted') push.sub = null;
+    if (push.sub && cloud.session) await pushSave(push.sub);
+  } catch {}
+  renderPush();
+}
+async function pushEnable() {
+  if (push.busy) return;
+  push.busy = true; renderPush();
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      toast(perm === 'denied' ? 'Уведомления запрещены — разрешите их в настройках браузера' : 'Разрешение не выдано', null, '');
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    const key = b64uBytes(cloudCfg.vapidPublicKey);
+    const cur = sub?.options?.applicationServerKey && new Uint8Array(sub.options.applicationServerKey);
+    if (sub && cur && (cur.length !== key.length || cur.some((b, i) => b !== key[i]))) { await sub.unsubscribe(); sub = null; }
+    sub ||= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    await pushSave(sub);
+    push.sub = sub;
+    toast('Напоминания включены', null, '');
+  } catch (err) {
+    toast('Не удалось включить напоминания: ' + (err?.message || err), null, '');
+  } finally {
+    push.busy = false; renderPush();
+  }
+}
+async function pushDisable() {
+  const sub = push.sub;
+  push.sub = null;
+  if (sub) {
+    if (cloud.session) await cloud.sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+    await sub.unsubscribe().catch(() => {});
+  }
+  renderPush();
+}
+$('pushOn').onclick = () => {
+  if (pushState() === 'login') { closeOverlay($('setOv')); openOverlay($('acctOv')); renderAccount(); return; }
+  pushEnable();
+};
+$('pushOff').onclick = () => pushDisable().then(() => toast('Напоминания на этом устройстве выключены', null, ''), err => toast('Не удалось выключить: ' + err.message, null, ''));
+$('pushTest').onclick = async () => {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('Трекер привычек', { body: 'Так будут выглядеть напоминания о привычках', icon: 'icons/icon-192.png', tag: 'test' });
+  } catch (err) { toast('Не удалось показать уведомление: ' + err.message, null, ''); }
+};
+function markDoneFromPush(id) {
+  const h = findHabit(id);
+  if (!h || h.archived) return;
+  if (!isToday(viewDate)) viewDate = new Date();
+  changeCount(h, new Date(), h.target, true);
+  render();
+}
+navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.type === 'done') markDoneFromPush(e.data.id); });
+{
+  const doneId = new URLSearchParams(location.search).get('done');
+  if (doneId) { history.replaceState(null, '', location.pathname); setTimeout(() => markDoneFromPush(doneId), 300); }
+}
 
 initCloud();
 </script>
