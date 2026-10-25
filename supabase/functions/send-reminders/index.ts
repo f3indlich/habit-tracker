@@ -32,10 +32,12 @@ function slotsFor(h, local) {
   if (r.to && local.day > r.to) return [];
   if (Array.isArray(r.days) && r.days.length && !r.days.includes(local.weekday)) return [];
   const target = Math.max(1, h.target || 1);
+  const per = Math.max(1, Math.min(target, parseInt(h.step) || 1));
+  const n = Math.ceil(target / per);
   const a = toMin(r.spread?.from), b = toMin(r.spread?.to);
-  if (target > 1 && a != null && b != null && b > a) {
-    return Array.from({ length: target }, (_, i) => ({
-      at: target === 1 ? a : Math.round(a + (b - a) * i / (target - 1)), need: i + 1, kind: 'spread',
+  if (n > 1 && a != null && b != null && b > a) {
+    return Array.from({ length: n }, (_, i) => ({
+      at: Math.round(a + (b - a) * i / (n - 1)), need: Math.min(target, (i + 1) * per), kind: 'spread',
     }));
   }
   const step = [15, 30, 60].includes(r.repeat) ? r.repeat : 0;
