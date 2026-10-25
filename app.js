@@ -619,9 +619,24 @@ function openPopover(anchor, html, color) {
   menuEl.setAttribute('role', 'dialog');
   if (color) menuEl.style.setProperty('--c', color);
   menuEl.innerHTML = html;
-  placeMenu(anchor);
+  menuEl._anchor = anchor;
+  document.body.append(menuEl);
+  const r = anchor.getBoundingClientRect(), mw = menuEl.offsetWidth;
+  const mh = menuEl.offsetHeight, ax = r.left + r.width / 2, left = Math.round((innerWidth - mw) / 2);
+  const side = mh + 8 <= innerHeight - r.bottom - 16 ? 'below' : mh + 8 <= r.top - 16 ? 'above' : 'center';
+  menuEl.dataset.side = side;
+  menuEl.style.left = left + 'px';
+  if (side === 'center') {
+    menuEl.style.maxHeight = innerHeight - 32 + 'px';
+    menuEl.style.top = Math.max(16, Math.round((innerHeight - menuEl.offsetHeight) / 2)) + 'px';
+    menuEl.style.transformOrigin = 'center';
+    return;
+  }
+  menuEl.style.top = Math.round(side === 'below' ? r.bottom + 8 : r.top - mh - 8) + 'px';
+  menuEl.style.setProperty('--ax', Math.max(18, Math.min(mw - 18, ax - left)) + 'px');
+  menuEl.style.transformOrigin = `${Math.round(ax - left)}px ${side === 'below' ? 'top' : 'bottom'}`;
 }
-document.addEventListener('pointerdown', e => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest('.more, .info-btn, #viewBtn')) closeMenu(); });
+document.addEventListener('pointerdown', e => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest('.more, .info-btn, .tile-i, #viewBtn')) closeMenu(); });
 addEventListener('scroll', closeMenu, { passive: true });
 $('hSheet').addEventListener('scroll', closeMenu, { passive: true });
 
@@ -1799,6 +1814,33 @@ $('form').onsubmit = e => {
 };
 
 let hist = null;
+const IC_I = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg>';
+const STAT_INFO = {
+  streak: {
+    icon: '🔥', title: 'Серия',
+    lead: 'Сколько запланированных дней подряд цель выполнена полностью.',
+    how: 'Дни вне расписания и отмеченные пропуском цепочку не рвут. Сегодняшний день засчитывается после выполнения, а до конца дня серия не сгорает. Один невыполненный день обнуляет счёт.',
+    why: 'Помогает держать ритм: чем длиннее цепочка, тем жальче её прерывать. Лучшая серия становится рекордом.',
+  },
+  best: {
+    icon: '🏆', title: 'Рекорд',
+    lead: 'Самая длинная серия за всё время существования привычки.',
+    how: 'Считается по тем же правилам, что и серия. Обновляется, когда текущая серия становится длиннее, и не уменьшается после срыва.',
+    why: 'Показывает, на что Вы уже способны, и даёт ориентир, который хочется превзойти.',
+  },
+  done: {
+    icon: '✅', title: 'Выполнено',
+    lead: 'Доля запланированных дней, когда цель выполнена полностью.',
+    how: 'Полностью выполненные дни делятся на все запланированные с момента создания. Частичное выполнение не засчитывается, пропуски и дни вне расписания не учитываются, сегодняшний день — только после выполнения.',
+    why: 'Честная общая картина регулярности: один срыв почти не меняет процент, а долгие перерывы заметно его снижают.',
+  },
+  power: {
+    icon: '💪', title: 'Сила',
+    lead: 'Насколько прочно привычка закрепилась именно сейчас.',
+    how: 'Учитывается каждый запланированный день, частичное выполнение — частично. Свежие дни весят больше: вклад дня уменьшается вдвое примерно за две недели.',
+    why: 'В отличие от серии, один пропуск лишь немного снижает силу, а не обнуляет её. Регулярность в последние недели поднимает шкалу быстрее всего.',
+  },
+};
 
 function openHistory(id) {
   const h = findHabit(id);
@@ -1864,26 +1906,36 @@ function renderHistory() {
   const goal = (h.target > 1 ? `${h.target} ${h.unit || 'раз'} в день` : '1 раз в день') + (h.step > 1 ? ` · шаг ${h.step}` : '');
   $('hTags').innerHTML = [
     h.archived ? '<span class="tag arch">В архиве</span>' : '',
-    `<span class="tag">${esc(goal)}</span>`,
-    `<span class="tag">${time.icon} ${time.v === 'any' ? 'В любое время' : time.label}</span>`,
+    `<span class="tag">${esc(h.step > 1 ? `${h.target} ${h.unit || 'раз'} · шаг ${h.step}` : goal)}</span>`,
+    `<span class="tag">${time.icon} ${time.v === 'any' ? 'Любое время' : time.label}</span>`,
     h.cat && catName(h.cat) ? `<span class="tag cat">${esc(catName(h.cat))}</span>` : '',
   ].join('');
+  requestAnimationFrame(() => $('hTags').classList.toggle('more', $('hTags').scrollWidth > $('hTags').clientWidth + 1));
   $('hWhy').hidden = !h.why;
   $('hWhy').innerHTML = `<b>Зачем мне это</b>${esc(h.why)}`;
 
   const pct = ls.due ? Math.round(ls.full / ls.due * 100) : 0, strength = Math.round(ls.score * 100);
-  const tile = (icon, l, v, sub, bar) => `<div class="tile">
+  const tile = (k, icon, l, v, sub, bar) => `<div class="tile">
     <div class="l"><span>${icon}</span>${l}</div><div class="v">${v}</div>
-    ${bar != null ? `<div class="bar"><i style="width:${bar}%"></i></div>` : `<div class="s">${sub}</div>`}</div>`;
+    ${bar != null ? `<div class="bar"><i style="width:${bar}%"></i></div>` : `<div class="s">${sub}</div>`}
+    <button class="tile-i" data-k="${k}" aria-label="Что значит «${l}»" aria-haspopup="dialog">${IC_I}</button></div>`;
   $('hTiles').innerHTML =
-    tile('🔥', 'Серия', cur, cur ? `${plural(cur, 'день', 'дня', 'дней')} подряд`
+    tile('streak', '🔥', 'Серия', cur, cur ? `${plural(cur, 'день', 'дня', 'дней')} подряд`
       : h.archived ? 'в архиве' : isDue(h, new Date()) ? 'начните сегодня' : 'пока нет серии') +
-    tile('🏆', 'Рекорд', ls.best, plural(ls.best, 'день', 'дня', 'дней')) +
-    tile('✅', 'Выполнено', pct + '%', `${ls.full} из ${days(ls.due)}`) +
-    tile('💪', 'Сила', strength + '%', '', strength);
+    tile('best', '🏆', 'Рекорд', ls.best, plural(ls.best, 'день', 'дня', 'дней')) +
+    tile('done', '✅', 'Выполнено', pct + '%', `${ls.full} из ${days(ls.due)}`) +
+    tile('power', '💪', 'Сила', strength + '%', '', strength);
+  $('hTiles').onclick = e => {
+    const b = e.target.closest('.tile-i');
+    if (!b) return;
+    if (menuEl?._anchor === b) return closeMenu();
+    const t = STAT_INFO[b.dataset.k];
+    openPopover(b, `<div class="pop-title">${t.icon} ${t.title}</div><p class="pop-lead">${t.lead}</p>
+      <div class="pop-sec"><b>Как считается</b>${t.how}</div><div class="pop-sec"><b>На что влияет</b>${t.why}</div>`, h.color);
+  };
 
   $('hInfo').onclick = e => {
-    if (menuEl?.classList.contains('pop')) return closeMenu();
+    if (menuEl?._anchor === e.currentTarget) return closeMenu();
     openPopover(e.currentTarget, `<div class="pop-title">Сведения</div><div class="facts">${factsHTML()}</div>`, h.color);
   };
   const factsHTML = () => {
@@ -2329,6 +2381,8 @@ const BASE_STORE = NS + '-sync-base';
 const OWNER_STORE = NS + '-owner';
 
 const emptyState = () => ({ habits: [], categories: [], log: {}, skip: {} });
+const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(n => [n, x[n]])) : x);
+const same = (a, b) => canon(a) === canon(b);
 function loadBase() {
   try { const b = JSON.parse(localStorage.getItem(BASE_STORE)); if (b && b.uid === cloud.session?.user.id) return b; } catch {}
   return { uid: cloud.session?.user.id, version: null, data: null };
@@ -2339,7 +2393,6 @@ function saveBase(version, data) {
 
 function mergeStates(base, local, remote) {
   base = base || emptyState();
-  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const mergeList = (B, L, R) => {
     const bm = new Map(B.map(x => [x.id, x])), lm = new Map(L.map(x => [x.id, x])), rm = new Map(R.map(x => [x.id, x]));
     const pick = id => (same(lm.get(id), bm.get(id)) ? rm.get(id) : lm.get(id));
@@ -2399,12 +2452,12 @@ async function cloudPull() {
     if (base.version != null) saveBase(null, null);
     return true;
   }
-  if (row.version === base.version) return JSON.stringify(state) !== JSON.stringify(base.data);
+  if (row.version === base.version) return !same(state, base.data);
   const remote = normalize(row.data);
   const merged = normalize(mergeStates(base.data, state, remote));
   saveBase(row.version, remote);
-  if (JSON.stringify(merged) !== JSON.stringify(state)) applyState(merged);
-  return JSON.stringify(merged) !== JSON.stringify(remote);
+  if (!same(merged, state)) applyState(merged);
+  return !same(merged, remote);
 }
 
 async function cloudPush() {
@@ -2415,7 +2468,7 @@ async function cloudPush() {
   try {
     for (let attempt = 0; attempt < 4; attempt++) {
       const base = loadBase(), uid = cloud.session.user.id;
-      if (base.version != null && JSON.stringify(state) === JSON.stringify(base.data)) break;
+      if (base.version != null && same(state, base.data)) break;
       const payload = JSON.parse(JSON.stringify(state));
       if (base.version == null) {
         const { error } = await cloud.sb.from('habit_data').insert({ user_id: uid, data: payload, version: 1 });
@@ -2447,7 +2500,7 @@ async function cloudCheck() {
     const { data: row, error } = await cloud.sb.from('habit_data').select('version').eq('user_id', cloud.session.user.id).maybeSingle();
     if (error) throw error;
     const base = loadBase();
-    if (row?.version === base.version && JSON.stringify(state) === JSON.stringify(base.data)) return;
+    if (row?.version === base.version && same(state, base.data)) return;
   } catch {}
   cloudSync();
 }

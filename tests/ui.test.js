@@ -81,8 +81,53 @@ selects = [];
 saveBase(4, JSON.parse(JSON.stringify(state)));
 await cloudCheck(); await wait(100);
 ok('check pulls data when version changed', selects.includes('version') && selects.includes('data, version'), selects);
+const jsonb = v => Array.isArray(v) ? v.map(jsonb) : v && typeof v === 'object'
+  ? Object.fromEntries(Object.keys(v).sort((a, b) => a.length - b.length || (a < b ? -1 : 1)).map(k => [k, jsonb(v[k])])) : v;
+ok('same ignores key order', same({ a: 1, b: { c: 2, d: [1, { e: 3, f: 4 }] } }, { b: { d: [1, { f: 4, e: 3 }], c: 2 }, a: 1 }) && !same({ a: 1 }, { a: 2 }));
+selects = [];
+let updates = 0;
+const reordered = { data: jsonb(JSON.parse(JSON.stringify(state))), version: 6 };
+cloud.sb = { from: () => ({
+  select: cols => { selects.push(cols); return { eq: () => ({ maybeSingle: async () => ({ data: cols === 'version' ? { version: 6 } : reordered, error: null }) }) }; },
+  update: () => { updates++; return { eq: () => ({ eq: () => ({ select: async () => ({ data: [{ version: 7 }], error: null }) }) }) }; },
+}) };
+saveBase(5, JSON.parse(JSON.stringify(state)));
+await cloudSync(); await wait(900);
+ok('reordered remote keys cause no push', updates === 0 && cloud.status === 'ok', { updates, status: cloud.status });
+selects = [];
+await cloudCheck(); await wait(900);
+ok('no repeated sync after reordered pull', selects.join() === 'version' && updates === 0, { selects, updates });
 cloud.session = null; cloud.sb = null; setSync('off');
 try { localStorage.removeItem(BASE_STORE); } catch {}
+
+state.profile = { name: 'Александра Константиновна' }; viewDate = new Date(); render();
+ok('greeting stays one line with long name', $('hello').getBoundingClientRect().height < 22 && $('hello').textContent.includes('Александра'), $('hello').getBoundingClientRect().height);
+
+state.categories = [{ id: 'c1', name: 'Интеллект' }]; Object.assign(findHabit('m'), { cat: 'c1', step: 5 });
+openHistory('m'); await wait(600);
+const tags = $('hTags');
+ok('habit tags in one row', tags.children.length === 3 && [...tags.children].every(t => Math.abs(t.getBoundingClientRect().top - tags.children[0].getBoundingClientRect().top) < 1), [...tags.children].map(t => t.getBoundingClientRect().top));
+ok('habit tags fit without scroll', tags.scrollWidth <= tags.clientWidth + 1, { sw: tags.scrollWidth, cw: tags.clientWidth });
+const ibs = [...$('hTiles').querySelectorAll('.tile-i')];
+ok('info button on every stat', ibs.length === 4 && ibs.every(b => { const t = b.closest('.tile').getBoundingClientRect(), r = b.getBoundingClientRect(); return Math.abs((t.right - r.right) - (r.top - t.top)) < 1; }), ibs.length);
+const symmetric = el => { const r = el.getBoundingClientRect(); return Math.abs(r.left - (innerWidth - r.right)) <= 1 && r.top >= 0 && r.bottom <= innerHeight; };
+const titles = [];
+for (const b of ibs) {
+  b.click(); await wait(300);
+  titles.push(menuEl?.querySelector('.pop-title')?.textContent.trim());
+  ok('stat info centered: ' + b.dataset.k, menuEl && symmetric(menuEl) && menuEl.querySelectorAll('.pop-sec').length === 2, menuEl?.getBoundingClientRect());
+}
+ok('stat info titles', titles.join() === '🔥 Серия,🏆 Рекорд,✅ Выполнено,💪 Сила', titles);
+ibs[3].click(); await wait(250);
+ok('second tap closes stat info', !menuEl);
+$('hInfo').click(); await wait(300);
+ok('habit info popover centered', menuEl && symmetric(menuEl) && menuEl.querySelector('.facts'), menuEl?.getBoundingClientRect());
+const arrowX = menuEl && parseFloat(menuEl.style.getPropertyValue('--ax')) + menuEl.getBoundingClientRect().left;
+const hr = $('hInfo').getBoundingClientRect();
+ok('popover arrow points at button', Math.abs(arrowX - (hr.left + hr.width / 2)) < 2, { arrowX, btn: hr.left + hr.width / 2 });
+$('hInfo').click(); await wait(250);
+ok('second tap closes habit info', !menuEl);
+closeOverlay($('histOv')); hist = null; await wait(400);
 
 renderSettings(); openOverlay($('setOv')); await wait(700);
 const ver = (document.querySelector('script[src*="app.js"]').src.match(/\?v(\d+)/) || [])[1];
