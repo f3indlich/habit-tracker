@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тесты</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f4f5f9; --card: #fff; --text: #16181d; --muted: #5c6172; --good: #16a34a; --bad: #dc2626; --border: #e6e8ef; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0e1015; --card: #181b22; --text: #eef0f5; --muted: #949aab; --good: #4ade80; --bad: #f87171; --border: #262a34; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px 16px; max-width: 1100px; margin: 0 auto; }
+  .side { flex: 1 1 380px; min-width: 0; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { color: var(--muted); margin: 0 0 14px; }
+  button { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 0; background: #4f46e5; color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #sum { font-size: 16px; font-weight: 700; margin: 14px 0 8px; }
+  #sum.ok { color: var(--good); } #sum.bad { color: var(--bad); }
+  #out { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; max-height: 70vh; overflow: auto; font: 12.5px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .f { color: var(--bad); font-weight: 600; } .h { color: var(--muted); font-weight: 700; margin-top: 6px; }
+  iframe { flex: none; width: 393px; height: 852px; max-width: 100%; border: 1px solid var(--border); border-radius: 18px; background: var(--card); }
+</style>
+</head>
+<body>
+<main>
+  <div class="side">
+    <h1>Тесты трекера привычек</h1>
+    <p>Приложение открывается справа в тестовом режиме: отдельное хранилище, без облака и уведомлений. Ваши настоящие привычки не затрагиваются.</p>
+    <button id="run">Запустить</button>
+    <div id="sum"></div>
+    <div id="out"></div>
+  </div>
+  <iframe id="app" title="Приложение в тестовом режиме"></iframe>
+</main>
+<script>
+const SUITES = [['Новые функции', 'app.test.js'], ['Старые функции', 'regress.test.js']];
+const frame = document.getElementById('app'), out = document.getElementById('out'), sum = document.getElementById('sum'), btn = document.getElementById('run');
+const line = (text, cls) => { const d = document.createElement('div'); d.textContent = text; if (cls) d.className = cls; out.append(d); };
+const loadApp = () => new Promise(res => {
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith('habit-tracker-test')) localStorage.removeItem(k); } catch {}
+  frame.onload = () => setTimeout(res, 900);
+  frame.src = '../index.html?test&r=' + Date.now();
+});
+async function run() {
+  btn.disabled = true; out.textContent = ''; sum.textContent = 'Идёт проверка…'; sum.className = '';
+  let pass = 0, fail = 0;
+  const lines = [];
+  for (const [title, file] of SUITES) {
+    line(title, 'h');
+    try {
+      await loadApp();
+      const code = await (await fetch(file + '?' + Date.now(), { cache: 'no-store' })).text();
+      const res = String(await frame.contentWindow.eval(`(async () => {\n${code}\n})()`));
+      for (const l of res.split('\n')) {
+        if (l.startsWith('PASS')) pass++; else if (l.startsWith('FAIL')) fail++;
+        lines.push(l); line(l, l.startsWith('FAIL') ? 'f' : '');
+      }
+    } catch (err) {
+      fail++; const l = `FAIL ${file}: ${err && err.stack || err}`; lines.push(l); line(l, 'f');
+    }
+  }
+  sum.textContent = fail ? `Не прошло: ${fail} из ${pass + fail}` : `Все ${pass} проверок прошли`;
+  sum.className = fail ? 'bad' : 'ok';
+  document.title = (fail ? 'FAIL ' : 'PASS ') + pass + '/' + (pass + fail);
+  window.__result = { pass, fail, lines };
+  btn.disabled = false;
+}
+btn.onclick = run;
+if (new URLSearchParams(location.search).has('auto')) run();
+</script>
+</body>
+</html>

@@ -1,9 +1,11 @@
-const VERSION = 'v23';
+const VERSION = 'v24';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const SHELL_FILES = [
   './',
   './index.html',
+  `./styles.css?${VERSION}`,
+  `./app.js?${VERSION}`,
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/apple-touch-icon.png',
@@ -37,8 +39,11 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (url.pathname.includes('/tests/') || url.pathname.endsWith('.ts')) return;
 
   if (req.mode === 'navigate') {
+    const root = new URL('./', self.location).pathname;
+    if (url.origin !== location.origin || (url.pathname !== root && url.pathname !== root + 'index.html')) return;
     e.respondWith((async () => {
       try {
         const res = await fetch(req);
