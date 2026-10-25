@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v24">
+<link rel="stylesheet" href="styles.css?v25">
 </head>
 <body>
 <div class="wrap">
@@ -136,18 +136,34 @@
       <button class="ghost icon-btn" data-close title="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
       <h2 id="setTitle">Настройки</h2>
     </div>
+    <section class="set-group">
+      <h3>Тема</h3>
+      <div class="pseg pseg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
+    </section>
     <section class="set-group" id="setAcctGroup">
       <h3>Аккаунт</h3>
       <div class="set-card">
-        <div class="acct-user set-user"><span class="acct-ava"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/></svg></span><div><div class="acct-email" id="setEmail"></div><div class="acct-status" id="setStatus"></div></div></div>
-        <div class="acct-error set-error" id="setError"></div>
-        <button type="button" class="set-row" id="setSyncNow">
-          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6"/></svg></span>
-          <span class="set-txt"><b>Синхронизировать сейчас</b></span>
+        <button type="button" class="set-row" id="setName">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/></svg></span>
+          <span class="set-txt"><b>Имя</b><small id="setNameVal"></small></span>
+          <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
         </button>
-        <button type="button" class="set-row danger" id="setSignOut">
-          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M14 4.5h3.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H14M10 16.5L5.5 12 10 7.5M5.5 12H15"/></svg></span>
-          <span class="set-txt"><b>Выйти из аккаунта</b></span>
+        <div id="setCloudIn">
+          <div class="acct-user set-user"><span class="acct-ava"><svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg></span><div><div class="acct-email" id="setEmail"></div><div class="acct-status" id="setStatus"></div></div></div>
+          <div class="acct-error set-error" id="setError"></div>
+          <button type="button" class="set-row" id="setSyncNow">
+            <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6"/></svg></span>
+            <span class="set-txt"><b>Синхронизировать сейчас</b></span>
+          </button>
+          <button type="button" class="set-row danger" id="setSignOut">
+            <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M14 4.5h3.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H14M10 16.5L5.5 12 10 7.5M5.5 12H15"/></svg></span>
+            <span class="set-txt"><b>Выйти из аккаунта</b></span>
+          </button>
+        </div>
+        <button type="button" class="set-row" id="setLogin">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg></span>
+          <span class="set-txt"><b>Войти и синхронизировать</b><small>Привычки на телефоне и компьютере</small></span>
+          <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
         </button>
       </div>
     </section>
@@ -183,10 +199,6 @@
         </button>
       </div>
       <p class="set-hint">Создавайте, переименовывайте, меняйте порядок и удаляйте типы. По ним можно группировать список.</p>
-    </section>
-    <section class="set-group">
-      <h3>Тема</h3>
-      <div class="pseg pseg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
     </section>
     <section class="set-group">
       <h3>Иконки привычек</h3>
@@ -485,6 +497,23 @@
   </div>
 </div>
 
+<div class="overlay" id="nameOv" hidden>
+  <div class="card sheet name-sheet" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
+    <div class="sheet-head">
+      <h2 id="nameTitle">Как Вас зовут?</h2>
+      <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <p class="acct-note">Имя появится в приветствии на главном экране. Его всегда можно изменить в настройках.</p>
+    <form class="name-form" id="nameForm">
+      <input type="text" id="nameInput" maxlength="40" autocomplete="given-name" autocapitalize="words" placeholder="Ваше имя" aria-label="Имя">
+      <div class="form-actions">
+        <button type="button" id="nameSkip">Пропустить</button>
+        <button type="submit" class="primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="overlay confirm" id="confirm" hidden>
   <div class="card sheet" role="alertdialog" aria-modal="true" aria-labelledby="cTitle" aria-describedby="cText">
     <div class="sheet-head"><h2 id="cTitle"></h2></div>
@@ -503,6 +532,6 @@
 
 <div class="toast" id="toast"><span id="toastText"></span><button id="toastUndo">Отменить</button></div>
 
-<script src="app.js?v24"></script>
+<script src="app.js?v25"></script>
 </body>
 </html>
