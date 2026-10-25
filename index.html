@@ -196,13 +196,34 @@
     transition: background-color .3s, color .3s;
   }
   svg.hi { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block; }
-  body[data-icons=tile] .hicon { background: var(--c); color: #fff; }
-  body[data-icons=mono] .hicon { background: var(--track); color: var(--text); }
-  body[data-icons=line] .hicon { background: transparent; border: 2px solid var(--c); border-radius: 50%; color: var(--c); }
-  body[data-icons=line] .hicon svg.hi { stroke-width: 2; }
+  body[data-icons=color] .hicon:not([data-st]), .hicon[data-st=color] {
+    position: relative; border-radius: 14px; color: #fff;
+    background: linear-gradient(155deg, color-mix(in srgb, var(--c) 50%, #fff) 0%, var(--c) 50%, color-mix(in srgb, var(--c) 76%, #000) 100%);
+    box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, .5), inset 0 -2px 3px rgba(0, 0, 0, .16), 0 7px 14px -8px color-mix(in srgb, var(--c) 90%, transparent);
+  }
+  body[data-icons=color] .hicon:not([data-st])::before, .hicon[data-st=color]::before {
+    content: ''; position: absolute; left: 2px; right: 2px; top: 2px; height: 46%; border-radius: 12px 12px 50% 50% / 12px 12px 30% 30%;
+    background: linear-gradient(rgba(255, 255, 255, .42), rgba(255, 255, 255, 0)); pointer-events: none;
+  }
+  body[data-icons=color] .hicon:not([data-st]) > *, .hicon[data-st=color] > * { position: relative; }
+  body[data-icons=color] .hicon:not([data-st]) svg.hi, .hicon[data-st=color] svg.hi { stroke-width: 2.1; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .25)); }
+  body[data-icons=tile] .hicon:not([data-st]), .hicon[data-st=tile] {
+    border-radius: 14px; color: color-mix(in srgb, var(--c) 45%, #fff);
+    background: radial-gradient(130% 120% at 30% 15%, #232835 0%, #0d0f14 70%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 50%, transparent), inset 0 0 16px -6px color-mix(in srgb, var(--c) 80%, transparent);
+  }
+  body[data-icons=tile] .hicon:not([data-st]) svg.hi, .hicon[data-st=tile] svg.hi {
+    stroke-width: 1.9; filter: drop-shadow(0 0 1.5px var(--c)) drop-shadow(0 0 5px color-mix(in srgb, var(--c) 75%, transparent));
+  }
+  body[data-icons=tile] .habit.complete .hicon {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 70%, transparent), inset 0 0 18px -4px color-mix(in srgb, var(--c) 90%, transparent), 0 0 16px -4px color-mix(in srgb, var(--c) 70%, transparent);
+  }
+  body[data-icons=mono] .hicon:not([data-st]), .hicon[data-st=mono] { background: var(--track); color: var(--text); }
+  body[data-icons=line] .hicon:not([data-st]), .hicon[data-st=line] { background: transparent; border: 2px solid var(--c); border-radius: 50%; color: var(--c); }
+  body[data-icons=line] .hicon:not([data-st]) svg.hi, .hicon[data-st=line] svg.hi { stroke-width: 2; }
   body[data-icons=line] .habit.complete .hicon { background: color-mix(in srgb, var(--c) 12%, transparent); }
   svg.ha { width: 72%; height: 72%; display: block; }
-  body[data-icons=art] .hicon { background: color-mix(in srgb, var(--c) 9%, var(--card)); }
+  body[data-icons=art] .hicon:not([data-st]), .hicon[data-st=art] { background: color-mix(in srgb, var(--c) 9%, var(--card)); }
   .emoji-grid svg.ha { width: 28px; height: 28px; }
   .templates svg.ha { width: 18px; height: 18px; }
   body[data-icons=mono] .habit.complete { background: color-mix(in srgb, var(--text) 4%, var(--card)); }
@@ -222,24 +243,33 @@
   .badge { font-size: 12px; font-weight: 600; border-radius: 6px; padding: 2px 7px; }
   .badge.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
   .badge.skip { color: var(--muted); background: var(--track); }
-  .dots { display: flex; gap: 6px; margin-top: 8px; }
-  .dcol { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-  .dw { font-size: 9.5px; font-weight: 600; color: var(--faint); line-height: 1; }
+  .dots {
+    grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  }
+  .dcol {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 0 7px; border-radius: 13px;
+    transition: background-color .3s var(--ease);
+  }
+  .dcol.cur { background: color-mix(in srgb, var(--c) 9%, transparent); }
+  .dw { font-size: 11px; font-weight: 600; color: var(--faint); line-height: 1; letter-spacing: .01em; transition: color .3s; }
+  .dcol.cur .dw { color: var(--c); }
+  .dcol.today:not(.cur) .dw { color: var(--text); }
   .dot { position: relative; }
-  .dot::after { content: ""; position: absolute; inset: -6px -3px; }
+  .dot::after { content: ""; position: absolute; inset: -8px -4px; }
   .dot {
-    width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 0; background: var(--track);
-    display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--muted);
+    width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 0; background: var(--track);
+    display: grid; place-items: center; font-size: 11.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
     transition: background-color .3s var(--ease), color .3s, transform .15s var(--ease), box-shadow .3s;
   }
+  .dcol.cur .dot:not(.full):not(.part) { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 45%, var(--border)); }
   .dot:hover:not(:disabled) { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 40%, transparent); }
   .dot.part { background: color-mix(in srgb, var(--c) 35%, var(--track)); color: var(--text); }
   .dot.full { background: var(--c); color: #fff; }
   .dot.skip { background: repeating-linear-gradient(135deg, var(--track) 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1px var(--border); }
   .dot.off { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); color: var(--faint); }
-  .dot.cur { outline: 2px solid var(--text); outline-offset: 1px; }
   .dot:disabled { opacity: .35; }
-  .mh { grid-column: 1 / -1; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+  .mh { grid-column: 1 / -1; margin-top: 12px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent); }
   .sh { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
   .sh b { font-weight: 600; color: var(--text); white-space: nowrap; }
   .mh i { border-radius: 3px; background: var(--track); transition: background-color .3s; }
@@ -267,6 +297,7 @@
   .view-legend .lgc { background: transparent; box-shadow: inset 0 0 0 1.5px var(--text); }
   .view-legend .lgo { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); }
   .view-legend.round i { border-radius: 50%; }
+  .view-legend.round .lgc { width: 9px; height: 14px; border-radius: 4px; box-shadow: none; background: color-mix(in srgb, var(--accent) 18%, transparent); }
   .mh i.l1 { background: color-mix(in srgb, var(--c) 30%, var(--track)); }
   .mh i.l2 { background: color-mix(in srgb, var(--c) 60%, var(--track)); }
   .mh i.l3 { background: var(--c); }
@@ -310,6 +341,7 @@
     transition: opacity .16s var(--ease-out), transform .25s var(--ease-out);
   }
   .num > span { grid-area: 1 / 1; }
+  .num.long { font-size: 12px; letter-spacing: -.02em; }
   .complete .num { opacity: 0; transform: scale(.6); }
   .plus { position: absolute; color: var(--faint); transition: opacity .18s var(--ease-out), transform .25s var(--ease-out); }
   .check:hover .plus { color: var(--c); }
@@ -466,6 +498,14 @@
   .rem-range { display: flex; align-items: center; gap: 8px; }
   .rem-note { margin: 8px 2px 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
   .rem-inline { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .rem-repeat { margin-top: 12px; transition: opacity .3s var(--ease); }
+  .rem-repeat .rem-inline { margin-top: 0; }
+  .rem-repeat .rem-note { margin: 8px 0 0; }
+  .rem-repeat.off .rem-inline { opacity: .45; }
+  .rem-repeat.off .mini-seg button[aria-pressed=true] { box-shadow: none; background: transparent; }
+  .mini-seg button:disabled { opacity: 1; }
+  .rem-body .collapse > div { padding: 4px; margin: -4px; }
+  .rem .seg button[aria-pressed=true], .mini-seg button[aria-pressed=true] { box-shadow: 0 1px 2px rgba(20, 24, 40, .08), 0 2px 6px -2px rgba(20, 24, 40, .14); }
   .mini-seg { display: inline-flex; gap: 3px; padding: 3px; background: var(--track); border-radius: 10px; }
   .mini-seg button { width: 38px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
   .mini-seg button[aria-pressed=true] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
@@ -509,6 +549,8 @@
   .icon-style[aria-checked=true] { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
   .icon-style .row { display: grid; grid-template-columns: repeat(4, minmax(0, 34px)); gap: 6px; }
   .icon-style .hicon { width: 100%; height: auto; aspect-ratio: 1; border-radius: 10px; font-size: 17px; }
+  .icon-style .hicon[data-st=line] { border-radius: 50%; }
+  .icon-style .hicon[data-st=color]::before { border-radius: 8px 8px 50% 50% / 8px 8px 30% 30%; }
   .icon-style b { font-weight: 600; font-size: 14px; }
 
   .form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
@@ -541,11 +583,17 @@
   .colors button:active { transform: scale(.9); }
   .form-prev {
     --c: var(--accent);
-    position: sticky; top: -22px; z-index: 2; margin: -6px -6px 0;
     display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px;
     background: color-mix(in srgb, var(--c) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--c) 32%, var(--border));
     box-shadow: 0 8px 18px -14px rgba(20, 24, 40, .45);
     transition: background-color .35s var(--ease-out), border-color .35s var(--ease-out);
+  }
+  .prev-dock {
+    position: sticky; top: -22px; z-index: 3; margin: -14px -22px -4px; padding: 14px 16px 4px; background: var(--card);
+  }
+  .prev-dock::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 16px; pointer-events: none;
+    background: linear-gradient(var(--card), color-mix(in srgb, var(--card) 0%, transparent));
   }
   .form-prev .hicon { flex: none; }
   .fp-text { flex: 1; min-width: 0; }
@@ -571,6 +619,30 @@
   .goal-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
   .stepper { display: flex; align-items: center; gap: 6px; flex: none; }
   .stepper input { width: 64px; text-align: center; }
+  .stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .stepper input { -moz-appearance: textfield; appearance: textfield; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stepper .icon-btn { font-size: 18px; border-radius: 12px; }
+  .seg-ic button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 9px 4px 8px; line-height: 1.15; }
+  .seg-ic svg.ic { width: 19px; height: 19px; flex: none; opacity: .7; transition: opacity .2s, color .2s; }
+  .seg-ic button > span { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .seg-ic button[aria-pressed=true] svg.ic { opacity: 1; color: var(--fc); }
+  .step-box { margin-top: 12px; padding: 12px 12px 14px; border-radius: 16px; background: var(--bg); }
+  .step-head { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .step-box .goal-row { margin-top: 8px; }
+  .step-box input[type=number] { background: var(--card); }
+  .step-sum { margin-left: auto; font-size: 13.5px; color: var(--muted); text-align: right; min-width: 0; }
+  .step-sum b { color: var(--fc); font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; transition: color .35s var(--ease-out); }
+  .step-chips { display: flex; gap: 6px; margin-top: 10px; }
+  .step-chips:empty { display: none; }
+  .step-chips button {
+    flex: 1; min-width: 0; height: 36px; padding: 0; border-radius: 10px; border-color: transparent; background: var(--card);
+    font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .step-chips button[aria-pressed=true] { background: var(--fc); color: #fff; }
+  .step-viz { display: flex; align-items: center; gap: 3px; height: 8px; margin-top: 12px; }
+  .step-viz i { height: 8px; min-width: 3px; border-radius: 99px; background: color-mix(in srgb, var(--fc) 80%, transparent); transform-origin: 50% 100%; transition: flex-grow .3s var(--ease-out), background-color .35s var(--ease-out); }
+  .step-viz i:nth-child(even) { background: color-mix(in srgb, var(--fc) 55%, transparent); }
+  .step-viz span { flex: none; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-left: 4px; }
   .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
   .weekdays button { padding: 10px 0; border-radius: 10px; background: var(--bg); border-color: transparent; color: var(--muted); }
   .weekdays button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
@@ -850,13 +922,13 @@
     .top-actions .add-btn { display: none; }
     .fab { display: inline-flex; }
     body:not(.reordering):not(.no-habits) .toast { bottom: calc(88px + env(safe-area-inset-bottom)); }
-    .habit { grid-template-columns: 40px 1fr auto; column-gap: 10px; padding: 12px 8px 12px 12px; }
+    .habit { grid-template-columns: 40px 1fr auto; column-gap: 10px; padding: 12px 10px 10px 12px; }
     .hicon { width: 40px; height: 40px; font-size: 20px; }
     .ctl { gap: 2px; }
     .more { width: 28px; margin-right: -4px; }
     .step-minus { width: 32px; height: 32px; }
-    .dots { gap: 3px; }
-    .dot { width: 18px; height: 18px; font-size: 9px; }
+    .dots { gap: 2px; margin-top: 10px; }
+    .dot { width: 26px; height: 26px; font-size: 11px; }
     .hero { padding: 16px; gap: 12px; }
     .hero-n b { font-size: 30px; }
     .weeknav > .icon-btn { width: 32px; }
@@ -1088,10 +1160,12 @@
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <form class="form" id="form">
-      <div class="form-prev" id="formPrev" aria-hidden="true">
-        <div class="hicon" id="fpIcon"></div>
-        <div class="fp-text"><div class="fp-name" id="fpName"></div><div class="fp-meta" id="fpMeta"></div></div>
-        <div class="fp-check"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <div class="prev-dock">
+        <div class="form-prev" id="formPrev" aria-hidden="true">
+          <div class="hicon" id="fpIcon"></div>
+          <div class="fp-text"><div class="fp-name" id="fpName"></div><div class="fp-meta" id="fpMeta"></div></div>
+          <div class="fp-check"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        </div>
       </div>
       <div class="field" id="tplField">
         <span class="lbl">Популярные</span>
@@ -1111,18 +1185,36 @@
       </div>
       <div class="field">
         <span class="lbl">Цель на день</span>
-        <div class="seg" id="goalSeg">
-          <button type="button" data-v="once">Один раз</button>
-          <button type="button" data-v="multi">Несколько раз</button>
+        <div class="seg seg-ic" id="goalSeg">
+          <button type="button" data-v="once"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.5 2.5 5-5.3"/></svg><span>Один раз</span></button>
+          <button type="button" data-v="multi"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="19" cy="12" r="2.6"/></svg><span>Несколько</span></button>
+          <button type="button" data-v="step"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19.5h4.5V15H13v-4.5h4.5V6H21"/></svg><span>С шагом</span></button>
         </div>
         <div class="collapse" id="goalWrap"><div>
-          <div class="goal-row">
-            <div class="stepper">
-              <button type="button" class="icon-btn" id="tMinus">−</button>
-              <input type="number" id="target" min="2" max="100" value="8">
-              <button type="button" class="icon-btn" id="tPlus">+</button>
+          <div class="goal-box">
+            <div class="goal-row">
+              <div class="stepper">
+                <button type="button" class="icon-btn" id="tMinus" aria-label="Меньше">−</button>
+                <input type="number" id="target" min="2" max="100" value="8" inputmode="numeric" aria-label="Цель на день">
+                <button type="button" class="icon-btn" id="tPlus" aria-label="Больше">+</button>
+              </div>
+              <input type="text" id="unit" maxlength="20" placeholder="единица, напр. стаканов">
             </div>
-            <input type="text" id="unit" maxlength="20" placeholder="единица, напр. стаканов">
+            <div class="collapse" id="stepWrap"><div>
+              <div class="step-box">
+                <div class="step-head">Шаг за одно нажатие</div>
+                <div class="goal-row">
+                  <div class="stepper">
+                    <button type="button" class="icon-btn" id="sMinus" aria-label="Меньше">−</button>
+                    <input type="number" id="step" min="1" value="5" inputmode="numeric" aria-label="Шаг">
+                    <button type="button" class="icon-btn" id="sPlus" aria-label="Больше">+</button>
+                  </div>
+                  <div class="step-sum" id="stepSum"></div>
+                </div>
+                <div class="step-chips" id="stepChips"></div>
+                <div class="step-viz" id="stepViz" aria-hidden="true"></div>
+              </div>
+            </div></div>
           </div>
         </div></div>
       </div>
@@ -1165,16 +1257,19 @@
               <div class="collapse" id="remTimesWrap"><div>
                 <div class="rem-sub">Время</div>
                 <div class="rem-times" id="remTimes"></div>
-                <div class="rem-sub" style="margin-top:14px">Повторить, если не отмечено</div>
+              </div></div>
+              <div class="collapse" id="remRepeatWrap"><div>
+                <div class="rem-sub">Повторить, если не отмечено</div>
                 <div class="seg" id="remRepeat">
                   <button type="button" data-v="0">Нет</button>
                   <button type="button" data-v="15">15 мин</button>
                   <button type="button" data-v="30">30 мин</button>
                   <button type="button" data-v="60">1 час</button>
                 </div>
-                <div class="collapse" id="remRepeatNWrap"><div>
+                <div class="rem-repeat" id="remRepeatNRow">
                   <div class="rem-inline">Не больше <div class="mini-seg" id="remRepeatN"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button></div> <span id="remRepeatWord">раз</span></div>
-                </div></div>
+                  <p class="rem-note" id="remRepeatNote"></p>
+                </div>
               </div></div>
               <div>
                 <div class="rem-sub">Дни</div>
@@ -1466,7 +1561,7 @@ const ICON_ART = {
 const ICON_KEYS = Object.keys(ICONS);
 const EMOJI_TO_ICON = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [v.e, k]));
 const ICON_STYLES = Object.fromEntries(Object.entries({
-  color: 'Цветные', tile: 'Цветная плитка', mono: 'Чёрно-белые', art: 'Иллюстрации', emoji: 'Эмодзи', line: 'Контурные',
+  color: 'Объёмные', tile: 'Неон', mono: 'Чёрно-белые', art: 'Иллюстрации', emoji: 'Эмодзи', line: 'Контурные',
 }).sort((a, b) => a[1].localeCompare(b[1], 'ru')));
 function applyIcons(style) {
   document.body.dataset.icons = style;
@@ -1503,6 +1598,8 @@ const TEMPLATES = [
   { name: 'Дневник', icon: 'pen', color: '#eab308', target: 1, time: 'evening' },
   { name: 'Витамины', icon: 'pill', color: '#ec4899', target: 1, time: 'morning' },
   { name: 'Без алкоголя', icon: 'noalcohol', color: '#8b5cf6', target: 1, time: 'any' },
+  { name: 'Йога', icon: 'meditate', color: '#14b8a6', target: 60, step: 15, unit: 'минут', time: 'morning' },
+  { name: 'Подтягивания', icon: 'strong', color: '#f97316', target: 100, step: 5, unit: 'раз', time: 'any' },
 ];
 const IC = {
   history: '<svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
@@ -1570,7 +1667,9 @@ function normalize(s) {
     if (typeof h.id !== 'string' || !h.id || seen.has(h.id)) h.id = `h${Date.now().toString(36)}${i}`;
     seen.add(h.id);
     h.name = String(h.name ?? '').trim().slice(0, 60) || 'Привычка';
-    h.target = Math.max(1, Math.min(100, parseInt(h.target) || 1));
+    h.target = Math.max(1, Math.min(10000, parseInt(h.target) || 1));
+    const st = parseInt(h.step) || 0;
+    if (st >= 1 && h.target > 1) h.step = Math.min(st, h.target); else { delete h.step; h.target = Math.min(100, h.target); }
     if (typeof h.icon !== 'string' || !h.icon || h.icon.length > 10) h.icon = 'check';
     if (!ICONS[h.icon]) h.icon = EMOJI_TO_ICON[h.icon] || EMOJI_TO_ICON[h.icon.replace(/️/g, '')] || (/[\x00-\x7f]/.test(h.icon) ? 'check' : h.icon);
     if (typeof h.color !== 'string' || !/^#[0-9a-f]{3,8}$/i.test(h.color)) h.color = COLORS[i % COLORS.length];
@@ -1579,7 +1678,7 @@ function normalize(s) {
     if (!h.days?.length || h.days.length === 7) h.days = null;
     h.unit = typeof h.unit === 'string' ? h.unit.slice(0, 20) : '';
     h.why = typeof h.why === 'string' ? h.why.slice(0, 120) : '';
-    h.remind = normRemind(h.remind, h.target);
+    h.remind = normRemind(h.remind, units(h));
     if (!h.remind) delete h.remind;
     if (!isKey(h.created)) h.created = todayKey();
     if (h.archived != null && !isKey(h.archived)) delete h.archived;
@@ -1630,6 +1729,10 @@ function setMap(map, k, id, v) {
   if (v) map[k][id] = v; else delete map[k][id];
   if (!Object.keys(map[k]).length) delete map[k];
 }
+function stepOf(h) { return h.step || 1; }
+function units(h) { return Math.ceil(h.target / stepOf(h)); }
+function stepUp(h, c) { return Math.min(h.target, c + stepOf(h)); }
+function stepDown(h, c) { return Math.max(0, c - (c % stepOf(h) || stepOf(h))); }
 function setCount(h, d, n) {
   n = Math.max(0, Math.min(h.target, n));
   setMap(state.log, key(d), h.id, n);
@@ -1931,7 +2034,7 @@ function habitMenu(anchor, id) {
     { icon: IC.history, label: 'История и статистика', run: () => openHistory(id) },
     '-',
     h.target > 1 && c < h.target && { icon: IC.full, label: 'Выполнить полностью', run: () => changeCount(h, viewDate, h.target) },
-    h.target > 1 && c > 0 && { icon: IC.minus, label: 'Убрать одно повторение', run: () => changeCount(h, viewDate, c - 1) },
+    h.target > 1 && c > 0 && { icon: IC.minus, label: h.step ? `Убрать шаг (−${c % h.step || h.step})` : 'Убрать одно повторение', run: () => changeCount(h, viewDate, stepDown(h, c)) },
     c > 0 && { icon: IC.reset, label: 'Сбросить отметку', run: () => changeCount(h, viewDate, 0) },
     (skipped || (isDue(h, viewDate) && !c)) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
     '-',
@@ -1982,7 +2085,6 @@ function buildCard(id) {
     <div class="info" tabindex="0" role="button" title="История и статистика">
       <div class="name"></div>
       <div class="meta"><span class="m-lead"></span><span class="m-streak"></span><span class="badge warn m-warn"><span class="w-long"></span></span></div>
-      <div class="dots">${'<div class="dcol"><span class="dw"></span><button class="dot"></button></div>'.repeat(7)}</div>
     </div>
     <div class="ctl">
     <button class="step-minus idle" title="Убрать одно повторение">${IC.minus}</button>
@@ -1999,6 +2101,7 @@ function buildCard(id) {
     <button class="ghost more" title="Действия">${IC.more}</button>
     </div>
     <button class="ghost drag-handle" title="Перетащите, чтобы изменить порядок (или стрелки ↑ ↓)" aria-label="Переместить привычку">${IC.grip}</button>
+    <div class="dots">${'<div class="dcol"><span class="dw"></span><button class="dot"></button></div>'.repeat(7)}</div>
     <div class="mh"></div>`;
   el.dataset.id = id;
   el.addEventListener('animationend', e => { if (e.target === el) el.classList.remove('enter'); });
@@ -2012,7 +2115,7 @@ function buildCard(id) {
   check.onclick = () => {
     if (el._held) { el._held = false; return; }
     const h = findHabit(id), c = count(h, viewDate);
-    changeCount(h, viewDate, c >= h.target ? h.target - 1 : c + 1);
+    changeCount(h, viewDate, c >= h.target ? stepDown(h, c) : stepUp(h, c));
   };
   let holdTimer = null, holdShow = null;
   const endHold = () => { clearTimeout(holdTimer); clearTimeout(holdShow); check.classList.remove('holding'); };
@@ -2028,7 +2131,7 @@ function buildCard(id) {
 
   el.querySelector('.step-minus').onclick = () => {
     const h = findHabit(id);
-    changeCount(h, viewDate, count(h, viewDate) - 1);
+    changeCount(h, viewDate, stepDown(h, count(h, viewDate)));
   };
   el.querySelector('.more').onclick = e => habitMenu(e.currentTarget, id);
   const info = el.querySelector('.info');
@@ -2208,16 +2311,16 @@ function updateCard(el, h) {
   el.classList.toggle('has-count', c > 0);
   setIcon(el.querySelector('.hicon'), h.icon);
   const sameDay = el._day === day;
-  const ringSvg = el.querySelector('.ring'), segmented = multi && h.target <= SEG_MAX;
+  const u = units(h), ringSvg = el.querySelector('.ring'), segmented = multi && u > 1 && u <= SEG_MAX;
   if (segmented) {
-    if (el._segN !== h.target) { buildSegments(ringSvg, h.target); el._segN = h.target; }
-    paintSegments(ringSvg, c, sameDay);
+    if (el._segN !== u) { buildSegments(ringSvg, u); el._segN = u; }
+    paintSegments(ringSvg, done ? u : Math.floor(c / stepOf(h)), sameDay);
   } else if (el._segN) { ringSvg.querySelectorAll('.seg').forEach(s => s.remove()); el._segN = 0; }
   ringSvg.classList.toggle('segmented', segmented);
   el.querySelector('.prog').style.strokeDashoffset = RING_C * (1 - c / h.target);
   const check = el.querySelector('.check');
   check.title = done ? (multi ? 'Выполнено — нажмите, чтобы убрать последнее повторение' : 'Выполнено — нажмите, чтобы снять отметку')
-    : multi ? 'Нажмите: +1 · удерживайте: выполнить целиком' : 'Отметить выполненной';
+    : multi ? `Нажмите: +${stepOf(h)} · удерживайте: выполнить целиком` : 'Отметить выполненной';
   check.setAttribute('aria-label', `${h.name}: ${multi ? `${c} из ${h.target}` : done ? 'выполнено' : 'не выполнено'}. ${check.title}`);
   check.setAttribute('aria-pressed', done);
   const minusBtn = el.querySelector('.step-minus');
@@ -2227,6 +2330,8 @@ function updateCard(el, h) {
 
   const num = el.querySelector('.num');
   const numText = multi && c > 0 && c < h.target ? String(c) : '';
+  num.classList.toggle('long', numText.length > 3);
+  minusBtn.title = h.step ? `Убрать шаг (−${c % h.step || h.step})` : 'Убрать одно повторение';
   if (numText) rollNumber(num, numText, c > (el._c ?? c) ? 1 : -1, sameDay);
   else if (!done) rollNumber(num, '', 1, false);
   const grew = sameDay && c > (el._c ?? c);
@@ -2261,7 +2366,9 @@ function updateCard(el, h) {
   const todayK = todayKey();
   el.querySelectorAll('.dcol').forEach((col, i) => {
     const d = addDays(viewDate, i - 6), k = key(d), v = count(h, d), dot = col.lastElementChild;
-    dot.className = 'dot ' + (v >= h.target ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : !isDue(h, d) ? 'off' : '') + (i === 6 ? ' cur' : '');
+    dot.className = 'dot ' + (v >= h.target ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : !isDue(h, d) ? 'off' : '');
+    col.classList.toggle('cur', i === 6);
+    col.classList.toggle('today', k === todayK);
     dot.textContent = d.getDate();
     dot.disabled = k > todayK || k < h.created;
     dot.title = dayTip(h, d);
@@ -2582,8 +2689,9 @@ function syncPreview() {
   const name = $('name').value.trim();
   $('fpName').textContent = name || 'Название привычки';
   $('fpName').classList.toggle('ph', !name);
-  const n = clampTarget($('target').value), unit = $('unit').value.trim();
-  const goal = form.goal === 'multi' ? `${n} ${unit || plural(n, 'раз', 'раза', 'раз')} в день` : 'Один раз в день';
+  const n = formTarget(), unit = $('unit').value.trim();
+  const goal = form.goal === 'once' ? 'Один раз в день'
+    : `${n} ${unit || plural(n, 'раз', 'раза', 'раз')} в день` + (form.goal === 'step' ? ` · шаг ${formStep()}` : '');
   const sched = form.sched === 'daily' || form.days.length === 7 ? 'каждый день'
     : form.days.length ? schedText({ days: form.days }) : 'дни не выбраны';
   const time = TIMES.find(t => t.v === form.time);
@@ -2595,14 +2703,16 @@ function syncPreview() {
   }
 }
 for (const id of ['name', 'unit']) $(id).addEventListener('input', syncPreview);
-$('target').addEventListener('input', () => { renderRem(); syncPreview(); });
+$('target').addEventListener('input', () => goalInput());
 
 const REM_DEFAULT = { morning: ['08:00', '07:00', '12:00'], day: ['13:00', '10:00', '18:00'], evening: ['20:00', '17:00', '22:00'], any: ['09:00', '09:00', '21:00'] };
 const remDefaults = () => REM_DEFAULT[form.time] || REM_DEFAULT.any;
-const remTarget = () => form.goal === 'multi' ? clampTarget($('target').value) : 1;
+const formTarget = () => form.goal === 'once' ? 1 : clampTarget($('target').value);
+const formStep = () => form.goal === 'step' ? clampStep($('step').value) : 1;
+const remTarget = () => Math.ceil(formTarget() / formStep());
 const habitDays = () => form.sched === 'days' && form.days.length && form.days.length < 7 ? form.days : [0, 1, 2, 3, 4, 5, 6];
 const remDays = () => { const all = habitDays(), d = (form.rem.days || all).filter(x => all.includes(x)); return d.length ? d : all; };
-const remIsSpread = () => form.rem.mode === 'spread' && form.goal === 'multi';
+const remIsSpread = () => form.rem.mode === 'spread' && remTarget() > 1;
 const fmtDur = m => { const h = Math.floor(m / 60), mm = Math.round(m % 60); return [h && `${h} ч`, mm && `${mm} мин`].filter(Boolean).join(' ') || 'меньше минуты'; };
 const fmtShortDay = k => parseKey(k).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
 const fmtPickDay = k => {
@@ -2616,7 +2726,7 @@ function remFromHabit(h) {
   const [t, f, to] = remDefaults();
   const r = h?.remind;
   return {
-    on: !!r, touched: !!r, mode: r?.spread ? 'spread' : r ? 'times' : (form.goal === 'multi' ? 'spread' : 'times'),
+    on: !!r, touched: !!r, mode: r?.spread ? 'spread' : r ? 'times' : (form.goal !== 'once' ? 'spread' : 'times'),
     times: r?.times ? [...r.times] : [t], repeat: r?.repeat || 0, repeatN: r?.repeatN || 1,
     from: r?.spread?.from || f, to: r?.spread?.to || to,
     days: r?.days ? [...r.days] : null, dates: !!(r?.from || r?.to), dFrom: r?.from || '', dTo: r?.to || '',
@@ -2672,7 +2782,7 @@ function renderTimes(enterIndex = -1) {
 }
 
 function renderRem() {
-  const r = form.rem, multi = form.goal === 'multi';
+  const r = form.rem, multi = remTarget() > 1;
   if (!r.touched) {
     const [t, f, to] = remDefaults();
     const before = r.times.join();
@@ -2697,7 +2807,19 @@ function renderRem() {
     : `${n} ${plural(n, 'напоминание', 'напоминания', 'напоминаний')}, примерно каждые ${fmtDur(span / Math.max(1, n - 1))}. Придут, только если Вы отстаёте от плана.`;
   $('remSpreadNote').style.color = span <= 0 ? 'var(--danger)' : '';
   $('remRepeat').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === r.repeat));
-  setCollapse($('remRepeatNWrap'), r.repeat > 0);
+  setCollapse($('remRepeatWrap'), !remIsSpread());
+  const rOn = r.repeat > 0, row = $('remRepeatNRow');
+  row.classList.toggle('off', !rOn);
+  row.querySelectorAll('button').forEach(b => { b.disabled = !rOn; });
+  let note = 'Напоминание придёт один раз в указанное время.';
+  if (rOn) {
+    const after = Array.from({ length: r.repeatN }, (_, k) => (k + 1) * r.repeat);
+    const fmtAfter = m => m % 60 ? `${m} мин` : m === 60 ? 'час' : `${m / 60} ч`;
+    note = r.times.length === 1
+      ? (r.repeatN === 1 ? 'Ещё раз' : `Ещё ${r.repeatN} ${plural(r.repeatN, 'раз', 'раза', 'раз')}`) + ` в ${joinAnd(after.map(m => toMin(r.times[0]) + m).filter(m => m < 1440).map(fromMin))}, если привычка не отмечена.`
+      : `Через ${joinAnd(after.map(fmtAfter))} после каждого времени, если привычка не отмечена.`;
+  }
+  $('remRepeatNote').textContent = note;
   $('remRepeatN').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === r.repeatN));
   $('remRepeatWord').textContent = plural(r.repeatN, 'раза', 'раз', 'раз');
   const all = habitDays(), sel = remDays();
@@ -2835,7 +2957,11 @@ function syncForm() {
   press($('schedSeg'), v => v === form.sched);
   press($('weekdays'), v => form.days.includes(+v));
   press($('timeSeg'), v => v === form.time);
-  setCollapse($('goalWrap'), form.goal === 'multi');
+  setCollapse($('goalWrap'), form.goal !== 'once');
+  setCollapse($('stepWrap'), form.goal === 'step');
+  $('target').max = form.goal === 'step' ? 10000 : 100;
+  if (form.goal !== 'once') $('target').value = clampTarget($('target').value);
+  renderStep();
   setCollapse($('daysWrap'), form.sched === 'days');
   if (form.cat && !catName(form.cat)) form.cat = null;
   $('catChips').innerHTML = [{ id: '', name: 'Без типа' }, ...state.categories]
@@ -2882,14 +3008,59 @@ $('templates').onclick = e => {
   if (!b) return;
   const t = TEMPLATES[b.dataset.i];
   $('name').value = t.name;
-  Object.assign(form, { icon: t.icon, color: t.color, time: t.time, goal: t.target > 1 ? 'multi' : 'once' });
+  Object.assign(form, { icon: t.icon, color: t.color, time: t.time, goal: t.step ? 'step' : t.target > 1 ? 'multi' : 'once' });
   if (t.target > 1) $('target').value = t.target;
+  if (t.step) $('step').value = t.step;
   $('unit').value = t.unit || '';
   syncForm();
 };
-const clampTarget = v => Math.max(2, Math.min(100, parseInt(v) || 2));
-$('tMinus').onclick = () => { $('target').value = clampTarget($('target').value - 1); syncPreview(); };
-$('tPlus').onclick = () => { $('target').value = clampTarget(+$('target').value + 1); syncPreview(); };
+const clampTarget = v => Math.max(2, Math.min(form.goal === 'step' ? 10000 : 100, parseInt(v) || 2));
+const clampStep = v => Math.max(1, Math.min(clampTarget($('target').value), parseInt(v) || 1));
+const goalInput = () => { renderStep(); renderRem(); syncPreview(); };
+const targetBy = dir => {
+  const t = clampTarget($('target').value), s = form.goal === 'step' ? formStep() : 1;
+  $('target').value = clampTarget(dir > 0 ? (Math.floor(t / s) + 1) * s : (Math.ceil(t / s) - 1) * s);
+  goalInput();
+};
+$('tMinus').onclick = () => targetBy(-1);
+$('tPlus').onclick = () => targetBy(1);
+$('sMinus').onclick = () => { $('step').value = clampStep(formStep() - 1); goalInput(); };
+$('sPlus').onclick = () => { $('step').value = clampStep(formStep() + 1); goalInput(); };
+$('step').addEventListener('input', goalInput);
+$('step').addEventListener('change', () => { $('step').value = formStep(); goalInput(); });
+$('target').addEventListener('change', () => { $('target').value = clampTarget($('target').value); goalInput(); });
+$('stepChips').onclick = e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  $('step').value = clampStep(b.dataset.v);
+  goalInput();
+};
+const STEP_PRESETS = [2, 5, 10, 15, 20, 25, 30, 50, 100, 250, 500];
+function renderStep() {
+  if (form.goal !== 'step') return;
+  const t = formTarget(), s = formStep(), u = Math.ceil(t / s);
+  if (document.activeElement !== $('step')) $('step').value = s;
+  $('step').max = t;
+  $('stepSum').innerHTML = `<b>${u}</b> ${plural(u, 'нажатие', 'нажатия', 'нажатий')} до цели`;
+  const presets = STEP_PRESETS.filter(v => v < t && t / v <= 60);
+  const chips = (presets.length > 5 ? presets.filter((v, i) => i >= presets.length - 5) : presets);
+  const chipKey = chips.join();
+  if ($('stepChips').dataset.k !== chipKey) {
+    $('stepChips').dataset.k = chipKey;
+    $('stepChips').innerHTML = chips.map(v => `<button type="button" data-v="${v}">${v}</button>`).join('');
+  }
+  $('stepChips').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === s));
+  const viz = $('stepViz'), show = Math.min(u, 20), vizKey = `${t}/${s}`;
+  if (viz.dataset.k === vizKey) return;
+  const prevN = +viz.dataset.n || 0;
+  viz.dataset.k = vizKey; viz.dataset.n = show;
+  const last = (t % s || s) / s;
+  viz.innerHTML = Array.from({ length: show }, (_, i) => `<i style="flex:${i === u - 1 ? last : 1}"></i>`).join('')
+    + (u > show ? `<span>+${u - show}</span>` : '');
+  if (!reducedMotion && $('formOv')._shown) viz.querySelectorAll('i').forEach((el, i) => {
+    if (i >= prevN) el.animate([{ opacity: 0, transform: 'scaleY(.2)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: Math.min(i - prevN, 10) * 22, easing: 'cubic-bezier(.34, 1.56, .64, 1)', fill: 'backwards' });
+  });
+}
 
 function openForm(id = null) {
   const h = id && findHabit(id);
@@ -2901,12 +3072,14 @@ function openForm(id = null) {
     : '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Добавить привычку';
   $('tplField').hidden = !!h;
   Object.assign(form, h
-    ? { icon: h.icon, color: h.color, goal: h.target > 1 ? 'multi' : 'once', sched: h.days ? 'days' : 'daily', days: h.days ? [...h.days] : [0, 1, 2, 3, 4], time: h.time, cat: h.cat }
+    ? { icon: h.icon, color: h.color, goal: h.step ? 'step' : h.target > 1 ? 'multi' : 'once', sched: h.days ? 'days' : 'daily', days: h.days ? [...h.days] : [0, 1, 2, 3, 4], time: h.time, cat: h.cat }
     : { icon: 'check', color: COLORS[state.habits.length % COLORS.length], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null },
     { newCat: false });
   $('newCatName').value = '';
   $('name').value = h?.name || '';
   $('target').value = h && h.target > 1 ? h.target : 8;
+  $('step').value = h?.step || 5;
+  delete $('stepViz').dataset.k; delete $('stepViz').dataset.n;
   $('unit').value = h?.unit || '';
   $('why').value = h?.why || '';
   form.rem = remFromHabit(h);
@@ -3000,18 +3173,20 @@ $('form').onsubmit = e => {
     $('rem').scrollIntoView({ block: 'center', behavior: 'smooth' });
     return toast('Напоминания: конец промежутка должен быть позже начала', null, '');
   }
-  const target = form.goal === 'multi' ? clampTarget($('target').value) : 1;
+  const target = formTarget(), step = form.goal === 'step' ? formStep() : 0;
   const data = {
     name, target, icon: form.icon, color: form.color, time: form.time,
-    unit: form.goal === 'multi' ? $('unit').value.trim() : '',
+    unit: form.goal !== 'once' ? $('unit').value.trim() : '',
     days: form.sched === 'days' && form.days.length < 7 ? [...form.days] : null,
     why: $('why').value.trim(),
     cat: form.cat && catName(form.cat) ? form.cat : null,
     remind: remToData(),
   };
+  if (step) data.step = step;
   const h = editingId && findHabit(editingId);
   if (h) {
     Object.assign(h, data, { updated: todayKey() });
+    if (!step) delete h.step;
     for (const k in state.log) if (state.log[k][h.id] > target) state.log[k][h.id] = target;
   } else {
     state.habits.push({ id: crypto.randomUUID?.() || String(Date.now()), created: todayKey(), ...data });
@@ -3084,7 +3259,7 @@ function renderHistory() {
   setIcon($('hIcon'), h.icon);
   $('hName').textContent = h.name;
   const time = TIMES.find(t => t.v === h.time);
-  const goal = h.target > 1 ? `${h.target} ${h.unit || 'раз'} в день` : '1 раз в день';
+  const goal = (h.target > 1 ? `${h.target} ${h.unit || 'раз'} в день` : '1 раз в день') + (h.step > 1 ? ` · шаг ${h.step}` : '');
   $('hTags').innerHTML = [
     h.archived ? '<span class="tag arch">В архиве</span>' : '',
     `<span class="tag">${esc(goal)}</span>`,
@@ -3372,13 +3547,10 @@ $('reorderBtn').onclick = () => { closeOverlay($('viewOv')); setReorder(true); }
 
 function previewIcon(style, icon, c) {
   const def = ICONS[icon];
-  const bg = style === 'tile' ? c : style === 'mono' ? 'var(--track)' : style === 'line' ? 'transparent' : `color-mix(in srgb, ${c} ${style === 'art' ? 9 : 14}%, var(--card))`;
-  const fg = style === 'tile' ? '#fff' : style === 'mono' ? 'var(--text)' : c;
-  const shape = style === 'line' ? `border:2px solid ${c};border-radius:50%` : 'border:0';
   const inner = style === 'emoji' ? def.e
     : style === 'art' ? `<svg class="ha" viewBox="0 0 24 24" aria-hidden="true">${ICON_ART[icon]}</svg>`
     : `<svg class="hi" viewBox="0 0 24 24" aria-hidden="true">${def.s}</svg>`;
-  return `<span class="hicon" style="background:${bg};color:${fg};${shape}">${inner}</span>`;
+  return `<span class="hicon" data-st="${style}" style="--c:${c}">${inner}</span>`;
 }
 function renderSettings() {
   const cur = document.body.dataset.icons;
