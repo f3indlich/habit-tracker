@@ -162,7 +162,7 @@ rem.log[T] = { ...(rem.log[T] || {}), y: 30 };
 const mg = mergeStates(base, loc, rem);
 ok('merge keeps local step & remote log', mg.habits.find(h => h.id === 'p').step === 10 && mg.log[T].y === 30);
 
-const src = await (await fetch('supabase/functions/send-reminders/index.ts?x=' + Date.now())).text();
+const src = await (await fetch((window.__serverSrc || 'supabase/functions/send-reminders/index.ts') + '?x=' + Date.now())).text();
 const code = src.replace(/^import .*$/mg, '').replace(/if \(typeof Deno[\s\S]*$/, '') + '\nreturn { slotsFor, dueReminders, payloadFor, localNow };';
 const S = new Function(code)();
 const loc9 = { day: '2026-10-25', minutes: 9 * 60, weekday: 6 };

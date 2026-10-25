@@ -102,7 +102,7 @@ try { localStorage.removeItem(BASE_STORE); } catch {}
 
 state.profile = { name: 'Андрей' }; viewDate = new Date(); render();
 const hl = $('hello'), dt = hl.querySelector('.hello-date');
-ok('greeting has numeric date', /^\d{2}\.\d{2}\.\d{4}$/.test(dt?.textContent) && hl.textContent.includes(', Андрей · '), hl.textContent);
+ok('greeting has numeric date', /^\d{2}\.\d{2}\.\d{4} г\.$/.test(dt?.textContent) && hl.textContent.includes(', Андрей · '), hl.textContent);
 ok('greeting fits one line in full', hl.getBoundingClientRect().height < 22 && hl.scrollWidth <= hl.clientWidth + 1 && getComputedStyle(hl).textOverflow !== 'ellipsis', { h: hl.getBoundingClientRect().height, sw: hl.scrollWidth, cw: hl.clientWidth });
 ok('greeting spans full header width', Math.abs(hl.getBoundingClientRect().right - document.querySelector('.top').getBoundingClientRect().right) < 1);
 const tr = $('title').getBoundingClientRect(), sb = $('setBtn').getBoundingClientRect();
@@ -137,9 +137,9 @@ ok('second tap closes habit info', !menuEl);
 closeOverlay($('histOv')); hist = null; await wait(400);
 
 renderSettings(); openOverlay($('setOv')); await wait(700);
-const ver = (document.querySelector('script[src*="app.js"]').src.match(/\?v(\d+)/) || [])[1];
-ok('about version', $('appVersion').textContent === `Версия ${ver}`, $('appVersion').textContent);
-ok('about updated date', !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} в \d\d:\d\d$/.test($('appUpdated').textContent), $('appUpdated').textContent);
+const ver = (document.querySelector('script[src*="app.js"]').src.match(/[?&]v=([^&#]+)/) || [])[1];
+ok('about version', /^\d+\.\d{2}[a-z]?$/.test(ver) && $('appVersion').textContent === `Версия ${ver}`, $('appVersion').textContent);
+ok('about updated date', !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} г\. в \d\d:\d\d$/.test($('appUpdated').textContent), $('appUpdated').textContent);
 ok('about note', $('setOv').querySelector('.about-txt small').textContent === 'Реализовано для удобства');
 ok('about is last in data block', $('importFile').nextElementSibling.classList.contains('app-about'));
 closeOverlay($('setOv')); await wait(400);
