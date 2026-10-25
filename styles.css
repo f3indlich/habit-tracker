@@ -207,6 +207,7 @@ body[data-icons=mono] .habit.complete { background: color-mix(in srgb, var(--tex
 .meta .m-lead { flex: 0 0 auto; }
 .meta .m-warn.on { flex-shrink: 1; min-width: 0; padding: 2px 7px; }
 .badge.warn.calm { color: var(--muted); background: var(--track); }
+.badge.warn.stale { cursor: pointer; color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); }
 .meta .m-streak, .meta .m-warn {
   flex: none; max-width: 0; opacity: 0; margin-left: 0; overflow: hidden;
   transition: max-width .4s var(--ease-out), opacity .25s var(--ease-out), margin-left .4s var(--ease-out);
@@ -655,7 +656,7 @@ body[data-icons=line] .emoji-grid .hicon { border-radius: 50%; }
 .h-title h2 { line-height: 1.2; }
 .h-tags { display: flex; gap: 6px; margin: 0 -22px 16px; padding: 0 22px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
 .h-tags::-webkit-scrollbar { display: none; }
-.h-tags.more { mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); }
+.h-tags.overflow { mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); }
 .tag {
   font-size: 12.5px; font-weight: 500; color: var(--muted); background: var(--bg);
   border-radius: 999px; padding: 4px 10px; white-space: nowrap; flex: none; line-height: 1.3;
@@ -717,6 +718,11 @@ body.reordering .wrap { padding-bottom: 110px; }
 .pop-lead { margin: 8px 0 12px; font-size: 15px; font-weight: 600; line-height: 1.4; }
 .pop-sec { font-size: 13.5px; line-height: 1.45; color: var(--muted); padding: 10px 0; border-top: 1px solid var(--border); }
 .pop-sec b { display: block; color: var(--c); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+.pop-actions { display: flex; gap: 8px; padding: 4px 0 10px; }
+.menu .pop-actions button { flex: 1; justify-content: center; text-align: center; padding: 10px; border-radius: 11px; font-weight: 600; background: var(--bg); }
+.menu .pop-actions button:hover { background: var(--track); color: var(--text); }
+.menu .pop-actions .primary { background: var(--c); color: #fff; }
+.menu .pop-actions .primary:hover { background: color-mix(in srgb, var(--c) 88%, #000); }
 .tile-i {
   position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
   display: grid; place-items: center; background: transparent; color: var(--muted); opacity: .7;

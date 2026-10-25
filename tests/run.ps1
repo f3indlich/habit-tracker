@@ -1,4 +1,4 @@
-﻿param([int]$Port = 8766, [int]$TimeoutSec = 240)
+﻿param([int]$Port = 8766, [int]$TimeoutSec = 300, [string]$App = '')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $browser = @(
@@ -15,9 +15,12 @@ $debugPort = Get-Random -Minimum 9300 -Maximum 9800
 $proc = $null
 try {
   Start-Sleep -Seconds 2
-  $proc = Start-Process $browser -PassThru -ArgumentList @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
+  $page = "http://localhost:$Port/tests/?auto"
+  $extra = @()
+  if ($App) { $page += '&app=' + [Uri]::EscapeDataString($App); $extra = @('--disable-web-security') }
+  $proc = Start-Process $browser -PassThru -ArgumentList ($extra + @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     '--disable-background-timer-throttling', '--disable-renderer-backgrounding', "--user-data-dir=$prof",
-    "--remote-debugging-port=$debugPort", '--window-size=1280,1000', "http://localhost:$Port/tests/?auto")
+    "--remote-debugging-port=$debugPort", '--window-size=1280,1000', $page))
   $target = $null
   for ($i = 0; $i -lt 40 -and -not $target; $i++) {
     Start-Sleep -Milliseconds 500

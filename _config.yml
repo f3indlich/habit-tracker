@@ -1,0 +1,7 @@
+exclude:
+  - tests
+  - supabase
+  - supabase-push.sql
+  - supabase-setup.sql
+  - README.md
+  - demo-data.json

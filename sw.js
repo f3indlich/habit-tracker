@@ -1,11 +1,12 @@
-const VERSION = 'v28';
+const VERSION = '1.00a';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const SHELL_FILES = [
   './',
   './index.html',
-  `./styles.css?${VERSION}`,
-  `./app.js?${VERSION}`,
+  `./styles.css?v=${VERSION}`,
+  `./app.js?v=${VERSION}`,
+  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push'].map(m => `./js/${m}.js?v=${VERSION}`),
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/apple-touch-icon.png',
@@ -25,7 +26,7 @@ const SHELL_FILES = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {

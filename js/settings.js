@@ -1,0 +1,162 @@
+import { $, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.00a';
+import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=1.00a';
+import { normalize, save, setState, state } from './storage.js?v=1.00a';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.00a';
+import { cards, render, setWasAllDone } from './render.js?v=1.00a';
+import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=1.00a';
+import { hist, renderHistory } from './history.js?v=1.00a';
+import { renderAccount } from './sync.js?v=1.00a';
+
+export function applyIcons(style) {
+  document.body.dataset.icons = style;
+  render();
+  if (hist) renderHistory();
+  if ($('formOv')._shown) { drawIconPickers(); syncForm(); }
+}
+export function previewIcon(style, icon, c) {
+  const def = ICONS[icon];
+  const inner = style === 'emoji' ? def.e
+    : style === 'art' ? `<svg class="ha" viewBox="0 0 24 24" aria-hidden="true">${ICON_ART[icon]}</svg>`
+    : `<svg class="hi" viewBox="0 0 24 24" aria-hidden="true">${def.s}</svg>`;
+  return `<span class="hicon" data-st="${style}" style="--c:${c}">${inner}</span>`;
+}
+export function renderSettings() {
+  const cur = document.body.dataset.icons;
+  const sample = [['run', '#f97316'], ['book', '#3b82f6'], ['water', '#06b6d4'], ['leaf', '#22c55e']].filter(([k]) => ICONS[k]);
+  $('iconStyles').innerHTML = Object.entries(ICON_STYLES).map(([id, label]) =>
+    `<button type="button" class="icon-style" role="radio" aria-checked="${id === cur}" data-s="${id}">
+      <span class="row">${sample.map(([k, c]) => previewIcon(id, k, c)).join('')}</span><b>${label}</b>
+    </button>`).join('');
+  renderCatsInfo();
+  renderAccount();
+  renderAbout();
+}
+export const APP_SRC = document.querySelector('script[src*="app.js"]')?.src || '';
+export const APP_VERSION = (APP_SRC.match(/[?&]v=([^&#]+)/) || [])[1] || '';
+export let aboutDone = false;
+export async function renderAbout() {
+  $('appVersion').textContent = APP_VERSION ? `Версия ${APP_VERSION}` : 'Версия неизвестна';
+  if (aboutDone || !APP_SRC) return;
+  try {
+    const lm = (await fetch(APP_SRC)).headers.get('last-modified');
+    const d = lm && new Date(lm);
+    if (!d || isNaN(d)) return;
+    aboutDone = true;
+    $('appUpdated').textContent = `Обновлено ${withYear(d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }))} в ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    $('appUpdated').hidden = false;
+  } catch {}
+}
+$('setBtn').onclick = () => { renderSettings(); openOverlay($('setOv')); };
+$('setCats').onclick = openCats;
+$('iconStyles').onclick = e => {
+  const b = e.target.closest('[data-s]');
+  if (!b) return;
+  setPref(ICON_STORE, b.dataset.s); applyIcons(b.dataset.s); renderSettings();
+};
+
+export const THEMES = { auto: ['Системная', 'auto'], light: ['Светлая', 'sun'], dark: ['Тёмная', 'moon'] };
+export function applyTheme(t) {
+  if (!THEMES[t]) t = 'auto';
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.dataset.theme = t;
+  document.querySelectorAll('meta[name=theme-color]').forEach(m => {
+    m.content = t === 'dark' ? '#0e1015' : t === 'light' ? '#f4f5f9' : m.media.includes('dark') ? '#0e1015' : '#f4f5f9';
+  });
+  $('themeSeg').innerHTML = Object.entries(THEMES).map(([id, [label, ic]]) =>
+    `<button type="button" role="radio" aria-checked="${id === t}" data-t="${id}">${IC[ic]}<span>${label}</span></button>`).join('');
+}
+$('themeSeg').onclick = e => {
+  const b = e.target.closest('[data-t]');
+  if (!b) return;
+  setPref(THEME_STORE, b.dataset.t); applyTheme(b.dataset.t);
+};
+
+$('exportBtn').onclick = async () => {
+  const name = `habits-${todayKey()}.json`;
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const file = new File([blob], name, { type: 'application/json' });
+  if (matchMedia('(display-mode: standalone)').matches && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'Трекер привычек' }); return; }
+    catch (err) { if (err.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = async e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  let data;
+  try { data = JSON.parse(await file.text()); } catch { return toast('Не удалось прочитать файл'); }
+  if (!data || !Array.isArray(data.habits) || !data.log || typeof data.log !== 'object') return toast('Это не файл трекера привычек');
+  const ok = await askConfirm('Заменить данные?', `Текущие привычки будут заменены данными из файла (${data.habits.length} шт.).`, 'Заменить');
+  if (!ok) return;
+  setState(normalize(data));
+  cards.forEach(el => el.remove()); cards.clear();
+  setWasAllDone(null);
+  save(); render();
+  toast('Данные импортированы');
+};
+
+export let installPrompt = null;
+
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; updateInstallBtn(); });
+addEventListener('appinstalled', () => { installPrompt = null; updateInstallBtn(); toast('Приложение установлено'); });
+export function updateInstallBtn() {
+  $('installBtn').hidden = isStandalone() || !(installPrompt || isIOS || isMacSafari || isAndroid);
+}
+$('installBtn').onclick = async () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice.catch(() => ({}));
+    if (outcome === 'accepted') installPrompt = null;
+    updateInstallBtn();
+    return;
+  }
+  const share = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 15V3.5M8 7.5l4-4 4 4M7 10.5H5.5v10h13v-10H17"/></svg>';
+  const plus = '<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg>';
+  const steps = isIOS ? [
+    /CriOS|FxiOS|EdgiOS/.test(UA)
+      ? `Нажмите <span class="k">${share} Поделиться</span> в адресной строке`
+      : `Нажмите <span class="k">${share} Поделиться</span> внизу экрана Safari`,
+    `Выберите <span class="k">${plus} На экран «Домой»</span> (если не видно — пролистайте список вниз)`,
+    'Нажмите <span class="k">Добавить</span> — иконка «Привычки» появится на экране',
+  ] : isMacSafari ? [
+    'В меню Safari откройте <span class="k">Файл</span>',
+    'Выберите <span class="k">Добавить в Dock…</span>',
+    'Нажмите <span class="k">Добавить</span> — приложение появится в Dock и Launchpad',
+  ] : [
+    'Откройте меню браузера <span class="k">⋮</span>',
+    'Выберите <span class="k">Установить приложение</span> или <span class="k">Добавить на главный экран</span>',
+    'Подтвердите — иконка «Привычки» появится среди приложений',
+  ];
+  $('installSteps').innerHTML = steps.map(s => `<li><span>${s}</span></li>`).join('');
+  openOverlay($('installOv'));
+};
+matchMedia('(display-mode: standalone)').addEventListener?.('change', updateInstallBtn);
+
+export const NAME_ASKED = NS + '-name-asked';
+export function userName() { return state.profile?.name || ''; }
+export function openName(first) {
+  $('nameTitle').textContent = first ? 'Как Вас зовут?' : 'Ваше имя';
+  $('nameSkip').textContent = first ? 'Пропустить' : 'Отмена';
+  $('nameInput').value = userName();
+  openOverlay($('nameOv'));
+  setTimeout(() => $('nameInput').focus({ preventScroll: true }), 80);
+}
+$('nameForm').onsubmit = e => {
+  e.preventDefault();
+  const name = $('nameInput').value.trim().slice(0, 40);
+  if (name === userName()) return closeOverlay($('nameOv'));
+  if (name) state.profile = { name }; else delete state.profile;
+  save(); render();
+  closeOverlay($('nameOv'));
+  if (name) toast(`Приятно познакомиться, ${name}!`);
+};
+$('nameSkip').onclick = () => closeOverlay($('nameOv'));
+$('setName').onclick = () => openName(false);
+$('setLogin').onclick = () => { openOverlay($('acctOv')); renderAccount(); };

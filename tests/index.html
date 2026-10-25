@@ -33,14 +33,19 @@
   <iframe id="app" title="Приложение в тестовом режиме"></iframe>
 </main>
 <script>
-const SUITES = [['Основные функции', 'app.test.js'], ['Старые функции', 'regress.test.js'], ['Интерфейс', 'ui.test.js']];
+const SUITES = [['Основные функции', 'app.test.js'], ['Старые функции', 'regress.test.js'], ['Интерфейс', 'ui.test.js'], ['Модули, бейджи и даты', 'v1.test.js']];
 const frame = document.getElementById('app'), out = document.getElementById('out'), sum = document.getElementById('sum'), btn = document.getElementById('run');
 const line = (text, cls) => { const d = document.createElement('div'); d.textContent = text; if (cls) d.className = cls; out.append(d); };
-const loadApp = () => new Promise(res => {
-  try { for (const k of Object.keys(localStorage)) if (k.startsWith('habit-tracker-test')) localStorage.removeItem(k); } catch {}
-  frame.onload = () => setTimeout(res, 900);
-  frame.src = '../index.html?test&r=' + Date.now();
-});
+const APP = new URLSearchParams(location.search).get('app') || '../index.html';
+const SERVER_SRC = new URL('../supabase/functions/send-reminders/index.ts', location.href).href;
+const openApp = () => new Promise(res => { frame.onload = res; frame.src = APP + (APP.includes('?') ? '&' : '?') + 'test&r=' + Date.now(); });
+const loadApp = async () => {
+  await openApp();
+  try { const ls = frame.contentWindow.localStorage; for (const k of Object.keys(ls)) if (k.startsWith('habit-tracker-test')) ls.removeItem(k); } catch {}
+  await openApp();
+  await new Promise(r => setTimeout(r, 900));
+  frame.contentWindow.__serverSrc = SERVER_SRC;
+};
 async function run() {
   btn.disabled = true; out.textContent = ''; sum.textContent = 'Идёт проверка…'; sum.className = '';
   let pass = 0, fail = 0;
