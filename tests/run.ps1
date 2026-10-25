@@ -17,7 +17,7 @@ try {
   Start-Sleep -Seconds 2
   $page = "http://localhost:$Port/tests/?auto"
   $extra = @()
-  if ($App) { $page += '&app=' + [Uri]::EscapeDataString($App); $extra = @('--disable-web-security') }
+  if ($App) { $page += '&app=' + [Uri]::EscapeDataString($App); $extra = @('--disable-web-security', '--disable-site-isolation-trials', '--disable-features=IsolateOrigins,site-per-process') }
   $proc = Start-Process $browser -PassThru -ArgumentList ($extra + @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     '--disable-background-timer-throttling', '--disable-renderer-backgrounding', "--user-data-dir=$prof",
     "--remote-debugging-port=$debugPort", '--window-size=1280,1000', $page))
