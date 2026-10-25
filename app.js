@@ -1087,7 +1087,7 @@ function render() {
   $('setNameVal').textContent = uname || 'Не указано';
   $('hello').innerHTML = isToday(viewDate)
     ? esc(hr < 5 ? 'Доброй ночи' : hr < 12 ? 'Доброе утро' : hr < 18 ? 'Добрый день' : 'Добрый вечер') + (uname ? ', ' + esc(uname) : '') +
-      `<span class="hello-date"> · ${esc(now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }))}</span>`
+      ` · <span class="hello-date">${now.toLocaleDateString('ru-RU')}</span>`
     : esc(viewDate.toLocaleDateString('ru-RU', { weekday: 'long' }));
   const otherYear = viewDate.getFullYear() !== now.getFullYear();
   $('title').textContent = isToday(viewDate) ? 'Сегодня'

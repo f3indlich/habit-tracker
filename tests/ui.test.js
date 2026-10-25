@@ -100,8 +100,15 @@ ok('no repeated sync after reordered pull', selects.join() === 'version' && upda
 cloud.session = null; cloud.sb = null; setSync('off');
 try { localStorage.removeItem(BASE_STORE); } catch {}
 
-state.profile = { name: 'Александра Константиновна' }; viewDate = new Date(); render();
-ok('greeting stays one line with long name', $('hello').getBoundingClientRect().height < 22 && $('hello').textContent.includes('Александра'), $('hello').getBoundingClientRect().height);
+state.profile = { name: 'Андрей' }; viewDate = new Date(); render();
+const hl = $('hello'), dt = hl.querySelector('.hello-date');
+ok('greeting has numeric date', /^\d{2}\.\d{2}\.\d{4}$/.test(dt?.textContent) && hl.textContent.includes(', Андрей · '), hl.textContent);
+ok('greeting fits one line in full', hl.getBoundingClientRect().height < 22 && hl.scrollWidth <= hl.clientWidth + 1 && getComputedStyle(hl).textOverflow !== 'ellipsis', { h: hl.getBoundingClientRect().height, sw: hl.scrollWidth, cw: hl.clientWidth });
+ok('greeting spans full header width', Math.abs(hl.getBoundingClientRect().right - document.querySelector('.top').getBoundingClientRect().right) < 1);
+const tr = $('title').getBoundingClientRect(), sb = $('setBtn').getBoundingClientRect();
+ok('title and buttons share a row', Math.abs((tr.top + tr.bottom) / 2 - (sb.top + sb.bottom) / 2) < 8, { title: tr.top, btn: sb.top });
+state.profile = { name: 'Александра Константиновна' }; render();
+ok('long name keeps date whole', hl.querySelector('.hello-date').getClientRects().length === 1 && getComputedStyle(hl).overflow !== 'hidden', hl.getBoundingClientRect().height);
 
 state.categories = [{ id: 'c1', name: 'Интеллект' }]; Object.assign(findHabit('m'), { cat: 'c1', step: 5 });
 openHistory('m'); await wait(600);
