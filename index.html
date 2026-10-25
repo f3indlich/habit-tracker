@@ -3326,7 +3326,7 @@ $('acctCodeForm').onsubmit = async e => {
   await signInWithCode($('acctCode').value);
 };
 async function signInWithCode(raw) {
-  const value = raw.trim();
+  const value = raw.trim().replace(/^["'«]+|["'»]+$/g, '');
   const digits = value.replace(/[\s-]/g, '');
   if (!value) return toast('Вставьте код входа');
   $('acctVerify').disabled = true;
@@ -3336,7 +3336,12 @@ async function signInWithCode(raw) {
       : await cloud.sb.auth.refreshSession({ refresh_token: value });
     if (error) throw error;
     $('acctCode').value = '';
-  } catch (err) { toast('Код не подошёл или устарел — запросите новое письмо'); }
+  } catch (err) {
+    const m = err?.message || '';
+    toast(/already used|revoked|not found|invalid refresh/i.test(m)
+      ? 'Этот код уже недействителен. Запросите новое письмо и скопируйте свежий код'
+      : 'Код не подошёл: ' + (m || 'неизвестная ошибка'), null, '');
+  }
   finally { $('acctVerify').disabled = false; }
 }
 $('acctPaste').onclick = async () => {
@@ -3351,8 +3356,10 @@ $('acctCopy').onclick = async () => {
   if (!token) return;
   try { await navigator.clipboard.writeText(token); }
   catch { return toast('Не удалось скопировать код'); }
+  cloud.sb.auth.stopAutoRefresh();
   stopSync();
-  await cloud.sb.auth.signOut({ scope: 'local' });
+  try { for (const k of Object.keys(localStorage)) if (/^sb-.+-auth-token/.test(k)) localStorage.removeItem(k); } catch {}
+  cloud.session = null;
   authStep = 'copied';
   renderAccount();
 };
