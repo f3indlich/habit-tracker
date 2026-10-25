@@ -1,0 +1,2134 @@
+{
+    "habits":  [
+                   {
+                       "id":  "water",
+                       "name":  "Пить воду",
+                       "target":  8,
+                       "unit":  "стаканов",
+                       "icon":  "water",
+                       "color":  "#0ea5e9",
+                       "time":  "any",
+                       "days":  null,
+                       "why":  "Больше энергии и меньше головной боли",
+                       "cat":  "health",
+                       "created":  "2025-10-25"
+                   },
+                   {
+                       "id":  "workout",
+                       "name":  "Зарядка",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "dumbbell",
+                       "color":  "#f97316",
+                       "time":  "morning",
+                       "days":  null,
+                       "why":  "Бодрое утро без кофе",
+                       "cat":  "sport",
+                       "created":  "2026-04-08"
+                   },
+                   {
+                       "id":  "read",
+                       "name":  "Чтение",
+                       "target":  20,
+                       "unit":  "страниц",
+                       "icon":  "book",
+                       "color":  "#4f46e5",
+                       "time":  "evening",
+                       "days":  null,
+                       "why":  "24 книги за год",
+                       "cat":  "mind",
+                       "created":  "2026-06-27"
+                   },
+                   {
+                       "id":  "gym",
+                       "name":  "Спортзал",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "bike",
+                       "color":  "#22c55e",
+                       "time":  "evening",
+                       "days":  [
+                                    0,
+                                    2,
+                                    4
+                                ],
+                       "why":  "",
+                       "cat":  "sport",
+                       "created":  "2026-04-28"
+                   },
+                   {
+                       "id":  "sleep",
+                       "name":  "Лечь до 23:00",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "sleep",
+                       "color":  "#64748b",
+                       "time":  "evening",
+                       "days":  [
+                                    0,
+                                    1,
+                                    2,
+                                    3,
+                                    4
+                                ],
+                       "why":  "Высыпаться перед работой",
+                       "cat":  "health",
+                       "created":  "2026-07-27"
+                   },
+                   {
+                       "id":  "meditate",
+                       "name":  "Медитация",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "meditate",
+                       "color":  "#a855f7",
+                       "time":  "morning",
+                       "days":  null,
+                       "why":  "",
+                       "cat":  "mind",
+                       "created":  "2026-08-26"
+                   },
+                   {
+                       "id":  "nosocial",
+                       "name":  "Без соцсетей утром",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "phoneoff",
+                       "color":  "#ef4444",
+                       "time":  "morning",
+                       "days":  null,
+                       "why":  "Не начинать день с ленты",
+                       "cat":  "mind",
+                       "created":  "2026-09-25"
+                   },
+                   {
+                       "id":  "vitamins",
+                       "name":  "Витамины",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "pill",
+                       "color":  "#ec4899",
+                       "time":  "morning",
+                       "days":  null,
+                       "why":  "",
+                       "cat":  "health",
+                       "created":  "2026-10-15"
+                   },
+                   {
+                       "id":  "veggies",
+                       "name":  "Овощи и фрукты",
+                       "target":  3,
+                       "unit":  "порции",
+                       "icon":  "salad",
+                       "color":  "#14b8a6",
+                       "time":  "day",
+                       "days":  null,
+                       "why":  "",
+                       "cat":  "health",
+                       "created":  "2026-09-10"
+                   },
+                   {
+                       "id":  "journal",
+                       "name":  "Дневник",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "pen",
+                       "color":  "#eab308",
+                       "time":  "evening",
+                       "days":  null,
+                       "why":  "",
+                       "cat":  "mind",
+                       "created":  "2026-10-20"
+                   },
+                   {
+                       "id":  "stretch",
+                       "name":  "Растяжка",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "leaf",
+                       "color":  "#14b8a6",
+                       "time":  "morning",
+                       "days":  [
+                                    5,
+                                    6
+                                ],
+                       "why":  "Спина скажет спасибо",
+                       "cat":  "sport",
+                       "created":  "2026-02-27"
+                   },
+                   {
+                       "id":  "english",
+                       "name":  "Английский 15 минут",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "chat",
+                       "color":  "#0ea5e9",
+                       "time":  "day",
+                       "days":  [
+                                    0,
+                                    1,
+                                    2,
+                                    3,
+                                    4
+                                ],
+                       "why":  "Свободно говорить к лету",
+                       "cat":  "mind",
+                       "created":  "2026-01-28"
+                   },
+                   {
+                       "id":  "nosugar",
+                       "name":  "Без сладкого",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "apple",
+                       "color":  "#ef4444",
+                       "time":  "any",
+                       "days":  null,
+                       "why":  "",
+                       "cat":  "health",
+                       "created":  "2025-12-29"
+                   },
+                   {
+                       "id":  "guitar",
+                       "name":  "Гитара 15 минут",
+                       "target":  1,
+                       "unit":  "",
+                       "icon":  "music",
+                       "color":  "#a855f7",
+                       "time":  "evening",
+                       "days":  null,
+                       "why":  "Сыграть 5 песен",
+                       "cat":  null,
+                       "created":  "2026-05-28",
+                       "archived":  "2026-09-15"
+                   }
+               ],
+    "categories":  [
+                       {
+                           "id":  "sport",
+                           "name":  "Физическая активность"
+                       },
+                       {
+                           "id":  "mind",
+                           "name":  "Умственное развитие"
+                       },
+                       {
+                           "id":  "health",
+                           "name":  "Здоровье"
+                       }
+                   ],
+    "log":  {
+                "2026-07-03":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-05-24":  {
+                                   "water":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-22":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-03":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-12":  {
+                                   "water":  3,
+                                   "workout":  1
+                               },
+                "2026-05-03":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "stretch":  1
+                               },
+                "2026-02-22":  {
+                                   "water":  5,
+                                   "nosugar":  1
+                               },
+                "2026-06-30":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "guitar":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-11":  {
+                                   "water":  4
+                               },
+                "2026-08-04":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "guitar":  1
+                               },
+                "2026-06-18":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-14":  {
+                                   "water":  7,
+                                   "nosugar":  1
+                               },
+                "2026-04-20":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-13":  {
+                                   "water":  7
+                               },
+                "2026-06-24":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-01":  {
+                                   "water":  6
+                               },
+                "2026-10-02":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  19,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "english":  1
+                               },
+                "2026-09-26":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "veggies":  3,
+                                   "stretch":  1
+                               },
+                "2025-11-30":  {
+                                   "water":  2
+                               },
+                "2026-09-10":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "meditate":  1,
+                                   "veggies":  3,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-26":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "guitar":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-16":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-05-22":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-08":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-15":  {
+                                   "water":  8
+                               },
+                "2025-11-12":  {
+                                   "water":  6
+                               },
+                "2026-08-18":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "nosugar":  1
+                               },
+                "2026-02-03":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-05-05":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-09-17":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "meditate":  1,
+                                   "veggies":  2,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-08":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "guitar":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-24":  {
+                                   "water":  7,
+                                   "sleep":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-29":  {
+                                   "water":  8,
+                                   "nosugar":  1
+                               },
+                "2026-05-18":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-11":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-22":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "vitamins":  1,
+                                   "veggies":  3
+                               },
+                "2026-03-19":  {
+                                   "water":  7
+                               },
+                "2026-03-28":  {
+                                   "water":  5,
+                                   "stretch":  1
+                               },
+                "2026-09-28":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "veggies":  3,
+                                   "english":  1
+                               },
+                "2026-10-10":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-11":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-05-26":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2025-12-12":  {
+                                   "water":  3
+                               },
+                "2026-08-07":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "english":  1
+                               },
+                "2025-11-16":  {
+                                   "water":  3
+                               },
+                "2026-02-07":  {
+                                   "water":  3
+                               },
+                "2026-05-01":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "english":  1
+                               },
+                "2026-06-06":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "stretch":  1
+                               },
+                "2026-02-13":  {
+                                   "water":  3,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-21":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "vitamins":  1,
+                                   "veggies":  1,
+                                   "journal":  1,
+                                   "english":  1
+                               },
+                "2026-02-27":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-08-21":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-09":  {
+                                   "water":  8
+                               },
+                "2026-01-04":  {
+                                   "water":  3
+                               },
+                "2026-08-03":  {
+                                   "water":  3,
+                                   "gym":  1,
+                                   "guitar":  1
+                               },
+                "2026-04-29":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-01-29":  {
+                                   "water":  8,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-30":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-27":  {
+                                   "water":  7
+                               },
+                "2026-07-09":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20
+                               },
+                "2026-10-19":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "vitamins":  1,
+                                   "veggies":  3
+                               },
+                "2026-03-20":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-07-15":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-05-21":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-05-04":  {
+                                   "water":  7,
+                                   "english":  1
+                               },
+                "2026-07-24":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1
+                               },
+                "2026-05-06":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "gym":  1
+                               },
+                "2026-05-13":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-02":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-10-08":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "veggies":  2,
+                                   "english":  1
+                               },
+                "2026-02-23":  {
+                                   "water":  6,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-17":  {
+                                   "water":  6,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-01":  {
+                                   "water":  5
+                               },
+                "2026-01-25":  {
+                                   "water":  3,
+                                   "nosugar":  1
+                               },
+                "2025-10-27":  {
+                                   "water":  8
+                               },
+                "2025-10-31":  {
+                                   "water":  7
+                               },
+                "2026-08-06":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  5,
+                                   "sleep":  1,
+                                   "english":  1
+                               },
+                "2026-02-06":  {
+                                   "water":  8,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-05-25":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-07":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-08":  {
+                                   "water":  4,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-30":  {
+                                   "water":  5,
+                                   "english":  1
+                               },
+                "2026-02-10":  {
+                                   "water":  5
+                               },
+                "2026-03-25":  {
+                                   "water":  5
+                               },
+                "2026-06-05":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "gym":  1
+                               },
+                "2026-01-19":  {
+                                   "water":  3
+                               },
+                "2025-10-25":  {
+                                   "water":  2
+                               },
+                "2026-09-09":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  10,
+                                   "gym":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-13":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  19,
+                                   "sleep":  1,
+                                   "guitar":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-23":  {
+                                   "water":  7
+                               },
+                "2026-03-13":  {
+                                   "water":  7,
+                                   "english":  1
+                               },
+                "2026-09-11":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "read":  18,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "veggies":  3,
+                                   "english":  1
+                               },
+                "2026-05-11":  {
+                                   "water":  7,
+                                   "gym":  1,
+                                   "english":  1
+                               },
+                "2026-07-20":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-31":  {
+                                   "water":  8,
+                                   "gym":  1,
+                                   "meditate":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-25":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-09":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-14":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "nosugar":  1
+                               },
+                "2026-02-19":  {
+                                   "water":  6,
+                                   "english":  1
+                               },
+                "2026-05-30":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-08":  {
+                                   "water":  3
+                               },
+                "2026-07-27":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1
+                               },
+                "2026-08-01":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-28":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-06-04":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "guitar":  1
+                               },
+                "2025-11-09":  {
+                                   "water":  3
+                               },
+                "2026-03-14":  {
+                                   "water":  2
+                               },
+                "2026-02-02":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-05-15":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "english":  1
+                               },
+                "2026-09-23":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "read":  18,
+                                   "gym":  1,
+                                   "veggies":  3,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-12":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "english":  1
+                               },
+                "2026-09-24":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "meditate":  1,
+                                   "veggies":  2,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-25":  {
+                                   "water":  3
+                               },
+                "2025-12-30":  {
+                                   "water":  4
+                               },
+                "2026-01-26":  {
+                                   "water":  8
+                               },
+                "2026-01-18":  {
+                                   "water":  3
+                               },
+                "2026-09-29":  {
+                                   "water":  8,
+                                   "veggies":  2,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-09-08":  {
+                                   "water":  7,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "meditate":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-02":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-25":  {
+                                   "water":  1,
+                                   "workout":  1
+                               },
+                "2025-10-26":  {
+                                   "water":  2
+                               },
+                "2026-04-15":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2025-11-21":  {
+                                   "water":  3
+                               },
+                "2026-09-25":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "meditate":  1,
+                                   "veggies":  3
+                               },
+                "2026-03-10":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-02-24":  {
+                                   "water":  7,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-22":  {
+                                   "water":  8
+                               },
+                "2026-08-30":  {
+                                   "water":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-05-12":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-21":  {
+                                   "water":  7,
+                                   "stretch":  1
+                               },
+                "2026-06-16":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-22":  {
+                                   "water":  2
+                               },
+                "2026-10-14":  {
+                                   "water":  8,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "veggies":  2,
+                                   "nosugar":  1
+                               },
+                "2026-03-26":  {
+                                   "water":  6
+                               },
+                "2026-07-18":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-17":  {
+                                   "water":  7,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-31":  {
+                                   "water":  3,
+                                   "nosugar":  1
+                               },
+                "2026-05-09":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-12":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "veggies":  1,
+                                   "english":  1
+                               },
+                "2025-11-08":  {
+                                   "water":  1
+                               },
+                "2026-06-20":  {
+                                   "water":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-05-20":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-09-20":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  7,
+                                   "meditate":  1,
+                                   "veggies":  2,
+                                   "stretch":  1
+                               },
+                "2025-11-19":  {
+                                   "water":  7
+                               },
+                "2026-05-14":  {
+                                   "water":  8,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-20":  {
+                                   "water":  8,
+                                   "nosugar":  1
+                               },
+                "2026-06-13":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-03":  {
+                                   "water":  1
+                               },
+                "2026-05-16":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-31":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-11":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "english":  1
+                               },
+                "2025-11-26":  {
+                                   "water":  3
+                               },
+                "2026-09-19":  {
+                                   "water":  1,
+                                   "read":  20,
+                                   "veggies":  3,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-01":  {
+                                   "water":  7,
+                                   "nosugar":  1
+                               },
+                "2026-10-04":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "veggies":  3,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-12":  {
+                                   "water":  8,
+                                   "gym":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-06":  {
+                                   "water":  6,
+                                   "english":  1
+                               },
+                "2026-08-05":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-09-27":  {
+                                   "water":  3,
+                                   "meditate":  1,
+                                   "veggies":  2,
+                                   "stretch":  1
+                               },
+                "2026-03-07":  {
+                                   "water":  3,
+                                   "nosugar":  1
+                               },
+                "2026-09-30":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "sleep":  1,
+                                   "nosugar":  1
+                               },
+                "2026-09-14":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "veggies":  1,
+                                   "guitar":  1
+                               },
+                "2026-10-01":  {
+                                   "water":  4,
+                                   "sleep":  1,
+                                   "veggies":  3,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-05":  {
+                                   "water":  4,
+                                   "english":  1
+                               },
+                "2026-02-25":  {
+                                   "water":  7,
+                                   "english":  1
+                               },
+                "2026-08-23":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-10":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-19":  {
+                                   "water":  4
+                               },
+                "2026-10-20":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "vitamins":  1,
+                                   "veggies":  3,
+                                   "journal":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-17":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "english":  1
+                               },
+                "2025-11-06":  {
+                                   "water":  5
+                               },
+                "2026-06-15":  {
+                                   "water":  7,
+                                   "workout":  1
+                               },
+                "2025-11-27":  {
+                                   "water":  8
+                               },
+                "2026-04-18":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-10":  {
+                                   "water":  6,
+                                   "nosugar":  1
+                               },
+                "2026-08-26":  {
+                                   "water":  7,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "meditate":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-15":  {
+                                   "water":  2,
+                                   "stretch":  1
+                               },
+                "2026-04-02":  {
+                                   "water":  3,
+                                   "english":  1
+                               },
+                "2026-10-07":  {
+                                   "water":  4,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "veggies":  3,
+                                   "english":  1
+                               },
+                "2026-03-24":  {
+                                   "water":  6,
+                                   "english":  1
+                               },
+                "2026-09-22":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "meditate":  1,
+                                   "veggies":  1,
+                                   "english":  1
+                               },
+                "2025-11-02":  {
+                                   "water":  5
+                               },
+                "2026-10-16":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "vitamins":  1,
+                                   "veggies":  3,
+                                   "english":  1
+                               },
+                "2025-12-24":  {
+                                   "water":  4
+                               },
+                "2026-06-28":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-02-21":  {
+                                   "water":  7,
+                                   "nosugar":  1
+                               },
+                "2026-07-10":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20
+                               },
+                "2026-10-13":  {
+                                   "water":  7,
+                                   "sleep":  1,
+                                   "veggies":  2,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-23":  {
+                                   "water":  4,
+                                   "read":  20,
+                                   "vitamins":  1,
+                                   "veggies":  3,
+                                   "journal":  1
+                               },
+                "2026-07-23":  {
+                                   "water":  5,
+                                   "read":  11,
+                                   "english":  1
+                               },
+                "2025-11-18":  {
+                                   "water":  4
+                               },
+                "2026-09-18":  {
+                                   "water":  8,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "veggies":  2,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-29":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "nosugar":  1
+                               },
+                "2026-08-20":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "read":  17,
+                                   "nosugar":  1
+                               },
+                "2026-03-11":  {
+                                   "water":  5,
+                                   "english":  1
+                               },
+                "2026-07-02":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20
+                               },
+                "2025-11-24":  {
+                                   "water":  3
+                               },
+                "2026-03-04":  {
+                                   "water":  6
+                               },
+                "2026-05-10":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-05":  {
+                                   "water":  7,
+                                   "read":  20,
+                                   "stretch":  1
+                               },
+                "2025-11-23":  {
+                                   "water":  6
+                               },
+                "2026-06-09":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "guitar":  1
+                               },
+                "2026-01-09":  {
+                                   "water":  7,
+                                   "nosugar":  1
+                               },
+                "2025-10-29":  {
+                                   "water":  8
+                               },
+                "2026-09-05":  {
+                                   "water":  5,
+                                   "read":  20,
+                                   "meditate":  1,
+                                   "guitar":  1,
+                                   "stretch":  1
+                               },
+                "2026-07-19":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "stretch":  1
+                               },
+                "2026-08-16":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  11,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-28":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  20
+                               },
+                "2026-02-17":  {
+                                   "water":  7,
+                                   "english":  1
+                               },
+                "2026-01-27":  {
+                                   "water":  3
+                               },
+                "2026-04-19":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-27":  {
+                                   "water":  6,
+                                   "read":  20,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-02-18":  {
+                                   "water":  8
+                               },
+                "2025-12-28":  {
+                                   "water":  2
+                               },
+                "2025-12-18":  {
+                                   "water":  8
+                               },
+                "2026-05-17":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "stretch":  1
+                               },
+                "2026-09-21":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "veggies":  2,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-01":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-30":  {
+                                   "water":  5,
+                                   "english":  1
+                               },
+                "2026-04-24":  {
+                                   "water":  3,
+                                   "workout":  1
+                               },
+                "2026-06-22":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-05-29":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-02":  {
+                                   "water":  3,
+                                   "english":  1
+                               },
+                "2026-02-08":  {
+                                   "water":  1
+                               },
+                "2026-03-16":  {
+                                   "water":  6,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-26":  {
+                                   "water":  7
+                               },
+                "2025-12-10":  {
+                                   "water":  7
+                               },
+                "2026-01-15":  {
+                                   "water":  8
+                               },
+                "2026-04-03":  {
+                                   "water":  5,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-06":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "veggies":  1
+                               },
+                "2025-10-30":  {
+                                   "water":  3
+                               },
+                "2026-01-24":  {
+                                   "water":  2,
+                                   "nosugar":  1
+                               },
+                "2025-12-25":  {
+                                   "water":  7
+                               },
+                "2026-09-13":  {
+                                   "water":  7,
+                                   "veggies":  2
+                               },
+                "2025-11-11":  {
+                                   "water":  3
+                               },
+                "2026-06-08":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-30":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20
+                               },
+                "2026-03-23":  {
+                                   "water":  6,
+                                   "english":  1
+                               },
+                "2026-06-14":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-05":  {
+                                   "water":  5,
+                                   "nosugar":  1
+                               },
+                "2026-06-26":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "guitar":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-09-06":  {
+                                   "water":  6,
+                                   "read":  20,
+                                   "meditate":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-07":  {
+                                   "water":  8,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-23":  {
+                                   "water":  5
+                               },
+                "2026-03-06":  {
+                                   "water":  6,
+                                   "english":  1
+                               },
+                "2025-12-04":  {
+                                   "water":  8
+                               },
+                "2026-07-07":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-03-12":  {
+                                   "water":  4,
+                                   "english":  1
+                               },
+                "2025-12-21":  {
+                                   "water":  1
+                               },
+                "2026-03-01":  {
+                                   "water":  6
+                               },
+                "2026-01-11":  {
+                                   "water":  6,
+                                   "nosugar":  1
+                               },
+                "2026-02-16":  {
+                                   "water":  5,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-09-01":  {
+                                   "water":  4,
+                                   "meditate":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-15":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  5,
+                                   "guitar":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-10":  {
+                                   "water":  6
+                               },
+                "2026-05-19":  {
+                                   "water":  3,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-28":  {
+                                   "water":  3
+                               },
+                "2026-09-02":  {
+                                   "water":  4,
+                                   "meditate":  1,
+                                   "guitar":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-29":  {
+                                   "water":  4
+                               },
+                "2026-07-29":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "guitar":  1
+                               },
+                "2026-05-28":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-03":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "veggies":  2,
+                                   "stretch":  1
+                               },
+                "2026-02-09":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-08-28":  {
+                                   "water":  5,
+                                   "read":  7,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "meditate":  1,
+                                   "guitar":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-07":  {
+                                   "water":  6
+                               },
+                "2026-04-23":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2025-12-07":  {
+                                   "water":  4
+                               },
+                "2026-02-20":  {
+                                   "water":  8,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-16":  {
+                                   "water":  4,
+                                   "nosugar":  1
+                               },
+                "2026-01-17":  {
+                                   "water":  7
+                               },
+                "2026-04-21":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-02-12":  {
+                                   "water":  7,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-10":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "guitar":  1
+                               },
+                "2025-12-31":  {
+                                   "water":  7,
+                                   "nosugar":  1
+                               },
+                "2026-03-22":  {
+                                   "water":  5
+                               },
+                "2026-10-17":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "vitamins":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-22":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "read":  12,
+                                   "nosugar":  1
+                               },
+                "2026-09-07":  {
+                                   "water":  8,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "meditate":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-24":  {
+                                   "water":  5,
+                                   "vitamins":  1,
+                                   "veggies":  2,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-09-16":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "sleep":  1,
+                                   "veggies":  3,
+                                   "english":  1
+                               },
+                "2026-07-06":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-07-04":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  8,
+                                   "guitar":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-17":  {
+                                   "water":  4
+                               },
+                "2026-04-27":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-01-08":  {
+                                   "water":  5,
+                                   "nosugar":  1
+                               },
+                "2025-12-03":  {
+                                   "water":  5
+                               },
+                "2026-06-21":  {
+                                   "water":  1,
+                                   "workout":  1,
+                                   "guitar":  1
+                               },
+                "2025-11-04":  {
+                                   "water":  8
+                               },
+                "2026-01-12":  {
+                                   "water":  5,
+                                   "nosugar":  1
+                               },
+                "2026-02-15":  {
+                                   "water":  4,
+                                   "nosugar":  1
+                               },
+                "2026-09-12":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "veggies":  1,
+                                   "stretch":  1
+                               },
+                "2026-06-23":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "guitar":  1
+                               },
+                "2026-04-14":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "english":  1
+                               },
+                "2026-03-03":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-05-08":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "english":  1
+                               },
+                "2026-09-15":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "sleep":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-09":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "nosugar":  1
+                               },
+                "2026-04-04":  {
+                                   "water":  2,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-25":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "vitamins":  1,
+                                   "veggies":  1,
+                                   "stretch":  1
+                               },
+                "2026-01-06":  {
+                                   "water":  4,
+                                   "nosugar":  1
+                               },
+                "2025-11-14":  {
+                                   "water":  3
+                               },
+                "2026-03-09":  {
+                                   "water":  8,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-25":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-11":  {
+                                   "water":  7,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-31":  {
+                                   "water":  4,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-02-11":  {
+                                   "water":  6
+                               },
+                "2026-06-27":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "guitar":  1,
+                                   "stretch":  1
+                               },
+                "2026-04-13":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-05-02":  {
+                                   "water":  2,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-22":  {
+                                   "water":  8
+                               },
+                "2025-12-05":  {
+                                   "water":  7
+                               },
+                "2026-07-13":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-21":  {
+                                   "water":  8
+                               },
+                "2026-06-19":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "guitar":  1
+                               },
+                "2026-10-05":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "veggies":  2
+                               },
+                "2026-01-05":  {
+                                   "water":  8
+                               },
+                "2025-11-20":  {
+                                   "water":  8
+                               },
+                "2025-12-20":  {
+                                   "water":  7
+                               },
+                "2026-04-08":  {
+                                   "water":  6,
+                                   "english":  1
+                               },
+                "2026-01-07":  {
+                                   "water":  8,
+                                   "nosugar":  1
+                               },
+                "2026-10-15":  {
+                                   "water":  6,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "vitamins":  1,
+                                   "veggies":  3,
+                                   "english":  1
+                               },
+                "2026-09-03":  {
+                                   "water":  8,
+                                   "read":  10,
+                                   "sleep":  1,
+                                   "meditate":  1,
+                                   "english":  1
+                               },
+                "2026-03-27":  {
+                                   "water":  5,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-03":  {
+                                   "water":  5
+                               },
+                "2026-04-17":  {
+                                   "water":  7,
+                                   "nosugar":  1
+                               },
+                "2026-08-29":  {
+                                   "water":  3,
+                                   "read":  20,
+                                   "meditate":  1,
+                                   "nosugar":  1
+                               },
+                "2026-06-01":  {
+                                   "water":  7,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-01":  {
+                                   "water":  3
+                               },
+                "2026-07-17":  {
+                                   "water":  4,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "guitar":  1,
+                                   "english":  1
+                               },
+                "2026-05-23":  {
+                                   "water":  3,
+                                   "workout":  1
+                               },
+                "2025-12-14":  {
+                                   "water":  6
+                               },
+                "2026-02-01":  {
+                                   "water":  3
+                               },
+                "2025-12-16":  {
+                                   "water":  3
+                               },
+                "2026-01-02":  {
+                                   "water":  6
+                               },
+                "2026-10-11":  {
+                                   "water":  6,
+                                   "read":  20,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-10-18":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  14,
+                                   "vitamins":  1
+                               },
+                "2026-02-04":  {
+                                   "water":  8,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-03-18":  {
+                                   "water":  4
+                               },
+                "2026-02-05":  {
+                                   "water":  6,
+                                   "english":  1
+                               },
+                "2026-03-29":  {
+                                   "water":  3,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-01-28":  {
+                                   "water":  4,
+                                   "nosugar":  1
+                               },
+                "2026-07-12":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "guitar":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-22":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-10":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "nosugar":  1
+                               },
+                "2025-12-06":  {
+                                   "water":  3
+                               },
+                "2026-05-27":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "gym":  1,
+                                   "english":  1
+                               },
+                "2026-07-21":  {
+                                   "water":  7,
+                                   "nosugar":  1
+                               },
+                "2025-11-17":  {
+                                   "water":  8
+                               },
+                "2026-01-13":  {
+                                   "water":  8,
+                                   "nosugar":  1
+                               },
+                "2026-02-14":  {
+                                   "water":  3
+                               },
+                "2025-11-15":  {
+                                   "water":  7
+                               },
+                "2025-10-28":  {
+                                   "water":  8
+                               },
+                "2026-05-07":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-09-04":  {
+                                   "water":  6,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "meditate":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-02-26":  {
+                                   "water":  8,
+                                   "english":  1
+                               },
+                "2026-05-31":  {
+                                   "water":  3,
+                                   "workout":  1,
+                                   "guitar":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2026-02-28":  {
+                                   "water":  1,
+                                   "stretch":  1
+                               },
+                "2025-11-13":  {
+                                   "water":  8
+                               },
+                "2026-10-09":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "gym":  1,
+                                   "sleep":  1,
+                                   "veggies":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-07-16":  {
+                                   "water":  4,
+                                   "workout":  1,
+                                   "read":  10,
+                                   "guitar":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-08-19":  {
+                                   "water":  6,
+                                   "read":  20,
+                                   "sleep":  1,
+                                   "guitar":  1,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2026-04-26":  {
+                                   "water":  5,
+                                   "workout":  1,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               },
+                "2025-12-02":  {
+                                   "water":  5
+                               },
+                "2026-07-14":  {
+                                   "water":  8,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "english":  1,
+                                   "nosugar":  1
+                               },
+                "2025-11-05":  {
+                                   "water":  4
+                               },
+                "2026-07-25":  {
+                                   "water":  2,
+                                   "workout":  1,
+                                   "read":  20,
+                                   "stretch":  1,
+                                   "nosugar":  1
+                               }
+            },
+    "skip":  {
+                 "2026-08-30":  {
+                                    "workout":  1
+                                },
+                 "2026-09-04":  {
+                                    "workout":  1
+                                },
+                 "2026-08-27":  {
+                                    "workout":  1
+                                },
+                 "2026-08-31":  {
+                                    "workout":  1
+                                },
+                 "2026-09-07":  {
+                                    "workout":  1
+                                },
+                 "2026-09-06":  {
+                                    "workout":  1
+                                },
+                 "2026-09-02":  {
+                                    "workout":  1
+                                },
+                 "2026-09-08":  {
+                                    "workout":  1
+                                },
+                 "2026-09-03":  {
+                                    "workout":  1
+                                },
+                 "2026-08-28":  {
+                                    "workout":  1
+                                },
+                 "2026-09-05":  {
+                                    "workout":  1
+                                },
+                 "2026-08-26":  {
+                                    "workout":  1
+                                },
+                 "2026-08-29":  {
+                                    "workout":  1
+                                },
+                 "2026-09-01":  {
+                                    "workout":  1
+                                }
+             }
+}
