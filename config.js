@@ -5,6 +5,6 @@
 //  supabaseKey — публичный ключ: "anon public" (eyJ…) или "publishable" (sb_publishable_…).
 //                НИКОГДА не вставляйте сюда "service_role" / "secret" ключ.
 window.HABIT_CONFIG = {
-  supabaseUrl: 'https://twgxewleqqmkzlzvrcev.supabase.co/rest/v1/',
+  supabaseUrl: 'https://twgxewleqqmkzlzvrcev.supabase.co',
   supabaseKey: 'sb_publishable_GE4vUyzZS7jTjLOoBGkuCg_gBEyxnNX',
 };
