@@ -1015,6 +1015,7 @@
         <input type="email" id="acctEmailInput" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="Почта" required>
         <button type="submit" class="primary" id="acctSend">Получить ссылку</button>
       </form>
+      <p class="acct-error acct-link-error" id="acctLinkError"></p>
       <p class="acct-hint">Данные, которые уже есть на этом устройстве, перенесутся в аккаунт при первом входе.</p>
     </div>
 
@@ -3157,6 +3158,9 @@ function stopSync() {
 async function initCloud(client) {
   if (!cloud.enabled && !client) { renderAccount(); return; }
   const fromLink = /access_token|refresh_token/.test(location.hash);
+  const hashParams = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  const linkError = hashParams.get('error_code') || hashParams.get('error');
+  if (linkError) history.replaceState(null, '', location.pathname);
   try {
     if (!client) {
       await new Promise((res, rej) => {
@@ -3181,8 +3185,30 @@ async function initCloud(client) {
     const { data } = await cloud.sb.auth.getSession();
     if (data.session && !cloud.session) { cloud.session = data.session; startSync(); }
     if (fromLink && cloud.session && isIOS && !isStandalone()) { authStep = 'handoff'; openOverlay($('acctOv')); }
+    else if (fromLink && cloud.session) toast(`Вы вошли как ${cloud.session.user.email}. Синхронизация включена`, null, '');
+    else if (linkError && !cloud.session) {
+      $('acctLinkError').textContent = /expired|invalid|denied/i.test(linkError + hashParams.get('error_description'))
+        ? 'Ссылка из письма устарела или уже использована. Она срабатывает один раз и только из последнего письма — запросите новое.'
+        : 'Не удалось войти по ссылке: ' + (hashParams.get('error_description') || linkError);
+      authStep = 'email';
+      openOverlay($('acctOv'));
+    }
   } catch (e) { setSync('error', e.message); }
   renderAccount();
+}
+
+addEventListener('storage', async e => {
+  if (!cloud.sb || cloud.session || !e.key?.startsWith('sb-')) return;
+  const { data } = await cloud.sb.auth.getSession();
+  if (data.session && !cloud.session) { cloud.session = data.session; startSync(); renderAccount(); }
+});
+
+function sendErrorText(err) {
+  const m = err?.message || String(err);
+  if (/rate limit|too many|over_email_send_rate_limit/i.test(m + err?.code))
+    return 'Лимит писем исчерпан: бесплатный почтовый сервер Supabase отправляет лишь несколько писем в час. Попробуйте через час — или откройте ссылку из последнего полученного письма.';
+  if (/seconds/i.test(m)) return 'Слишком часто — подождите минуту и попробуйте снова';
+  return 'Не удалось отправить письмо: ' + m;
 }
 
 addEventListener('online', () => cloud.session && cloudSync());
@@ -3227,6 +3253,7 @@ setInterval(() => { if ($('acctOv')._shown && authStep === 'code') renderAccount
 async function sendLink(email) {
   const { error } = await cloud.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
   if (error) throw error;
+  $('acctLinkError').textContent = '';
   authEmail = email; authStep = 'code'; resendAt = Date.now() + 60000;
   renderAccount();
   setTimeout(() => $('acctCode').focus(), 100);
@@ -3239,7 +3266,7 @@ $('acctEmailForm').onsubmit = async e => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Проверьте адрес почты');
   $('acctSend').disabled = true;
   try { await sendLink(email); }
-  catch (err) { toast(/rate|limit|seconds/i.test(err.message) ? 'Слишком часто — подождите минуту и попробуйте снова' : 'Не удалось отправить письмо: ' + err.message); }
+  catch (err) { toast(sendErrorText(err), null, ''); }
   finally { $('acctSend').disabled = false; }
 };
 $('acctCodeForm').onsubmit = async e => {
@@ -3279,7 +3306,7 @@ $('acctCopy').onclick = async () => {
 };
 $('acctStay').onclick = () => { authStep = 'email'; closeOverlay($('acctOv')); };
 $('acctResend').onclick = async () => {
-  try { await sendLink(authEmail); toast('Письмо отправлено ещё раз'); } catch (err) { toast('Не удалось отправить: ' + err.message); }
+  try { await sendLink(authEmail); toast('Письмо отправлено ещё раз. Открывайте ссылку только из этого, последнего письма'); } catch (err) { toast(sendErrorText(err), null, ''); }
 };
 $('acctBack').onclick = () => { authStep = 'email'; renderAccount(); };
 $('setSyncNow').onclick = () => cloudSync();
