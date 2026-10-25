@@ -237,6 +237,8 @@ function normalize(s) {
     if (h.updated != null && !isKey(h.updated)) delete h.updated;
     if (!catIds.has(h.cat)) h.cat = null;
   });
+  const pname = isObj(s.profile) && typeof s.profile.name === 'string' ? s.profile.name.trim().slice(0, 40) : '';
+  if (pname) s.profile = { name: pname }; else delete s.profile;
   for (const map of [s.log, s.skip]) for (const k of Object.keys(map)) {
     if (!isKey(k) || !isObj(map[k])) { delete map[k]; continue; }
     for (const id of Object.keys(map[k])) {
@@ -339,7 +341,7 @@ function missBadge(h) {
   if (count(h, new Date()) >= h.target) return null;
   const { m, ever } = missRun(h);
   if (!m) return null;
-  if (!ever) return { texts: ['Ещё не выполнялась', 'Не выполнялась', '0 раз'], title: 'С момента создания привычка ни разу не была выполнена', calm: true };
+  if (!ever) return count(h, new Date()) ? null : { texts: ['Ещё не выполнялась', 'Не выполнялась'], title: 'С момента создания привычка ни разу не была выполнена', calm: true };
   if (m === 1) return { texts: ['Вчера пропуск', 'Пропуск', '!'], title: 'Вчера пропущено — не пропускай второй раз подряд', calm: false };
   const word = plural(m, 'пропуск', 'пропуска', 'пропусков');
   return { texts: [`${m} ${word} подряд`, `${m} ${word}`, `×${m}`], title: `Не выполнялась ${m} ${plural(m, 'раз', 'раза', 'раз')} подряд по расписанию`, calm: true };
@@ -517,17 +519,61 @@ function closeConfirm(result) {
 $('cYes').onclick = () => closeConfirm(true);
 $('cNo').onclick = () => closeConfirm(false);
 
-let toastTimer = null;
+let toastTimer = null, toastSwipe = null;
 function toast(text, action, label = 'Отменить') {
   $('toastText').textContent = text;
   $('toastUndo').hidden = !action;
   $('toastUndo').textContent = label;
   $('toastUndo').onclick = () => { action?.(); hideToast(); };
+  toastSwipe = null;
+  Object.assign($('toast').style, { transform: '', opacity: '', transition: '' });
   $('toast').classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(hideToast, label === 'Отменить' ? 5000 : 12000);
 }
 function hideToast() { $('toast').classList.remove('show'); }
+$('toast').addEventListener('pointerdown', e => {
+  const t = $('toast');
+  if (e.target.closest('button') || !t.classList.contains('show')) return;
+  toastSwipe = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+  try { t.setPointerCapture(e.pointerId); } catch {}
+  clearTimeout(toastTimer);
+  t.style.transition = 'none';
+});
+$('toast').addEventListener('pointermove', e => {
+  const s = toastSwipe;
+  if (!s || e.pointerId !== s.id) return;
+  s.dx = e.clientX - s.x;
+  s.dy = e.clientY - s.y;
+  const dy = s.dy > 0 ? s.dy : s.dy / 4;
+  $('toast').style.transform = `translate(calc(-50% + ${s.dx}px), ${dy}px)`;
+  $('toast').style.opacity = 1 - Math.min(.7, Math.max(Math.abs(s.dx) / 260, Math.max(0, s.dy) / 140));
+});
+const endToastSwipe = e => {
+  const s = toastSwipe, t = $('toast');
+  if (!s || e.pointerId !== s.id) return;
+  toastSwipe = null;
+  const side = Math.abs(s.dx) > 70 && Math.abs(s.dx) > s.dy, down = s.dy > 36 && !side;
+  if (side || down) {
+    t.style.transition = 'transform .24s cubic-bezier(.55, 0, .75, .2), opacity .2s linear';
+    t.style.transform = side ? `translate(calc(-50% + ${Math.sign(s.dx) * 110}vw), ${Math.max(0, s.dy)}px)` : 'translate(-50%, calc(100% + 40px))';
+    t.style.opacity = '0';
+    setTimeout(() => { if (toastSwipe) return; hideToast(); Object.assign(t.style, { transform: '', opacity: '', transition: '' }); }, 250);
+  } else {
+    Object.assign(t.style, { transform: '', opacity: '', transition: '' });
+    toastTimer = setTimeout(hideToast, 3000);
+  }
+};
+$('toast').addEventListener('pointerup', endToastSwipe);
+$('toast').addEventListener('pointercancel', endToastSwipe);
+
+let fabY = scrollY;
+addEventListener('scroll', () => {
+  const y = scrollY, d = y - fabY;
+  if (Math.abs(d) < 8 && y > 80) return;
+  document.body.classList.toggle('fab-away', d > 0 && y > 80);
+  fabY = y;
+}, { passive: true });
 
 let menuEl = null;
 function closeMenu() {
@@ -913,6 +959,7 @@ function updateCard(el, h) {
     const room = meta.clientWidth - meta.querySelector('.m-lead').offsetWidth - (s ? meta.querySelector('.m-streak').scrollWidth + 8 : 0) - 8;
     const label = warnEl.querySelector('.w-long');
     for (const t of badge.texts) { label.textContent = t; if (label.offsetWidth + 14 <= room) break; }
+    if (label.offsetWidth + 14 > room) warnEl.classList.remove('on');
   }
 
   const todayK = todayKey();
@@ -1001,9 +1048,9 @@ function renderLegend() {
   const v = VIEWS[document.body.dataset.view];
   $('viewLegend').hidden = !state.habits.some(h => !h.archived);
   $('viewLegend').classList.toggle('round', !v.cells);
-  $('viewLegend').innerHTML = `<span class="vl-t">${v.label}</span>
-    <span><i class="lg0"></i>не выполнено</span><span><i class="lg1"></i>частично</span><span><i class="lg3"></i>выполнено</span>
-    <span><i class="lgs"></i>пропуск</span>${v.cells ? '' : '<span><i class="lgo"></i>не в плане</span>'}<span><i class="lgc"></i>выбранный день</span>`;
+  $('viewLegend').title = v.label;
+  $('viewLegend').innerHTML = `<span><i class="lg3"></i>выполнено</span><span><i class="lg1"></i>частично</span>
+    <span><i class="lgs"></i>пропуск</span>${v.cells ? '' : '<span><i class="lgo"></i>не в плане</span>'}`;
 }
 
 function removeCard(el) {
@@ -1021,8 +1068,10 @@ let wasAllDone = null;
 let firstRender = true, entering = 0;
 function render() {
   const now = new Date(), hr = now.getHours();
+  const uname = userName();
+  $('setNameVal').textContent = uname || 'Не указано';
   $('hello').innerHTML = isToday(viewDate)
-    ? esc(hr < 5 ? 'Доброй ночи' : hr < 12 ? 'Доброе утро' : hr < 18 ? 'Добрый день' : 'Добрый вечер') +
+    ? esc(hr < 5 ? 'Доброй ночи' : hr < 12 ? 'Доброе утро' : hr < 18 ? 'Добрый день' : 'Добрый вечер') + (uname ? ', ' + esc(uname) : '') +
       `<span class="hello-date"> · ${esc(now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }))}</span>`
     : esc(viewDate.toLocaleDateString('ru-RU', { weekday: 'long' }));
   const otherYear = viewDate.getFullYear() !== now.getFullYear();
@@ -2299,6 +2348,7 @@ function mergeStates(base, local, remote) {
     categories: mergeList(base.categories || [], local.categories || [], remote.categories || []),
     log: mergeDays(base.log || {}, local.log || {}, remote.log || {}),
     skip: mergeDays(base.skip || {}, local.skip || {}, remote.skip || {}),
+    profile: same(local.profile, base.profile) ? remote.profile : local.profile,
   };
 }
 
@@ -2373,6 +2423,17 @@ async function cloudPush() {
     cloud.pushing = false;
     if (cloud.again) { cloud.again = false; cloudPush(); }
   }
+}
+
+async function cloudCheck() {
+  if (!cloud.session || cloud.pushing || cloud.status === 'syncing') return;
+  try {
+    const { data: row, error } = await cloud.sb.from('habit_data').select('version').eq('user_id', cloud.session.user.id).maybeSingle();
+    if (error) throw error;
+    const base = loadBase();
+    if (row?.version === base.version && JSON.stringify(state) === JSON.stringify(base.data)) return;
+  } catch {}
+  cloudSync();
 }
 
 async function cloudSync() {
@@ -2464,8 +2525,8 @@ function sendErrorText(err) {
 }
 
 addEventListener('online', () => cloud.session && cloudSync());
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cloud.session) cloudSync(); });
-setInterval(() => { if (document.visibilityState === 'visible' && cloud.session) cloudSync(); }, 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cloud.session) cloudCheck(); });
+setInterval(() => { if (document.visibilityState === 'visible' && cloud.session) cloudCheck(); }, 15 * 60 * 1000);
 
 let authStep = 'email', authEmail = '', resendAt = 0;
 const SYNC_TEXT = { off: 'Синхронизация выключена', syncing: 'Синхронизация…', ok: 'Всё синхронизировано', offline: 'Нет сети — изменения сохранены на устройстве и отправятся позже', error: 'Ошибка синхронизации' };
@@ -2476,7 +2537,8 @@ function renderAccount() {
   btn.title = !cloud.enabled && !cloud.sb ? 'Синхронизация не настроена' : 'Войти и синхронизировать';
   btn.hidden = !!cloud.session;
   $('setBtn').dataset.sync = cloud.session ? cloud.status : 'none';
-  $('setAcctGroup').hidden = !cloud.session;
+  $('setCloudIn').hidden = !cloud.session;
+  $('setLogin').hidden = !!cloud.session || (!cloud.enabled && !cloud.sb);
   renderPush();
   if (cloud.session) {
     $('setEmail').textContent = cloud.session.user.email;
@@ -2703,3 +2765,32 @@ navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.type ===
 }
 
 initCloud();
+
+const NAME_ASKED = NS + '-name-asked';
+function userName() { return state.profile?.name || ''; }
+function openName(first) {
+  $('nameTitle').textContent = first ? 'Как Вас зовут?' : 'Ваше имя';
+  $('nameSkip').textContent = first ? 'Пропустить' : 'Отмена';
+  $('nameInput').value = userName();
+  openOverlay($('nameOv'));
+  setTimeout(() => $('nameInput').focus({ preventScroll: true }), 80);
+}
+$('nameForm').onsubmit = e => {
+  e.preventDefault();
+  const name = $('nameInput').value.trim().slice(0, 40);
+  if (name === userName()) return closeOverlay($('nameOv'));
+  if (name) state.profile = { name }; else delete state.profile;
+  save(); render();
+  closeOverlay($('nameOv'));
+  if (name) toast(`Приятно познакомиться, ${name}!`);
+};
+$('nameSkip').onclick = () => closeOverlay($('nameOv'));
+$('setName').onclick = () => openName(false);
+$('setLogin').onclick = () => { openOverlay($('acctOv')); renderAccount(); };
+if (!TEST_MODE && !getPref(NAME_ASKED, '') && !/access_token|refresh_token|error/.test(location.hash) && !new URLSearchParams(location.search).has('action')) {
+  setTimeout(() => {
+    if (userName() || shownOverlays().length || cloud.status === 'syncing') return;
+    setPref(NAME_ASKED, '1');
+    openName(true);
+  }, 2500);
+}

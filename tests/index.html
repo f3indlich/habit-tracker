@@ -33,7 +33,7 @@
   <iframe id="app" title="Приложение в тестовом режиме"></iframe>
 </main>
 <script>
-const SUITES = [['Новые функции', 'app.test.js'], ['Старые функции', 'regress.test.js']];
+const SUITES = [['Основные функции', 'app.test.js'], ['Старые функции', 'regress.test.js'], ['Интерфейс', 'ui.test.js']];
 const frame = document.getElementById('app'), out = document.getElementById('out'), sum = document.getElementById('sum'), btn = document.getElementById('run');
 const line = (text, cls) => { const d = document.createElement('div'); d.textContent = text; if (cls) d.className = cls; out.append(d); };
 const loadApp = () => new Promise(res => {
