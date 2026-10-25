@@ -599,7 +599,9 @@
   .acct-form { display: flex; gap: 8px; }
   .acct-form input { flex: 1; min-width: 0; }
   .acct-form button { flex: none; }
-  #acctCode { letter-spacing: .3em; font-variant-numeric: tabular-nums; text-align: center; font-weight: 600; }
+  #acctCode { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .acct-steps { color: var(--muted); font-size: 14.5px; line-height: 1.5; margin: -6px 0 16px; padding-left: 22px; }
+  .acct-steps b { color: var(--text); font-weight: 600; }
   .acct-links { display: flex; justify-content: space-between; margin-top: 12px; }
   .acct-user { display: flex; align-items: center; gap: 12px; background: var(--bg); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
   .acct-ava { width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 14%, var(--card)); color: var(--accent); display: grid; place-items: center; flex: none; }
@@ -913,15 +915,34 @@
     </div>
 
     <div id="acct-code" hidden>
-      <p class="acct-note">Письмо отправлено на <b id="acctSentTo"></b>. Нажмите ссылку в нём <b>или</b> введите 6-значный код — так удобнее в приложении на iPhone.</p>
+      <p class="acct-note">Письмо отправлено на <b class="acctSentTo"></b>. <span id="acctCodeHow">Нажмите ссылку в нём — вход произойдёт сам.</span></p>
       <form id="acctCodeForm" class="acct-form">
-        <input type="text" id="acctCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Код из письма" aria-label="Код из письма">
+        <input type="text" id="acctCode" autocomplete="one-time-code" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Код входа" aria-label="Код входа">
+        <button type="button" id="acctPaste" hidden>Вставить</button>
         <button type="submit" class="primary" id="acctVerify">Войти</button>
       </form>
       <div class="acct-links">
         <button type="button" class="link-btn" id="acctResend">Отправить письмо снова</button>
         <button type="button" class="link-btn" id="acctBack">Другая почта</button>
       </div>
+    </div>
+
+    <div id="acct-handoff" hidden>
+      <p class="acct-note">Вы вошли в Safari. Чтобы войти и в приложении на экране «Домой»:</p>
+      <ol class="acct-steps">
+        <li>Нажмите <b>«Скопировать код»</b>.</li>
+        <li>Откройте приложение «Привычки» и вставьте код в окне входа.</li>
+      </ol>
+      <div class="form-actions">
+        <button type="button" id="acctStay">Остаться в Safari</button>
+        <button type="button" class="primary" id="acctCopy">Скопировать код</button>
+      </div>
+      <p class="acct-hint">Код одноразовый: после копирования Safari выйдет из аккаунта, чтобы вход остался только в приложении.</p>
+    </div>
+
+    <div id="acct-copied" hidden>
+      <p class="acct-note"><b>Код скопирован.</b> Откройте приложение «Привычки» на экране «Домой» и вставьте его в окне входа.</p>
+      <p class="acct-hint">Если код не подошёл, запросите в приложении новое письмо.</p>
     </div>
 
     <div id="acct-in" hidden>
@@ -3116,6 +3137,7 @@ function stopSync() {
 
 async function initCloud(client) {
   if (!cloud.enabled && !client) { renderAccount(); return; }
+  const fromLink = /access_token|refresh_token/.test(location.hash); // opened from the email link
   try {
     if (!client) {
       await new Promise((res, rej) => {
@@ -3139,6 +3161,8 @@ async function initCloud(client) {
     });
     const { data } = await cloud.sb.auth.getSession();
     if (data.session && !cloud.session) { cloud.session = data.session; startSync(); }
+    // iPhone: the link opens in Safari, whose storage is separate from the home-screen app → offer to hand the login over
+    if (fromLink && cloud.session && isIOS && !isStandalone()) { authStep = 'handoff'; openOverlay($('acctOv')); }
   } catch (e) { setSync('error', e.message); }
   renderAccount();
 }
@@ -3158,9 +3182,16 @@ function renderAccount() {
   btn.dataset.sync = cloud.session ? cloud.status : 'none';
   btn.title = !cloud.enabled && !cloud.sb ? 'Синхронизация не настроена' : cloud.session ? `${cloud.session.user.email} · ${SYNC_TEXT[cloud.status]}` : 'Войти и синхронизировать';
   if (!$('acctOv')._shown) return;
-  const view = !cloud.enabled && !cloud.sb ? 'setup' : cloud.session ? 'in' : authStep;
-  for (const v of ['setup', 'email', 'code', 'in']) $('acct-' + v).hidden = v !== view;
-  if (view === 'code') $('acctSentTo').textContent = authEmail;
+  const view = !cloud.enabled && !cloud.sb ? 'setup' : cloud.session ? (authStep === 'handoff' ? 'handoff' : 'in') : authStep;
+  for (const v of ['setup', 'email', 'code', 'handoff', 'copied', 'in']) $('acct-' + v).hidden = v !== view;
+  if (view === 'code') {
+    for (const el of document.querySelectorAll('.acctSentTo')) el.textContent = authEmail;
+    const iosApp = isIOS && isStandalone();
+    $('acctCodeHow').innerHTML = iosApp
+      ? 'Нажмите в нём ссылку — откроется Safari. Там нажмите <b>«Скопировать код»</b>, вернитесь сюда и вставьте его.'
+      : 'Нажмите ссылку в нём — вход произойдёт сам. Если в письме есть код, можно ввести его здесь.';
+    $('acctPaste').hidden = !(iosApp && navigator.clipboard?.readText);
+  }
   if (view === 'in') {
     $('acctEmail').textContent = cloud.session.user.email;
     const when = cloud.lastSync ? ` · ${cloud.lastSync.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : '';
@@ -3194,16 +3225,42 @@ $('acctEmailForm').onsubmit = async e => {
 };
 $('acctCodeForm').onsubmit = async e => {
   e.preventDefault();
-  const token = $('acctCode').value.replace(/\D/g, '');
-  if (token.length < 6) return toast('Введите код из письма');
+  await signInWithCode($('acctCode').value);
+};
+// either the 6-digit code from the email, or the code copied in Safari (a refresh token of that login)
+async function signInWithCode(raw) {
+  const value = raw.trim();
+  const digits = value.replace(/[\s-]/g, '');
+  if (!value) return toast('Вставьте код входа');
   $('acctVerify').disabled = true;
   try {
-    const { error } = await cloud.sb.auth.verifyOtp({ email: authEmail, token, type: 'email' });
+    const { error } = /^\d{6,8}$/.test(digits)
+      ? await cloud.sb.auth.verifyOtp({ email: authEmail, token: digits, type: 'email' })
+      : await cloud.sb.auth.refreshSession({ refresh_token: value });
     if (error) throw error;
     $('acctCode').value = '';
   } catch (err) { toast('Код не подошёл или устарел — запросите новое письмо'); }
   finally { $('acctVerify').disabled = false; }
+}
+$('acctPaste').onclick = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    $('acctCode').value = text.trim();
+    if (text.trim()) await signInWithCode(text);
+  } catch { toast('Не удалось вставить — нажмите на поле и выберите «Вставить»'); }
 };
+$('acctCopy').onclick = async () => {
+  const token = cloud.session?.refresh_token;
+  if (!token) return;
+  try { await navigator.clipboard.writeText(token); }
+  catch { return toast('Не удалось скопировать код'); }
+  // leave the login to the app: Safari forgets it without revoking, so the copied code stays valid
+  stopSync();
+  await cloud.sb.auth.signOut({ scope: 'local' });
+  authStep = 'copied';
+  renderAccount();
+};
+$('acctStay').onclick = () => { authStep = 'in'; renderAccount(); };
 $('acctResend').onclick = async () => {
   try { await sendLink(authEmail); toast('Письмо отправлено ещё раз'); } catch (err) { toast('Не удалось отправить: ' + err.message); }
 };
@@ -3212,7 +3269,7 @@ $('acctSyncNow').onclick = () => cloudSync();
 $('acctSignOut').onclick = async () => {
   const ok = await askConfirm('Выйти из аккаунта?', 'Синхронизация остановится. Привычки останутся на этом устройстве, а в облаке — в вашем аккаунте.', 'Выйти');
   if (!ok) return;
-  await cloud.sb.auth.signOut();
+  await cloud.sb.auth.signOut({ scope: 'local' }); // only this device — the others stay signed in
   authStep = 'email';
   renderAccount();
 };
