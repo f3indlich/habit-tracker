@@ -66,9 +66,10 @@ button:focus-visible, [tabindex]:focus-visible, input:focus-visible { outline: 2
 .danger-fill { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
 svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-.top { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 18px; }
-.top-text { flex: 1; min-width: 0; }
-.hello { color: var(--muted); font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; margin-bottom: 18px; }
+.top-text { display: contents; }
+.hello { grid-column: 1 / -1; color: var(--muted); font-size: 14px; font-weight: 500; }
+.hello-date { white-space: nowrap; }
 h1 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 0; line-height: 1.1; }
 .top-actions { display: flex; gap: 6px; align-items: center; }
 .title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -918,7 +919,6 @@ footer .install-btn svg.ic { width: 18px; height: 18px; }
   .today-pill { font-size: 0; gap: 0; width: 30px; padding: 0; justify-content: center; flex: none; }
   .today-pill svg.ic { width: 17px; height: 17px; }
   h1 { font-size: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-  .hello-date { display: none; }
   .mh.y .sgrid { column-gap: 1px; row-gap: 1px; }
   .mh.y i { border-radius: 1px; }
   .srow { column-gap: 2px; }
