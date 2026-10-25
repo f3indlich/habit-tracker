@@ -187,6 +187,9 @@
   svg.hi { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block; }
   body[data-icons=tile] .hicon { background: var(--c); color: #fff; }
   body[data-icons=mono] .hicon { background: var(--track); color: var(--text); }
+  body[data-icons=line] .hicon { background: transparent; border: 2px solid var(--c); border-radius: 50%; color: var(--c); }
+  body[data-icons=line] .hicon svg.hi { stroke-width: 2; }
+  body[data-icons=line] .habit.complete .hicon { background: color-mix(in srgb, var(--c) 12%, transparent); }
   svg.ha { width: 72%; height: 72%; display: block; }
   body[data-icons=art] .hicon { background: color-mix(in srgb, var(--c) 9%, var(--card)); }
   .emoji-grid svg.ha { width: 28px; height: 28px; }
@@ -377,13 +380,13 @@
   .set-error { margin: -4px 14px 10px; }
   .set-hint { margin: 8px 4px 0; font-size: 13px; color: var(--muted); }
   .set-link { margin: 8px 0 0; padding: 4px; background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; }
-  .seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--track); border-radius: 14px; }
-  .seg button { height: 40px; border: 0; border-radius: 10px; background: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; transition: background-color .2s, color .2s, box-shadow .2s; }
-  .seg button[aria-checked=true] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
-  .seg-theme { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .seg-theme button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 6px; min-width: 0; }
-  .seg-theme button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .seg-theme svg.ic { width: 17px; height: 17px; flex: none; }
+  .pseg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--track); border-radius: 14px; }
+  .pseg button { height: 40px; border: 0; border-radius: 10px; background: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; transition: background-color .2s, color .2s, box-shadow .2s; }
+  .pseg button[aria-checked=true] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+  .pseg-theme { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pseg-theme button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 6px; min-width: 0; }
+  .pseg-theme button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pseg-theme svg.ic { width: 17px; height: 17px; flex: none; }
   .icon-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
   .icon-style { min-width: 0; display: grid; gap: 10px; padding: 12px; background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; text-align: left; font: inherit; color: var(--text); cursor: pointer; transition: border-color .2s, box-shadow .2s; }
   .icon-style[aria-checked=true] { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
@@ -415,6 +418,30 @@
   .colors { display: flex; flex-wrap: wrap; gap: 10px; }
   .colors button { width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 0; background: var(--sw); }
   .colors button[aria-pressed=true] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--sw); }
+  .colors button { display: grid; place-items: center; color: #fff; transition: transform .2s var(--ease-std); }
+  .colors button svg.ic { width: 16px; height: 16px; stroke-width: 2.6; opacity: 0; transform: scale(.5); transition: opacity .2s, transform .25s var(--spring); }
+  .colors button[aria-pressed=true] svg.ic { opacity: 1; transform: none; }
+  .colors button:active { transform: scale(.9); }
+  .form-prev {
+    --c: var(--accent);
+    position: sticky; top: -22px; z-index: 2; margin: -6px -6px 0;
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px;
+    background: color-mix(in srgb, var(--c) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--c) 32%, var(--border));
+    box-shadow: 0 8px 18px -14px rgba(20, 24, 40, .45);
+    transition: background-color .35s var(--ease-out), border-color .35s var(--ease-out);
+  }
+  .form-prev .hicon { flex: none; }
+  .fp-text { flex: 1; min-width: 0; }
+  .fp-name { font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fp-name.ph { color: var(--faint); }
+  .fp-meta { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fp-check { width: 40px; height: 40px; flex: none; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; transition: background-color .35s var(--ease-out); }
+  .fp-check svg.ic { width: 20px; height: 20px; stroke-width: 2.4; }
+  .form { --fc: var(--accent); }
+  .emoji-grid button[aria-pressed=true] { border-color: var(--fc) !important; background: color-mix(in srgb, var(--fc) 12%, var(--card)) !important; color: var(--fc) !important; }
+  #timeSeg button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 7px 4px; line-height: 1.15; }
+  #timeSeg .t-ic { font-size: 18px; line-height: 1; }
+  #timeSeg .t-lb { font-size: 13.5px; white-space: nowrap; }
   .seg { display: flex; gap: 4px; padding: 4px; background: var(--bg); border-radius: 12px; }
   .seg button { flex: 1; border: 0; background: transparent; padding: 10px 6px; border-radius: 9px; color: var(--muted); font-size: 14.5px; font-weight: 500; }
   .seg button[aria-pressed=true] { font-weight: 600; }
@@ -814,7 +841,7 @@
     </div>
     <section class="set-group">
       <h3>История на карточках</h3>
-      <div class="seg" id="viewSeg" role="radiogroup" aria-label="История на карточках"></div>
+      <div class="pseg" id="viewSeg" role="radiogroup" aria-label="История на карточках"></div>
       <p class="set-hint" id="viewHint"></p>
     </section>
     <section class="set-group">
@@ -857,7 +884,7 @@
     </section>
     <section class="set-group">
       <h3>Тема</h3>
-      <div class="seg seg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
+      <div class="pseg pseg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
     </section>
     <section class="set-group">
       <h3>Иконки привычек</h3>
@@ -887,6 +914,11 @@
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <form class="form" id="form">
+      <div class="form-prev" id="formPrev" aria-hidden="true">
+        <div class="hicon" id="fpIcon"></div>
+        <div class="fp-text"><div class="fp-name" id="fpName"></div><div class="fp-meta" id="fpMeta"></div></div>
+        <div class="fp-check"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      </div>
       <div class="field" id="tplField">
         <span class="lbl">Популярные</span>
         <div class="templates" id="templates"></div>
@@ -1187,7 +1219,9 @@ const ICON_ART = {
 };
 const ICON_KEYS = Object.keys(ICONS);
 const EMOJI_TO_ICON = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [v.e, k]));
-const ICON_STYLES = { color: 'Цветные', tile: 'Цветная плитка', mono: 'Чёрно-белые', art: 'Иллюстрации', emoji: 'Эмодзи' };
+const ICON_STYLES = Object.fromEntries(Object.entries({
+  color: 'Цветные', tile: 'Цветная плитка', mono: 'Чёрно-белые', art: 'Иллюстрации', emoji: 'Эмодзи', line: 'Контурные',
+}).sort((a, b) => a[1].localeCompare(b[1], 'ru')));
 function applyIcons(style) {
   document.body.dataset.icons = style;
   render();
@@ -1270,7 +1304,7 @@ function normalize(s) {
     h.name = String(h.name ?? '').trim().slice(0, 60) || 'Привычка';
     h.target = Math.max(1, Math.min(100, parseInt(h.target) || 1));
     if (typeof h.icon !== 'string' || !h.icon || h.icon.length > 10) h.icon = 'check';
-    if (!ICONS[h.icon]) h.icon = EMOJI_TO_ICON[h.icon] || EMOJI_TO_ICON[h.icon.replace(/️/g, '')] || h.icon;
+    if (!ICONS[h.icon]) h.icon = EMOJI_TO_ICON[h.icon] || EMOJI_TO_ICON[h.icon.replace(/️/g, '')] || (/[\x00-\x7f]/.test(h.icon) ? 'check' : h.icon);
     if (typeof h.color !== 'string' || !/^#[0-9a-f]{3,8}$/i.test(h.color)) h.color = COLORS[i % COLORS.length];
     if (!TIMES.some(t => t.v === h.time)) h.time = 'any';
     h.days = Array.isArray(h.days) ? [...new Set(h.days.map(Number).filter(x => x >= 0 && x <= 6))].sort() : null;
@@ -1434,7 +1468,13 @@ function rollNumber(slot, text, dir, animate) {
     nu.animate([{ opacity: 0, transform: 'scale(.5)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
     return;
   }
-  for (const o of old) o.animate([{ transform: o.style.transform || 'none', opacity: 1 }, { transform: `translateY(${-100 * dir}%)`, opacity: 0 }], opts).onfinish = () => o.remove();
+  for (const o of old) {
+    if (o._leaving) continue;
+    o._leaving = true;
+    const cs = getComputedStyle(o), from = { transform: cs.transform === 'none' ? 'none' : cs.transform, opacity: cs.opacity };
+    o.getAnimations().forEach(a => a.cancel());
+    o.animate([from,{ transform: `translateY(${-100 * dir}%)`, opacity: 0 }], opts).finished.then(() => o.remove(), () => {});
+  }
   nu.animate([{ transform: `translateY(${100 * dir}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], opts);
 }
 
@@ -2188,7 +2228,7 @@ function archiveHabit(id) {
   const h = findHabit(id);
   h.archived = todayKey();
   save(); render();
-  toast(`«${h.name}» — в архиве`, () => { if (findHabit(id)) { delete h.archived; save(); render(); } });
+  toast(`«${h.name}» — в архиве`, () => { const x = findHabit(id); if (x) { delete x.archived; save(); render(); } });
 }
 
 async function deleteForever(id) {
@@ -2234,7 +2274,7 @@ function renderArchive() {
       const info = row.querySelector('.info');
       info.onclick = () => openHistory(h.id);
       info.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openHistory(h.id); } };
-      row.querySelector('.restore').onclick = () => { delete findHabit(h.id).archived; save(); render(); };
+      row.querySelector('.restore').onclick = () => { const x = findHabit(h.id); if (!x) return; delete x.archived; save(); render(); };
       row.querySelector('.del').onclick = () => deleteForever(h.id);
       list.prepend(row);
     }
@@ -2253,9 +2293,31 @@ function drawIconPickers() {
   $('emojis').innerHTML = ICON_KEYS.map(k => `<button type="button" data-v="${k}" title="${k}">${iconHTML(k)}</button>`).join('');
   $('templates').innerHTML = TEMPLATES.map((t, i) => `<button type="button" data-i="${i}"><span class="ti">${iconHTML(t.icon)}</span>${esc(t.name)}</button>`).join('');
 }
-$('colors').innerHTML = COLORS.map(c => `<button type="button" data-v="${c}" style="--sw:${c}" title="${c}"></button>`).join('');
+$('colors').innerHTML = COLORS.map(c => `<button type="button" data-v="${c}" style="--sw:${c}" aria-label="Цвет ${c}"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`).join('');
 $('weekdays').innerHTML = WEEKDAYS.map((w, i) => `<button type="button" data-v="${i}">${w}</button>`).join('');
-$('timeSeg').innerHTML = TIMES.map(t => `<button type="button" data-v="${t.v}">${t.icon} ${t.label}</button>`).join('');
+$('timeSeg').innerHTML = TIMES.map(t => `<button type="button" data-v="${t.v}"><span class="t-ic">${t.icon}</span><span class="t-lb">${t.label}</span></button>`).join('');
+
+function syncPreview() {
+  const box = $('formPrev');
+  const changed = box.style.getPropertyValue('--c') && box.style.getPropertyValue('--c') !== form.color;
+  box.style.setProperty('--c', form.color);
+  $('form').style.setProperty('--fc', form.color);
+  setIcon($('fpIcon'), form.icon);
+  const name = $('name').value.trim();
+  $('fpName').textContent = name || 'Название привычки';
+  $('fpName').classList.toggle('ph', !name);
+  const n = clampTarget($('target').value), unit = $('unit').value.trim();
+  const goal = form.goal === 'multi' ? `${n}${unit ? ' ' + unit : ' раз'} в день` : 'Один раз в день';
+  const sched = form.sched === 'daily' || form.days.length === 7 ? 'каждый день'
+    : form.days.length ? form.days.map(d => WEEKDAYS[d]).join(', ') : 'дни не выбраны';
+  const time = TIMES.find(t => t.v === form.time);
+  $('fpMeta').textContent = [goal, sched, form.time !== 'any' && time ? time.label.toLowerCase() : ''].filter(Boolean).join(' · ');
+  if (changed && !reducedMotion) {
+    box.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.025)' }, { transform: 'scale(1)' }], { duration: 360, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+    $('fpIcon').animate([{ transform: 'scale(.82) rotate(-8deg)' }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
+  }
+}
+for (const id of ['name', 'target', 'unit']) $(id).addEventListener('input', syncPreview);
 
 function syncForm() {
   const press = (box, fn) => box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', fn(b.dataset.v)));
@@ -2273,6 +2335,7 @@ function syncForm() {
     .map(c => `<button type="button" data-v="${esc(c.id)}" aria-pressed="${(form.cat || '') === c.id}">${esc(c.name)}</button>`).join('')
     + `<button type="button" class="add-chip" data-v="__new" aria-pressed="${form.newCat}">+ Новый тип</button>`;
   setCollapse($('newCatWrap'), form.newCat);
+  syncPreview();
 }
 const pick = (box, fn) => box.onclick = e => { const b = e.target.closest('button'); if (b) { fn(b.dataset.v); syncForm(); } };
 pick($('emojis'), v => form.icon = v);
@@ -2317,8 +2380,8 @@ $('templates').onclick = e => {
   syncForm();
 };
 const clampTarget = v => Math.max(2, Math.min(100, parseInt(v) || 2));
-$('tMinus').onclick = () => $('target').value = clampTarget($('target').value - 1);
-$('tPlus').onclick = () => $('target').value = clampTarget(+$('target').value + 1);
+$('tMinus').onclick = () => { $('target').value = clampTarget($('target').value - 1); syncPreview(); };
+$('tPlus').onclick = () => { $('target').value = clampTarget(+$('target').value + 1); syncPreview(); };
 
 function openForm(id = null) {
   const h = id && findHabit(id);
@@ -2336,6 +2399,7 @@ function openForm(id = null) {
   $('target').value = h && h.target > 1 ? h.target : 8;
   $('unit').value = h?.unit || '';
   $('why').value = h?.why || '';
+  $('formPrev').style.removeProperty('--c');
   drawIconPickers();
   syncForm();
   openOverlay($('formOv'));
@@ -2784,12 +2848,13 @@ $('reorderBtn').onclick = () => { closeOverlay($('viewOv')); setReorder(true); }
 
 function previewIcon(style, icon, c) {
   const def = ICONS[icon];
-  const bg = style === 'tile' ? c : style === 'mono' ? 'var(--track)' : `color-mix(in srgb, ${c} ${style === 'art' ? 9 : 14}%, var(--card))`;
+  const bg = style === 'tile' ? c : style === 'mono' ? 'var(--track)' : style === 'line' ? 'transparent' : `color-mix(in srgb, ${c} ${style === 'art' ? 9 : 14}%, var(--card))`;
   const fg = style === 'tile' ? '#fff' : style === 'mono' ? 'var(--text)' : c;
+  const shape = style === 'line' ? `border:2px solid ${c};border-radius:50%` : 'border:0';
   const inner = style === 'emoji' ? def.e
     : style === 'art' ? `<svg class="ha" viewBox="0 0 24 24" aria-hidden="true">${ICON_ART[icon]}</svg>`
     : `<svg class="hi" viewBox="0 0 24 24" aria-hidden="true">${def.s}</svg>`;
-  return `<span class="hicon" style="background:${bg};color:${fg}">${inner}</span>`;
+  return `<span class="hicon" style="background:${bg};color:${fg};${shape}">${inner}</span>`;
 }
 function renderSettings() {
   const cur = document.body.dataset.icons;
@@ -3013,7 +3078,10 @@ async function cloudPull() {
   const { data: row, error } = await cloud.sb.from('habit_data').select('data, version').eq('user_id', uid).maybeSingle();
   if (error) throw error;
   const base = loadBase();
-  if (!row) return true;
+  if (!row) {
+    if (base.version != null) saveBase(null, null);
+    return true;
+  }
   if (row.version === base.version) return JSON.stringify(state) !== JSON.stringify(base.data);
   const remote = normalize(row.data);
   const merged = normalize(mergeStates(base.data, state, remote));
