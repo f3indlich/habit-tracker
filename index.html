@@ -371,11 +371,91 @@
   .set-row.static { cursor: default; }
   .set-row.static:hover { background: none; }
   #pushIc[data-on=true] { background: color-mix(in srgb, var(--good) 16%, var(--card)); color: var(--good); }
-  .remind-row { display: flex; align-items: center; gap: 12px; }
-  .remind-row input[type=time] {
-    font: inherit; font-variant-numeric: tabular-nums; color: var(--text); background: var(--bg);
-    border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; min-width: 120px; min-height: 44px;
+  .rem { background: var(--bg); border-radius: 18px; padding: 4px 14px; transition: box-shadow .3s var(--ease); }
+  .rem.on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc) 35%, transparent); }
+  .rem-head { display: flex; align-items: center; gap: 12px; min-height: 60px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .rem-ic {
+    width: 36px; height: 36px; border-radius: 11px; flex: none; display: grid; place-items: center;
+    background: var(--track); color: var(--muted); transition: background-color .3s var(--ease), color .3s var(--ease);
   }
+  .rem-ic svg.ic { width: 19px; height: 19px; transform-origin: 50% 15%; }
+  .rem.on .rem-ic { background: color-mix(in srgb, var(--fc) 16%, var(--card)); color: var(--fc); }
+  .rem-tt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+  .rem-tt b { font-weight: 600; font-size: 15px; }
+  .rem-tt small { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .switch {
+    position: relative; flex: none; width: 50px; height: 30px; padding: 0; border: 0; border-radius: 999px;
+    background: var(--track); cursor: pointer; transition: background-color .25s var(--ease);
+  }
+  .switch > span {
+    position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 3px 8px rgba(0, 0, 0, .14); transition: transform .32s var(--spring);
+  }
+  .switch[aria-checked=true] { background: var(--fc); }
+  .switch[aria-checked=true] > span { transform: translateX(20px); }
+  .switch.sm { width: 42px; height: 26px; }
+  .switch.sm > span { width: 20px; height: 20px; }
+  .switch.sm[aria-checked=true] > span { transform: translateX(16px); }
+  .switch:active > span { width: 28px; }
+  .switch.sm:active > span { width: 24px; }
+  .switch[aria-checked=true]:active > span { transform: translateX(16px); }
+  .switch.sm[aria-checked=true]:active > span { transform: translateX(12px); }
+  .rem-body { display: flex; flex-direction: column; padding: 14px 0 16px; border-top: 1px solid var(--border); }
+  .rem-body > * { margin: 0 0 14px; }
+  .rem-body > :last-child { margin-bottom: 0; }
+  .rem-body > .collapse { margin-top: 0; min-height: 0; transition: grid-template-rows .4s var(--ease), opacity .3s var(--ease), margin-bottom .4s var(--ease); }
+  .rem-body > .collapse:not(.open) { margin-bottom: 0; }
+  .rem input[type=time]::-webkit-calendar-picker-indicator, .rem input[type=date]::-webkit-calendar-picker-indicator { display: none; }
+  .rem input[type=time], .rem input[type=date] { cursor: pointer; }
+  .rem-sub { font-size: 12.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+  .rem .seg { background: var(--track); }
+  .rem .seg button[aria-pressed=true] { color: var(--text); }
+  .rem-times { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tchip {
+    display: inline-flex; align-items: center; height: 42px; padding: 0 4px 0 12px; gap: 2px; border-radius: 13px;
+    background: var(--card); border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(20, 24, 40, .04);
+  }
+  .tchip input[type=time], .rem-range input {
+    -webkit-appearance: none; appearance: none; border: 0; background: none; padding: 0; margin: 0;
+    font: inherit; font-weight: 600; font-size: 15.5px; font-variant-numeric: tabular-nums; color: var(--text);
+    min-width: 0; width: 3.6em; min-height: 40px; text-align: left;
+  }
+  .tchip input::-webkit-date-and-time-value { text-align: left; }
+  .tchip .x {
+    width: 30px; height: 30px; border: 0; border-radius: 9px; padding: 0; background: none; color: var(--faint);
+    display: grid; place-items: center;
+  }
+  .tchip .x:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+  .tchip .x svg.ic { width: 15px; height: 15px; stroke-width: 2.2; }
+  .tadd {
+    height: 42px; padding: 0 14px; border-radius: 13px; border: 1.5px dashed color-mix(in srgb, var(--fc) 45%, var(--border));
+    background: transparent; color: var(--fc); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tadd svg.ic { width: 16px; height: 16px; stroke-width: 2.2; }
+  .rem-range { display: flex; align-items: center; gap: 8px; }
+  .rem-range label {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 12px; border-radius: 13px;
+    background: var(--card); border: 1px solid var(--border); color: var(--muted); font-size: 14px;
+  }
+  .rem-range input { flex: 1; width: auto; }
+  .rem-range input[type=date] { font-size: 15px; }
+  .rem-dash { color: var(--faint); flex: none; }
+  .rem-note { margin: 8px 2px 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .rem-inline { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .mini-seg { display: inline-flex; gap: 3px; padding: 3px; background: var(--track); border-radius: 10px; }
+  .mini-seg button { width: 38px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .mini-seg button[aria-pressed=true] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+  .rem-days { margin-top: 0; }
+  .rem .rem-days button { background: var(--card); }
+  .rem .rem-days button[aria-pressed=true] { background: var(--fc); color: #fff; }
+  .rem-days button[aria-pressed=true] { background: var(--fc); color: #fff; }
+  .rem-days button:disabled { opacity: .32; cursor: default; }
+  .rem-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 30px; font-size: 14.5px; cursor: pointer; }
+  .rem-row > span { flex: 1; min-width: 0; }
+  @keyframes rem-ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(16deg); } 45% { transform: rotate(-12deg); } 70% { transform: rotate(6deg); } }
+  .rem-ic.ringing svg.ic { animation: rem-ring .6s var(--ease-out); }
+  @keyframes shake-x { 0%, 100% { transform: none; } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  .shake { animation: shake-x .3s var(--ease-out); }
   .field-hint { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
   .field-hint:empty { display: none; }
   .field-hint button { padding: 0; background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
@@ -998,10 +1078,62 @@
         <div class="seg" id="timeSeg"></div>
       </div>
       <div class="field">
-        <span class="lbl">Напоминание <span style="font-weight:400">— необязательно</span></span>
-        <div class="remind-row">
-          <input type="time" id="remind" step="300" aria-label="Время напоминания">
-          <button type="button" class="link-btn" id="remindClear">Без напоминания</button>
+        <div class="rem" id="rem">
+          <div class="rem-head" id="remHead">
+            <span class="rem-ic" id="remIc"><svg class="ic" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0 1 12 0c0 4.5 2 6 2 6H4s2-1.5 2-6M10 20a2.2 2.2 0 0 0 4 0"/></svg></span>
+            <span class="rem-tt"><b>Напоминания</b><small id="remSummary">Выключены</small></span>
+            <button type="button" class="switch" id="remSwitch" role="switch" aria-checked="false" aria-label="Напоминания"><span></span></button>
+          </div>
+          <div class="collapse" id="remWrap"><div>
+            <div class="rem-body">
+              <div class="collapse" id="remModeWrap"><div>
+                <div class="seg" id="remMode">
+                  <button type="button" data-v="spread">Равномерно за день</button>
+                  <button type="button" data-v="times">В своё время</button>
+                </div>
+              </div></div>
+              <div class="collapse" id="remSpreadWrap"><div>
+                <div class="rem-sub">Промежуток</div>
+                <div class="rem-range">
+                  <label>с <input type="time" id="remFrom" step="300" aria-label="Начало промежутка"></label>
+                  <span class="rem-dash">—</span>
+                  <label>до <input type="time" id="remTo" step="300" aria-label="Конец промежутка"></label>
+                </div>
+                <p class="rem-note" id="remSpreadNote"></p>
+              </div></div>
+              <div class="collapse" id="remTimesWrap"><div>
+                <div class="rem-sub">Время</div>
+                <div class="rem-times" id="remTimes"></div>
+                <div class="rem-sub" style="margin-top:14px">Повторить, если не отмечено</div>
+                <div class="seg" id="remRepeat">
+                  <button type="button" data-v="0">Нет</button>
+                  <button type="button" data-v="15">15 мин</button>
+                  <button type="button" data-v="30">30 мин</button>
+                  <button type="button" data-v="60">1 час</button>
+                </div>
+                <div class="collapse" id="remRepeatNWrap"><div>
+                  <div class="rem-inline">Не больше <div class="mini-seg" id="remRepeatN"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button></div> <span id="remRepeatWord">раз</span></div>
+                </div></div>
+              </div></div>
+              <div>
+                <div class="rem-sub">Дни</div>
+                <div class="weekdays rem-days" id="remDays"></div>
+              </div>
+              <div>
+                <div class="rem-row" id="remDatesRow">
+                  <span>Только в определённые даты</span>
+                  <button type="button" class="switch sm" id="remDatesSwitch" role="switch" aria-checked="false" aria-label="Только в определённые даты"><span></span></button>
+                </div>
+                <div class="collapse" id="remDatesWrap"><div>
+                  <div class="rem-range" style="margin-top:10px">
+                    <label>с <input type="date" id="remDFrom" aria-label="Первый день"></label>
+                    <span class="rem-dash">—</span>
+                    <label>по <input type="date" id="remDTo" aria-label="Последний день"></label>
+                  </div>
+                </div></div>
+              </div>
+            </div>
+          </div></div>
         </div>
         <p class="field-hint" id="remindHint"></p>
       </div>
@@ -1326,6 +1458,27 @@ function load() {
   try { s = JSON.parse(localStorage.getItem(STORE)); } catch {}
   return normalize(s);
 }
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+const toMin = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+const fromMin = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+function normRemind(r, target) {
+  if (typeof r === 'string') r = { times: [r] };
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+  const isDay = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const out = {};
+  const times = [...new Set((Array.isArray(r.times) ? r.times : []).filter(t => typeof t === 'string' && HHMM.test(t)))].sort().slice(0, 6);
+  if (times.length) out.times = times;
+  const sp = r.spread;
+  if (target > 1 && sp && HHMM.test(sp.from || '') && HHMM.test(sp.to || '') && toMin(sp.to) > toMin(sp.from)) out.spread = { from: sp.from, to: sp.to };
+  if (!out.times && !out.spread) return null;
+  if ([15, 30, 60].includes(r.repeat)) { out.repeat = r.repeat; out.repeatN = Math.max(1, Math.min(3, parseInt(r.repeatN) || 1)); }
+  const days = Array.isArray(r.days) ? [...new Set(r.days.map(Number).filter(x => x >= 0 && x <= 6))].sort() : [];
+  if (days.length && days.length < 7) out.days = days;
+  if (isDay(r.from)) out.from = r.from;
+  if (isDay(r.to)) out.to = r.to;
+  if (out.from && out.to && out.from > out.to) [out.from, out.to] = [out.to, out.from];
+  return out;
+}
 function normalize(s) {
   const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
   const isKey = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -1354,7 +1507,8 @@ function normalize(s) {
     if (!h.days?.length || h.days.length === 7) h.days = null;
     h.unit = typeof h.unit === 'string' ? h.unit.slice(0, 20) : '';
     h.why = typeof h.why === 'string' ? h.why.slice(0, 120) : '';
-    if (!(typeof h.remind === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(h.remind))) delete h.remind;
+    h.remind = normRemind(h.remind, h.target);
+    if (!h.remind) delete h.remind;
     if (!isKey(h.created)) h.created = todayKey();
     if (h.archived != null && !isKey(h.archived)) delete h.archived;
     if (h.updated != null && !isKey(h.updated)) delete h.updated;
@@ -2331,7 +2485,10 @@ function renderArchive() {
 }
 
 let editingId = null;
-const form = { icon: 'check', color: COLORS[0], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null, newCat: false };
+const form = {
+  icon: 'check', color: COLORS[0], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null, newCat: false,
+  rem: { on: false, touched: false, mode: 'times', times: ['09:00'], repeat: 0, repeatN: 1, from: '09:00', to: '21:00', days: null, dates: false, dFrom: '', dTo: '' },
+};
 
 function drawIconPickers() {
   $('emojis').innerHTML = ICON_KEYS.map(k => `<button type="button" data-v="${k}" title="${k}">${iconHTML(k)}</button>`).join('');
@@ -2355,17 +2512,206 @@ function syncPreview() {
   const sched = form.sched === 'daily' || form.days.length === 7 ? 'каждый день'
     : form.days.length ? schedText({ days: form.days }) : 'дни не выбраны';
   const time = TIMES.find(t => t.v === form.time);
-  const remind = $('remind').value;
-  $('fpMeta').textContent = [goal, sched, form.time !== 'any' && time ? time.label.toLowerCase() : '', remind ? '🔔 ' + remind : ''].filter(Boolean).join(' · ');
-  $('remindClear').hidden = !remind;
+  $('fpMeta').textContent = [goal, sched, form.time !== 'any' && time ? time.label.toLowerCase() : '', remShort()].filter(Boolean).join(' · ');
   renderRemindHint();
   if (changed && !reducedMotion) {
     box.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.025)' }, { transform: 'scale(1)' }], { duration: 360, easing: 'cubic-bezier(.2, .8, .2, 1)' });
     $('fpIcon').animate([{ transform: 'scale(.82) rotate(-8deg)' }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
   }
 }
-for (const id of ['name', 'target', 'unit', 'remind']) $(id).addEventListener('input', syncPreview);
-$('remindClear').onclick = () => { $('remind').value = ''; syncPreview(); };
+for (const id of ['name', 'unit']) $(id).addEventListener('input', syncPreview);
+$('target').addEventListener('input', () => { renderRem(); syncPreview(); });
+
+const REM_DEFAULT = { morning: ['08:00', '07:00', '12:00'], day: ['13:00', '10:00', '18:00'], evening: ['20:00', '17:00', '22:00'], any: ['09:00', '09:00', '21:00'] };
+const remDefaults = () => REM_DEFAULT[form.time] || REM_DEFAULT.any;
+const remTarget = () => form.goal === 'multi' ? clampTarget($('target').value) : 1;
+const habitDays = () => form.sched === 'days' && form.days.length && form.days.length < 7 ? form.days : [0, 1, 2, 3, 4, 5, 6];
+const remDays = () => { const all = habitDays(), d = (form.rem.days || all).filter(x => all.includes(x)); return d.length ? d : all; };
+const remIsSpread = () => form.rem.mode === 'spread' && form.goal === 'multi';
+const fmtDur = m => { const h = Math.floor(m / 60), mm = Math.round(m % 60); return [h && `${h} ч`, mm && `${mm} мин`].filter(Boolean).join(' ') || 'меньше минуты'; };
+const fmtShortDay = k => parseKey(k).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
+const joinAnd = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' и ' + a[a.length - 1];
+
+function remFromHabit(h) {
+  const [t, f, to] = remDefaults();
+  const r = h?.remind;
+  return {
+    on: !!r, touched: !!r, mode: r?.spread ? 'spread' : r ? 'times' : (form.goal === 'multi' ? 'spread' : 'times'),
+    times: r?.times ? [...r.times] : [t], repeat: r?.repeat || 0, repeatN: r?.repeatN || 1,
+    from: r?.spread?.from || f, to: r?.spread?.to || to,
+    days: r?.days ? [...r.days] : null, dates: !!(r?.from || r?.to), dFrom: r?.from || '', dTo: r?.to || '',
+  };
+}
+function remToData() {
+  const r = form.rem;
+  if (!r.on) return undefined;
+  const out = {};
+  if (remIsSpread()) out.spread = { from: r.from, to: r.to };
+  else { out.times = [...r.times]; if (r.repeat) { out.repeat = r.repeat; out.repeatN = r.repeatN; } }
+  const all = habitDays(), days = remDays();
+  if (days.length < all.length) out.days = [...days];
+  if (r.dates) { if (r.dFrom) out.from = r.dFrom; if (r.dTo) out.to = r.dTo; }
+  return normRemind(out, remTarget()) || undefined;
+}
+function remSummaryText() {
+  const r = form.rem;
+  if (!r.on) return 'Выключены';
+  const parts = [];
+  if (remIsSpread()) {
+    const n = remTarget();
+    parts.push(`${n} ${plural(n, 'раз', 'раза', 'раз')} с ${r.from} до ${r.to}`);
+  } else {
+    parts.push('в ' + joinAnd(r.times));
+    if (r.repeat) parts.push(`повтор через ${r.repeat === 60 ? 'час' : r.repeat + ' мин'}`);
+  }
+  const days = remDays();
+  if (days.length < 7) parts.push(schedText({ days }));
+  if (r.dates && (r.dFrom || r.dTo)) parts.push(r.dFrom && r.dTo ? `${fmtShortDay(r.dFrom)} — ${fmtShortDay(r.dTo)}` : r.dTo ? `до ${fmtShortDay(r.dTo)}` : `с ${fmtShortDay(r.dFrom)}`);
+  const s = parts.join(' · ');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function remShort() {
+  const r = form.rem;
+  if (!r?.on) return '';
+  if (remIsSpread()) return `🔔 ${remTarget()}× ${r.from}–${r.to}`;
+  return '🔔 ' + (r.times.length > 2 ? `${r.times.slice(0, 2).join(', ')} +${r.times.length - 2}` : r.times.join(', '));
+}
+
+const setCollapse = (el, open) => { el.classList.toggle('open', open); el.inert = !open; };
+$('remDays').innerHTML = WEEKDAYS.map((w, i) => `<button type="button" data-v="${i}">${w}</button>`).join('');
+
+function renderTimes(enterIndex = -1) {
+  const t = form.rem.times;
+  $('remTimes').innerHTML = t.map((v, i) => `<span class="tchip" data-i="${i}">
+      <input type="time" step="300" value="${v}" aria-label="Время напоминания ${i + 1}">
+      ${t.length > 1 ? `<button type="button" class="x" aria-label="Убрать ${v}"><svg class="ic" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button>` : ''}
+    </span>`).join('')
+    + (t.length < 6 ? `<button type="button" class="tadd" id="remAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Добавить</button>` : '');
+  const chip = $('remTimes').querySelector(`.tchip[data-i="${enterIndex}"]`);
+  if (chip && !reducedMotion) chip.animate([{ opacity: 0, transform: 'scale(.7)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
+}
+
+function renderRem() {
+  const r = form.rem, multi = form.goal === 'multi';
+  if (!r.touched) {
+    const [t, f, to] = remDefaults();
+    const before = r.times.join();
+    Object.assign(r, { mode: multi ? 'spread' : 'times', times: [t], from: f, to });
+    if (before !== r.times.join()) renderTimes();
+  }
+  if (!multi && r.mode === 'spread') r.mode = 'times';
+  $('rem').classList.toggle('on', r.on);
+  $('remSwitch').setAttribute('aria-checked', r.on);
+  setCollapse($('remWrap'), r.on);
+  setCollapse($('remModeWrap'), multi);
+  $('remMode').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === (remIsSpread() ? 'spread' : 'times')));
+  setCollapse($('remSpreadWrap'), remIsSpread());
+  setCollapse($('remTimesWrap'), !remIsSpread());
+  if (document.activeElement !== $('remFrom')) $('remFrom').value = r.from;
+  if (document.activeElement !== $('remTo')) $('remTo').value = r.to;
+  const n = remTarget(), span = toMin(r.to) - toMin(r.from);
+  $('remSpreadNote').textContent = span <= 0
+    ? 'Конец промежутка должен быть позже начала.'
+    : `${n} ${plural(n, 'напоминание', 'напоминания', 'напоминаний')}, примерно каждые ${fmtDur(span / Math.max(1, n - 1))}. Придут, только если Вы отстаёте от плана.`;
+  $('remSpreadNote').style.color = span <= 0 ? 'var(--danger)' : '';
+  $('remRepeat').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === r.repeat));
+  setCollapse($('remRepeatNWrap'), r.repeat > 0);
+  $('remRepeatN').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === r.repeatN));
+  $('remRepeatWord').textContent = plural(r.repeatN, 'раза', 'раз', 'раз');
+  const all = habitDays(), sel = remDays();
+  $('remDays').querySelectorAll('button').forEach(b => {
+    const d = +b.dataset.v;
+    b.disabled = !all.includes(d);
+    b.setAttribute('aria-pressed', sel.includes(d));
+  });
+  $('remDatesSwitch').setAttribute('aria-checked', r.dates);
+  setCollapse($('remDatesWrap'), r.dates);
+  if (document.activeElement !== $('remDFrom')) $('remDFrom').value = r.dFrom;
+  if (document.activeElement !== $('remDTo')) $('remDTo').value = r.dTo;
+  const sum = $('remSummary'), text = remSummaryText();
+  if (sum.textContent !== text) {
+    const had = sum.textContent;
+    sum.textContent = text;
+    if (had && !reducedMotion) sum.animate([{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+  }
+}
+function remChanged() { form.rem.touched = true; renderRem(); syncPreview(); }
+
+function remToggle() {
+  const r = form.rem;
+  r.on = !r.on;
+  if (r.on && !reducedMotion) {
+    const ic = $('remIc');
+    ic.classList.remove('ringing'); void ic.offsetWidth; ic.classList.add('ringing');
+    setTimeout(() => $('rem').scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 380);
+  }
+  remChanged();
+}
+$('remHead').onclick = e => { if (!e.target.closest('#remSwitch')) remToggle(); };
+$('rem').addEventListener('click', e => {
+  const input = e.target.closest('input[type=time], input[type=date]');
+  if (input && !isIOS) try { input.showPicker(); } catch {}
+});
+$('remSwitch').onclick = remToggle;
+$('remMode').onclick = e => { const b = e.target.closest('button'); if (b) { form.rem.mode = b.dataset.v; remChanged(); } };
+$('remRepeat').onclick = e => { const b = e.target.closest('button'); if (b) { form.rem.repeat = +b.dataset.v; remChanged(); } };
+$('remRepeatN').onclick = e => { const b = e.target.closest('button'); if (b) { form.rem.repeatN = +b.dataset.v; remChanged(); } };
+for (const [id, k] of [['remFrom', 'from'], ['remTo', 'to']]) {
+  $(id).addEventListener('change', e => { if (HHMM.test(e.target.value)) form.rem[k] = e.target.value; else e.target.value = form.rem[k]; remChanged(); });
+}
+$('remDays').onclick = e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  const d = +b.dataset.v, cur = remDays();
+  const next = cur.includes(d) ? cur.filter(x => x !== d) : [...cur, d].sort();
+  if (!next.length) { $('remDays').classList.remove('shake'); void $('remDays').offsetWidth; $('remDays').classList.add('shake'); return toast('Нужен хотя бы один день', null, ''); }
+  form.rem.days = next.length === habitDays().length ? null : next;
+  remChanged();
+};
+$('remDatesRow').onclick = e => {
+  const r = form.rem;
+  r.dates = !r.dates;
+  if (r.dates && !r.dFrom && !r.dTo) { r.dFrom = todayKey(); r.dTo = key(addDays(new Date(), 30)); }
+  remChanged();
+};
+for (const [id, k] of [['remDFrom', 'dFrom'], ['remDTo', 'dTo']]) {
+  $(id).addEventListener('change', e => {
+    const r = form.rem;
+    r[k] = /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) ? e.target.value : '';
+    if (r.dFrom && r.dTo && r.dFrom > r.dTo) { if (k === 'dFrom') r.dTo = r.dFrom; else r.dFrom = r.dTo; }
+    remChanged();
+  });
+}
+$('remTimes').addEventListener('change', e => {
+  const input = e.target.closest('input'), chip = input?.closest('.tchip');
+  if (!chip) return;
+  const i = +chip.dataset.i, t = form.rem.times, v = input.value;
+  if (!HHMM.test(v)) { input.value = t[i]; return; }
+  if (t.some((x, j) => x === v && j !== i)) { chip.classList.remove('shake'); void chip.offsetWidth; chip.classList.add('shake'); input.value = t[i]; return toast('Такое время уже есть', null, ''); }
+  t[i] = v; t.sort();
+  renderTimes(); remChanged();
+});
+$('remTimes').addEventListener('click', e => {
+  const t = form.rem.times;
+  if (e.target.closest('#remAdd')) {
+    let m = t.length ? toMin(t[t.length - 1]) + 180 : toMin(remDefaults()[0]);
+    if (m > 22 * 60) m = t.length && toMin(t[0]) - 180 >= 6 * 60 ? toMin(t[0]) - 180 : 12 * 60;
+    for (let k = 0; k < 48 && t.includes(fromMin(m % 1440)); k++) m += 30;
+    const v = fromMin(m % 1440);
+    t.push(v); t.sort();
+    renderTimes(t.indexOf(v)); remChanged();
+    const input = $('remTimes').querySelector(`.tchip[data-i="${t.indexOf(v)}"] input`);
+    try { input.showPicker(); } catch { input.focus(); }
+    return;
+  }
+  const x = e.target.closest('.x');
+  if (!x) return;
+  const chip = x.closest('.tchip'), i = +chip.dataset.i;
+  const done = () => { t.splice(i, 1); renderTimes(); remChanged(); };
+  if (reducedMotion) return done();
+  chip.style.pointerEvents = 'none';
+  chip.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.6)' }], { duration: 180, easing: 'cubic-bezier(.55, 0, .75, .2)' }).finished.then(done, done);
+});
 
 function syncForm() {
   const press = (box, fn) => box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', fn(b.dataset.v)));
@@ -2375,7 +2721,6 @@ function syncForm() {
   press($('schedSeg'), v => v === form.sched);
   press($('weekdays'), v => form.days.includes(+v));
   press($('timeSeg'), v => v === form.time);
-  const setCollapse = (el, open) => { el.classList.toggle('open', open); el.inert = !open; };
   setCollapse($('goalWrap'), form.goal === 'multi');
   setCollapse($('daysWrap'), form.sched === 'days');
   if (form.cat && !catName(form.cat)) form.cat = null;
@@ -2383,6 +2728,7 @@ function syncForm() {
     .map(c => `<button type="button" data-v="${esc(c.id)}" aria-pressed="${(form.cat || '') === c.id}">${esc(c.name)}</button>`).join('')
     + `<button type="button" class="add-chip" data-v="__new" aria-pressed="${form.newCat}">+ Новый тип</button>`;
   setCollapse($('newCatWrap'), form.newCat);
+  renderRem();
   syncPreview();
 }
 const pick = (box, fn) => box.onclick = e => { const b = e.target.closest('button'); if (b) { fn(b.dataset.v); syncForm(); } };
@@ -2447,7 +2793,8 @@ function openForm(id = null) {
   $('target').value = h && h.target > 1 ? h.target : 8;
   $('unit').value = h?.unit || '';
   $('why').value = h?.why || '';
-  $('remind').value = h?.remind || '';
+  form.rem = remFromHabit(h);
+  renderTimes();
   $('formPrev').style.removeProperty('--c');
   drawIconPickers();
   syncForm();
@@ -2526,6 +2873,10 @@ $('form').onsubmit = e => {
   const name = $('name').value.trim();
   if (!name) return;
   if (form.sched === 'days' && !form.days.length) return toast('Выберите хотя бы один день недели');
+  if (form.rem.on && remIsSpread() && toMin(form.rem.to) <= toMin(form.rem.from)) {
+    $('rem').scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return toast('Напоминания: конец промежутка должен быть позже начала', null, '');
+  }
   const target = form.goal === 'multi' ? clampTarget($('target').value) : 1;
   const data = {
     name, target, icon: form.icon, color: form.color, time: form.time,
@@ -2533,7 +2884,7 @@ $('form').onsubmit = e => {
     days: form.sched === 'days' && form.days.length < 7 ? [...form.days] : null,
     why: $('why').value.trim(),
     cat: form.cat && catName(form.cat) ? form.cat : null,
-    remind: /^([01]\d|2[0-3]):[0-5]\d$/.test($('remind').value) ? $('remind').value : undefined,
+    remind: remToData(),
   };
   const h = editingId && findHabit(editingId);
   if (h) {
@@ -3417,7 +3768,7 @@ function renderPush() {
 function renderRemindHint() {
   const el = $('remindHint');
   const st = pushState();
-  if (!$('remind').value || st === 'on' || st === 'off') { el.textContent = ''; return; }
+  if (!form.rem?.on || st === 'on' || st === 'off') { el.textContent = ''; return; }
   el.innerHTML = st === 'ios'
     ? 'Напоминания придут только в приложении, установленном на экран «Домой».'
     : 'Чтобы напоминание пришло, включите уведомления в <button type="button" data-open-push>Настройках</button>.';

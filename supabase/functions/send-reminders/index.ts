@@ -22,27 +22,65 @@ function localNow(tz, now) {
   };
 }
 
+const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const toMin = t => (HHMM.test(t || '') ? +t.slice(0, 2) * 60 + +t.slice(3, 5) : null);
+
+function slotsFor(h, local) {
+  const r = typeof h.remind === 'string' ? { times: [h.remind] } : h.remind;
+  if (!r || typeof r !== 'object') return [];
+  if (r.from && local.day < r.from) return [];
+  if (r.to && local.day > r.to) return [];
+  if (Array.isArray(r.days) && r.days.length && !r.days.includes(local.weekday)) return [];
+  const target = Math.max(1, h.target || 1);
+  const a = toMin(r.spread?.from), b = toMin(r.spread?.to);
+  if (target > 1 && a != null && b != null && b > a) {
+    return Array.from({ length: target }, (_, i) => ({
+      at: target === 1 ? a : Math.round(a + (b - a) * i / (target - 1)), need: i + 1, kind: 'spread',
+    }));
+  }
+  const step = [15, 30, 60].includes(r.repeat) ? r.repeat : 0;
+  const repeats = step ? Math.max(1, Math.min(3, parseInt(r.repeatN) || 1)) : 0;
+  const out = [];
+  for (const t of Array.isArray(r.times) ? r.times : []) {
+    const m = toMin(t);
+    if (m == null) continue;
+    out.push({ at: m, need: target, kind: 'time' });
+    for (let k = 1; k <= repeats; k++) if (m + k * step < 1440) out.push({ at: m + k * step, need: target, kind: 'repeat' });
+  }
+  return out;
+}
+
 function dueReminders(data, tz, now) {
   const local = localNow(tz, now);
   const log = data?.log?.[local.day] || {};
   const skip = data?.skip?.[local.day] || {};
-  return (data?.habits || []).filter(h => {
-    const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(h?.remind || '');
-    if (!m || h.archived || !h.id) return false;
-    if (h.created && h.created > local.day) return false;
-    if (Array.isArray(h.days) && h.days.length && !h.days.includes(local.weekday)) return false;
-    if (skip[h.id]) return false;
-    if ((log[h.id] || 0) >= Math.max(1, h.target || 1)) return false;
-    const at = +m[1] * 60 + +m[2];
-    return local.minutes >= at && local.minutes - at < WINDOW_MIN;
-  }).map(h => ({ ...h, left: Math.max(1, h.target || 1) - (log[h.id] || 0), day: local.day }));
+  const out = [];
+  for (const h of data?.habits || []) {
+    if (!h || !h.id || h.archived || !h.remind) continue;
+    if (h.created && h.created > local.day) continue;
+    if (Array.isArray(h.days) && h.days.length && !h.days.includes(local.weekday)) continue;
+    if (skip[h.id]) continue;
+    const done = log[h.id] || 0, target = Math.max(1, h.target || 1);
+    if (done >= target) continue;
+    const due = slotsFor(h, local)
+      .filter(s => local.minutes >= s.at && local.minutes - s.at < WINDOW_MIN && done < s.need)
+      .sort((x, y) => x.at - y.at);
+    if (!due.length) continue;
+    const slot = due[due.length - 1];
+    out.push({ ...h, target, done, left: target - done, day: local.day, slot, slotKeys: due.map(s => `${h.id}#${s.at}`) });
+  }
+  return out;
 }
 
 function payloadFor(habits) {
   if (habits.length === 1) {
-    const h = habits[0];
-    const rest = h.target > 1 ? ` — осталось ${h.left} из ${h.target}${h.unit ? ' ' + h.unit : ''}` : '';
-    return { title: h.name, body: `Пора выполнить привычку${rest}`, tag: 'habit-' + h.id, ids: [h.id] };
+    const h = habits[0], unit = h.unit ? ' ' + h.unit : '';
+    const body = h.slot.kind === 'spread'
+      ? `По плану к этому времени — ${h.slot.need} из ${h.target}${unit}, отмечено ${h.done}`
+      : h.slot.kind === 'repeat'
+        ? `Напоминаю ещё раз: привычка пока не отмечена${h.target > 1 ? ` — осталось ${h.left} из ${h.target}${unit}` : ''}`
+        : `Пора выполнить привычку${h.target > 1 ? ` — осталось ${h.left} из ${h.target}${unit}` : ''}`;
+    return { title: h.name, body, tag: 'habit-' + h.id, ids: [h.id] };
   }
   return {
     title: `Ждут привычки: ${habits.length}`,
@@ -80,7 +118,10 @@ if (typeof Deno !== 'undefined') {
       const due = dueReminders(row.data, tz, now);
       const fresh = [];
       for (const h of due) {
-        const { error: dup } = await db.from('push_log').insert({ user_id: row.user_id, habit_id: h.id, day: h.day });
+        const rows = h.slotKeys.map(k => ({ user_id: row.user_id, habit_id: k, day: h.day }));
+        const latest = rows[rows.length - 1];
+        const { error: dup } = await db.from('push_log').insert(latest);
+        if (rows.length > 1) await db.from('push_log').upsert(rows.slice(0, -1), { onConflict: 'user_id,habit_id,day', ignoreDuplicates: true });
         if (!dup) fresh.push(h);
       }
       if (!fresh.length) continue;
@@ -102,7 +143,7 @@ if (typeof Deno !== 'undefined') {
         }
       }
       if (!delivered && transient) {
-        for (const h of fresh) await db.from('push_log').delete().match({ user_id: row.user_id, habit_id: h.id, day: h.day });
+        for (const h of fresh) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', h.day).in('habit_id', h.slotKeys);
       }
     }
 
