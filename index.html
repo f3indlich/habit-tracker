@@ -243,26 +243,19 @@
   .badge { font-size: 12px; font-weight: 600; border-radius: 6px; padding: 2px 7px; }
   .badge.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
   .badge.skip { color: var(--muted); background: var(--track); }
-  .dots {
-    grid-column: 1 / -1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;
-    margin-top: 12px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  }
-  .dcol {
-    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 0 7px; border-radius: 13px;
-    transition: background-color .3s var(--ease);
-  }
-  .dcol.cur { background: color-mix(in srgb, var(--c) 9%, transparent); }
-  .dw { font-size: 11px; font-weight: 600; color: var(--faint); line-height: 1; letter-spacing: .01em; transition: color .3s; }
+  .dots { display: flex; gap: 4px; margin-top: 9px; max-width: 196px; }
+  .dcol { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .dw { font-size: 9.5px; font-weight: 600; color: var(--faint); line-height: 1; letter-spacing: .02em; transition: color .3s; }
   .dcol.cur .dw { color: var(--c); }
-  .dcol.today:not(.cur) .dw { color: var(--text); }
   .dot { position: relative; }
-  .dot::after { content: ""; position: absolute; inset: -8px -4px; }
+  .dot::after { content: ""; position: absolute; inset: -5px -2px; }
   .dot {
-    width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 0; background: var(--track);
-    display: grid; place-items: center; font-size: 11.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
+    width: 100%; max-width: 24px; height: auto; aspect-ratio: 1; padding: 0; border-radius: 50%; border: 0; background: var(--track);
+    display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums;
     transition: background-color .3s var(--ease), color .3s, transform .15s var(--ease), box-shadow .3s;
   }
-  .dcol.cur .dot:not(.full):not(.part) { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 45%, var(--border)); }
+  .dcol.cur .dot { box-shadow: inset 0 0 0 1.5px var(--c); }
+  .dcol.cur .dot:not(.full):not(.part) { background: transparent; color: var(--c); }
   .dot:hover:not(:disabled) { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 40%, transparent); }
   .dot.part { background: color-mix(in srgb, var(--c) 35%, var(--track)); color: var(--text); }
   .dot.full { background: var(--c); color: #fff; }
@@ -297,7 +290,7 @@
   .view-legend .lgc { background: transparent; box-shadow: inset 0 0 0 1.5px var(--text); }
   .view-legend .lgo { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border); }
   .view-legend.round i { border-radius: 50%; }
-  .view-legend.round .lgc { width: 9px; height: 14px; border-radius: 4px; box-shadow: none; background: color-mix(in srgb, var(--accent) 18%, transparent); }
+  .view-legend.round .lgc { background: transparent; box-shadow: inset 0 0 0 1.5px var(--accent); }
   .mh i.l1 { background: color-mix(in srgb, var(--c) 30%, var(--track)); }
   .mh i.l2 { background: color-mix(in srgb, var(--c) 60%, var(--track)); }
   .mh i.l3 { background: var(--c); }
@@ -603,7 +596,24 @@
   .fp-check { width: 40px; height: 40px; flex: none; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; transition: background-color .35s var(--ease-out); }
   .fp-check svg.ic { width: 20px; height: 20px; stroke-width: 2.4; }
   .form { --fc: var(--accent); }
-  .emoji-grid button[aria-pressed=true] { border-color: var(--fc) !important; background: color-mix(in srgb, var(--fc) 12%, var(--card)) !important; color: var(--fc) !important; }
+  .emoji-grid button {
+    height: auto; aspect-ratio: 1; padding: 2px; border: 2px solid transparent; border-radius: 15px; background: transparent;
+    transition: border-color .2s var(--ease), transform .25s var(--spring);
+  }
+  .emoji-grid button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--fc) 30%, transparent); }
+  .emoji-grid .hicon { width: 100%; height: 100%; border-radius: 11px; font-size: 20px; }
+  .emoji-grid .hicon[data-st]::before, body[data-icons=color] .emoji-grid .hicon::before { border-radius: 9px 9px 50% 50% / 9px 9px 30% 30%; }
+  body[data-icons=line] .emoji-grid .hicon { border-radius: 50%; }
+  .emoji-grid svg.ha { width: 72%; height: 72%; }
+  .emoji-grid button[aria-pressed=true] { border-color: var(--fc) !important; background: transparent !important; }
+  .emoji-grid button[aria-pressed=true] .hicon { animation: pick-pop .35s var(--spring); }
+  @keyframes pick-pop { 40% { transform: scale(.86); } }
+  .templates .hicon.ti { width: 24px; height: 24px; border-radius: 7px; font-size: 14px; flex: none; }
+  .templates .hicon.ti::before { border-radius: 6px 6px 50% 50% / 6px 6px 30% 30% !important; }
+  body[data-icons=line] .templates .hicon.ti { border-width: 1.5px; border-radius: 50%; }
+  .templates .hicon.ti svg.hi { width: 62%; height: 62%; }
+  .templates .hicon.ti svg.ha { width: 80%; height: 80%; }
+  .templates button { padding: 6px 12px 6px 6px; }
   #timeSeg button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 7px 4px; line-height: 1.15; }
   #timeSeg .t-ic { font-size: 18px; line-height: 1; }
   #timeSeg .t-lb { font-size: 13.5px; white-space: nowrap; }
@@ -626,6 +636,8 @@
   .seg-ic svg.ic { width: 19px; height: 19px; flex: none; opacity: .7; transition: opacity .2s, color .2s; }
   .seg-ic button > span { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .seg-ic button[aria-pressed=true] svg.ic { opacity: 1; color: var(--fc); }
+  #stepWrap, #stepWrap:not(.open) { margin-top: 0; }
+  .goal-box { padding-bottom: 2px; }
   .step-box { margin-top: 12px; padding: 12px 12px 14px; border-radius: 16px; background: var(--bg); }
   .step-head { font-size: 13px; font-weight: 600; color: var(--muted); }
   .step-box .goal-row { margin-top: 8px; }
@@ -922,13 +934,13 @@
     .top-actions .add-btn { display: none; }
     .fab { display: inline-flex; }
     body:not(.reordering):not(.no-habits) .toast { bottom: calc(88px + env(safe-area-inset-bottom)); }
-    .habit { grid-template-columns: 40px 1fr auto; column-gap: 10px; padding: 12px 10px 10px 12px; }
+    .habit { grid-template-columns: 40px 1fr auto; column-gap: 10px; padding: 12px 8px 12px 12px; }
     .hicon { width: 40px; height: 40px; font-size: 20px; }
     .ctl { gap: 2px; }
     .more { width: 28px; margin-right: -4px; }
     .step-minus { width: 32px; height: 32px; }
-    .dots { gap: 2px; margin-top: 10px; }
-    .dot { width: 26px; height: 26px; font-size: 11px; }
+    .dots { gap: 3px; margin-top: 8px; }
+    .dot { font-size: 9.5px; }
     .hero { padding: 16px; gap: 12px; }
     .hero-n b { font-size: 30px; }
     .weeknav > .icon-btn { width: 32px; }
@@ -2085,6 +2097,7 @@ function buildCard(id) {
     <div class="info" tabindex="0" role="button" title="История и статистика">
       <div class="name"></div>
       <div class="meta"><span class="m-lead"></span><span class="m-streak"></span><span class="badge warn m-warn"><span class="w-long"></span></span></div>
+      <div class="dots">${'<div class="dcol"><span class="dw"></span><button class="dot"></button></div>'.repeat(7)}</div>
     </div>
     <div class="ctl">
     <button class="step-minus idle" title="Убрать одно повторение">${IC.minus}</button>
@@ -2101,7 +2114,6 @@ function buildCard(id) {
     <button class="ghost more" title="Действия">${IC.more}</button>
     </div>
     <button class="ghost drag-handle" title="Перетащите, чтобы изменить порядок (или стрелки ↑ ↓)" aria-label="Переместить привычку">${IC.grip}</button>
-    <div class="dots">${'<div class="dcol"><span class="dw"></span><button class="dot"></button></div>'.repeat(7)}</div>
     <div class="mh"></div>`;
   el.dataset.id = id;
   el.addEventListener('animationend', e => { if (e.target === el) el.classList.remove('enter'); });
@@ -2673,8 +2685,8 @@ const form = {
 };
 
 function drawIconPickers() {
-  $('emojis').innerHTML = ICON_KEYS.map(k => `<button type="button" data-v="${k}" title="${k}">${iconHTML(k)}</button>`).join('');
-  $('templates').innerHTML = TEMPLATES.map((t, i) => `<button type="button" data-i="${i}"><span class="ti">${iconHTML(t.icon)}</span>${esc(t.name)}</button>`).join('');
+  $('emojis').innerHTML = ICON_KEYS.map(k => `<button type="button" data-v="${k}" title="${k}"><span class="hicon">${iconHTML(k)}</span></button>`).join('');
+  $('templates').innerHTML = TEMPLATES.map((t, i) => `<button type="button" data-i="${i}"><span class="hicon ti" style="--c:${t.color}">${iconHTML(t.icon)}</span>${esc(t.name)}</button>`).join('');
 }
 $('colors').innerHTML = COLORS.map(c => `<button type="button" data-v="${c}" style="--sw:${c}" aria-label="Цвет ${c}"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`).join('');
 $('weekdays').innerHTML = WEEKDAYS.map((w, i) => `<button type="button" data-v="${i}">${w}</button>`).join('');
@@ -2685,6 +2697,7 @@ function syncPreview() {
   const changed = box.style.getPropertyValue('--c') && box.style.getPropertyValue('--c') !== form.color;
   box.style.setProperty('--c', form.color);
   $('form').style.setProperty('--fc', form.color);
+  $('emojis').style.setProperty('--c', form.color);
   setIcon($('fpIcon'), form.icon);
   const name = $('name').value.trim();
   $('fpName').textContent = name || 'Название привычки';
