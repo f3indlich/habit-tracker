@@ -136,7 +136,7 @@
   .hero-n b { font-size: 34px; font-weight: 800; color: var(--text); letter-spacing: -.02em; margin-right: 4px; }
   .hero-msg { font-weight: 600; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chips { display: flex; gap: 6px; margin-top: 10px; height: 25px; overflow: hidden; }
-  .chip { flex: 0 1 auto; min-width: 0; font-size: 12.5px; line-height: 17px; font-weight: 500; color: var(--muted); background: var(--track); border-radius: 999px; padding: 4px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip { flex: 0 0 auto; max-width: 100%; font-size: 12.5px; line-height: 17px; font-weight: 500; color: var(--muted); background: var(--track); border-radius: 999px; padding: 4px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-ring { position: relative; width: 84px; height: 84px; flex: none; display: grid; place-items: center; }
   .hero-ring svg { position: absolute; inset: 0; width: 84px; height: 84px; transform: rotate(-90deg); }
   .hero-ring circle { fill: none; stroke-width: 8; }
@@ -380,11 +380,15 @@
   .seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--track); border-radius: 14px; }
   .seg button { height: 40px; border: 0; border-radius: 10px; background: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; transition: background-color .2s, color .2s, box-shadow .2s; }
   .seg button[aria-checked=true] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
-  .icon-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-  .icon-style { display: grid; gap: 10px; padding: 12px; background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; text-align: left; font: inherit; color: var(--text); cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+  .seg-theme { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .seg-theme button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 6px; min-width: 0; }
+  .seg-theme button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .seg-theme svg.ic { width: 17px; height: 17px; flex: none; }
+  .icon-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+  .icon-style { min-width: 0; display: grid; gap: 10px; padding: 12px; background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; text-align: left; font: inherit; color: var(--text); cursor: pointer; transition: border-color .2s, box-shadow .2s; }
   .icon-style[aria-checked=true] { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
-  .icon-style .row { display: flex; gap: 6px; }
-  .icon-style .hicon { width: 34px; height: 34px; border-radius: 10px; font-size: 17px; }
+  .icon-style .row { display: grid; grid-template-columns: repeat(4, minmax(0, 34px)); gap: 6px; }
+  .icon-style .hicon { width: 100%; height: auto; aspect-ratio: 1; border-radius: 10px; font-size: 17px; }
   .icon-style b { font-weight: 600; font-size: 14px; }
 
   .form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
@@ -745,7 +749,6 @@
     </div>
     <div class="top-actions">
       <button class="ghost icon-btn" id="viewBtn"></button>
-      <button class="ghost icon-btn" id="themeBtn"></button>
       <button class="ghost icon-btn acct-btn" id="acctBtn" data-sync="none" aria-label="Аккаунт и синхронизация">
         <svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg>
         <span class="sync-dot"></span>
@@ -851,6 +854,10 @@
           <span class="set-txt"><b>Выйти из аккаунта</b></span>
         </button>
       </div>
+    </section>
+    <section class="set-group">
+      <h3>Тема</h3>
+      <div class="seg seg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
     </section>
     <section class="set-group">
       <h3>Иконки привычек</h3>
@@ -2800,20 +2807,21 @@ $('iconStyles').onclick = e => {
   setPref(ICON_STORE, b.dataset.s); applyIcons(b.dataset.s); renderSettings();
 };
 
-const THEMES = ['auto', 'light', 'dark'];
+const THEMES = { auto: ['Системная', 'auto'], light: ['Светлая', 'sun'], dark: ['Тёмная', 'moon'] };
 function applyTheme(t) {
+  if (!THEMES[t]) t = 'auto';
   if (t === 'auto') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.dataset.theme = t;
   document.querySelectorAll('meta[name=theme-color]').forEach(m => {
     m.content = t === 'dark' ? '#0e1015' : t === 'light' ? '#f4f5f9' : m.media.includes('dark') ? '#0e1015' : '#f4f5f9';
   });
-  $('themeBtn').innerHTML = t === 'dark' ? IC.moon : t === 'light' ? IC.sun : IC.auto;
-  $('themeBtn').title = `Тема: ${t === 'dark' ? 'тёмная' : t === 'light' ? 'светлая' : 'как в системе'}`;
+  $('themeSeg').innerHTML = Object.entries(THEMES).map(([id, [label, ic]]) =>
+    `<button type="button" role="radio" aria-checked="${id === t}" data-t="${id}">${IC[ic]}<span>${label}</span></button>`).join('');
 }
-$('themeBtn').onclick = () => {
-  const cur = document.documentElement.dataset.theme || 'auto';
-  const t = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
-  setPref(THEME_STORE, t); applyTheme(t);
+$('themeSeg').onclick = e => {
+  const b = e.target.closest('[data-t]');
+  if (!b) return;
+  setPref(THEME_STORE, b.dataset.t); applyTheme(b.dataset.t);
 };
 
 $('exportBtn').onclick = async () => {
