@@ -1,4 +1,4 @@
-const VERSION = 'v16';
+const VERSION = 'v17';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const SHELL_FILES = [
@@ -78,4 +78,33 @@ self.addEventListener('fetch', e => {
       }
     })());
   }
+});
+
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data?.text() || '' }; }
+  const ids = Array.isArray(d.ids) ? d.ids : [];
+  e.waitUntil(self.registration.showNotification(d.title || 'Трекер привычек', {
+    body: d.body || '',
+    icon: './icons/icon-192.png',
+    tag: d.tag || 'habit-reminder',
+    renotify: true,
+    data: { ids },
+    actions: ids.length === 1 ? [{ action: 'done', title: 'Выполнено' }] : [],
+  }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const ids = e.notification.data?.ids || [];
+  const done = e.action === 'done' && ids.length === 1 ? ids[0] : null;
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const win = wins.find(w => w.url.startsWith(self.registration.scope));
+    if (win) {
+      if (done) win.postMessage({ type: 'done', id: done });
+      return win.focus();
+    }
+    return self.clients.openWindow(new URL(done ? `./?done=${encodeURIComponent(done)}` : './', self.registration.scope).href);
+  })());
 });
