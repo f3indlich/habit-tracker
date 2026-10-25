@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Трекер привычек</title>
 <meta name="description" content="Отслеживайте ежедневные привычки, серии и прогресс">
-<!-- installable app: home-screen icon, standalone window, offline -->
 <link rel="manifest" href="manifest.webmanifest">
-<!-- Supabase project URL + public key for cloud sync (empty = local-only mode) -->
 <script src="config.js"></script>
 <meta name="theme-color" content="#f4f5f9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0e1015" media="(prefers-color-scheme: dark)">
@@ -22,14 +20,12 @@
 <meta name="apple-mobile-web-app-title" content="Привычки">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
-<!-- iPhone 15 Pro / 15 / 14 Pro / 16 launch screens (393x852 pt @3x) -->
 <link rel="apple-touch-startup-image" href="icons/splash-1179x2556-light.png"
       media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
 <link rel="apple-touch-startup-image" href="icons/splash-1179x2556-dark.png"
       media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- colour emoji for platforms without a good native set (iPhone/Mac keep Apple emoji) -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -43,8 +39,8 @@
     --ease: cubic-bezier(.22, 1, .36, 1);
     --ease-out: cubic-bezier(.33, 1, .68, 1);
     --ease-in: cubic-bezier(.55, 0, .75, .2);
-    --ease-std: cubic-bezier(.2, .8, .2, 1);    /* default for things that move or fill */
-    --spring: cubic-bezier(.34, 1.56, .64, 1);  /* small overshoot for "pop" moments */
+    --ease-std: cubic-bezier(.2, .8, .2, 1);
+    --spring: cubic-bezier(.34, 1.56, .64, 1);
     --r: 16px;
     color-scheme: light;
   }
@@ -69,8 +65,7 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
-    /* native UI fonts are hinted for their screens: SF Pro on iPhone, Segoe UI Variable on Windows */
-    font: 15px/1.45 var(--f-ui), var(--f-emoji), sans-serif; /* text fonts first, emoji glyphs fall through to colour emoji */
+    font: 15px/1.45 var(--f-ui), var(--f-emoji), sans-serif;
     text-rendering: optimizeLegibility;
     transition: background-color .3s;
   }
@@ -78,7 +73,6 @@
   .wrap { max-width: 640px; margin: 0 auto; padding: 28px 16px 64px; }
   [hidden] { display: none !important; }
 
-  /* --- buttons --- */
   button {
     font-family: inherit; font-size: 14px; font-weight: 500; line-height: 1; color: var(--text);
     border: 1px solid var(--border); background: var(--card); border-radius: 10px;
@@ -99,7 +93,6 @@
   .danger-fill { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
   svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* --- top bar --- */
   .top { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 18px; }
   .top-text { flex: 1; min-width: 0; }
   .hello { color: var(--muted); font-size: 14px; font-weight: 500; }
@@ -116,7 +109,6 @@
   .today-pill svg.ic { width: 16px; height: 16px; }
   .add-btn { height: 40px; padding: 0 16px 0 12px; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px; }
 
-  /* --- week strip --- */
   .weeknav { display: flex; align-items: center; gap: 4px; margin-bottom: 16px; }
   .weeknav > .icon-btn { flex: none; width: 32px; }
   .days { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -137,15 +129,14 @@
   .day.sel .wd { color: var(--text); }
   .day.perfect .dr::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: color-mix(in srgb, var(--good) 18%, transparent); }
 
-  /* --- hero --- */
   .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow); }
   .hero { display: flex; align-items: center; gap: 18px; padding: 18px 20px; margin-bottom: 22px; }
   .hero-text { flex: 1; min-width: 0; }
   .hero-n { font-size: 15px; color: var(--muted); }
   .hero-n b { font-size: 34px; font-weight: 800; color: var(--text); letter-spacing: -.02em; margin-right: 4px; }
-  .hero-msg { font-weight: 600; margin-top: 4px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .chip { font-size: 12.5px; font-weight: 500; color: var(--muted); background: var(--track); border-radius: 999px; padding: 4px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .hero-msg { font-weight: 600; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chips { display: flex; gap: 6px; margin-top: 10px; height: 25px; overflow: hidden; }
+  .chip { flex: 0 1 auto; min-width: 0; font-size: 12.5px; line-height: 17px; font-weight: 500; color: var(--muted); background: var(--track); border-radius: 999px; padding: 4px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-ring { position: relative; width: 84px; height: 84px; flex: none; display: grid; place-items: center; }
   .hero-ring svg { position: absolute; inset: 0; width: 84px; height: 84px; transform: rotate(-90deg); }
   .hero-ring circle { fill: none; stroke-width: 8; }
@@ -153,7 +144,6 @@
   .hero-ring .prog { stroke: var(--good); stroke-linecap: round; transition: stroke-dashoffset .7s var(--ease-out); }
   .hero-ring span { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-  /* --- sections & cards --- */
   .section { margin-bottom: 20px; }
   .sec-h { display: flex; align-items: center; gap: 8px; margin: 0 4px 10px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
   .sec-h .cnt { margin-left: auto; font-weight: 500; letter-spacing: 0; text-transform: none; }
@@ -170,14 +160,11 @@
     width: 36px; height: 36px; padding: 0; border-radius: 50%; display: grid; place-items: center;
     color: var(--muted); transition: opacity .2s var(--ease-out), border-color .2s, color .2s;
   }
-  .step-minus.idle { opacity: 0; pointer-events: none; transition: opacity .15s var(--ease-in); } /* plain fade, no pop */
+  .step-minus.idle { opacity: 0; pointer-events: none; transition: opacity .15s var(--ease-in); }
   .step-minus:hover:not(:disabled) { color: var(--text); }
-  /* swipe: right = выполнить, left = сбросить */
   .habit.swiping { transition: none; }
   .habit.sw-done { background: color-mix(in srgb, var(--good) calc(var(--sw) * 16%), var(--card)); border-color: color-mix(in srgb, var(--good) calc(var(--sw) * 60%), var(--border)); }
   .habit.sw-undo { background: color-mix(in srgb, var(--danger) calc(var(--sw) * 12%), var(--card)); border-color: color-mix(in srgb, var(--danger) calc(var(--sw) * 50%), var(--border)); }
-  /* long-press indicator: appears only once a press clearly is a hold (not on ordinary taps)
-     and sweeps clockwise around the button like a progress ring */
   @property --hold { syntax: '<number>'; inherits: false; initial-value: 0; }
   .check.holding::after {
     content: ""; position: absolute; inset: -5px; border-radius: 50%; pointer-events: none;
@@ -197,11 +184,9 @@
     background: color-mix(in srgb, var(--c) 14%, var(--card)); color: var(--c);
     transition: background-color .3s, color .3s;
   }
-  /* line icons: crisp at any size, colour comes from currentColor */
   svg.hi { width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; display: block; }
   body[data-icons=tile] .hicon { background: var(--c); color: #fff; }
   body[data-icons=mono] .hicon { background: var(--track); color: var(--text); }
-  /* full-colour illustrations carry their own colours; the tile only hints at the habit colour */
   svg.ha { width: 72%; height: 72%; display: block; }
   body[data-icons=art] .hicon { background: color-mix(in srgb, var(--c) 9%, var(--card)); }
   .emoji-grid svg.ha { width: 28px; height: 28px; }
@@ -209,12 +194,10 @@
   body[data-icons=mono] .habit.complete { background: color-mix(in srgb, var(--text) 4%, var(--card)); }
   .info { min-width: 0; cursor: pointer; border-radius: 8px; }
   .name { font-weight: 600; font-size: 15.5px; overflow-wrap: anywhere; line-height: 1.25; }
-  /* one fixed-height line: pieces slide in/out horizontally, the card never grows */
   .meta { display: flex; flex-wrap: nowrap; align-items: center; color: var(--muted); font-size: 13px; margin-top: 3px; height: 20px; overflow: hidden; white-space: nowrap; }
-  /* the lead (count / schedule) and streak always stay whole; only the reminder badge may shorten */
   .meta .m-lead { flex: 0 0 auto; }
   .meta .m-warn.on { flex-shrink: 1; min-width: 0; }
-  .badge.warn.calm { color: var(--muted); background: var(--track); } /* long gaps: informative, not alarming */
+  .badge.warn.calm { color: var(--muted); background: var(--track); }
   .meta .m-streak, .meta .m-warn {
     flex: none; max-width: 0; opacity: 0; margin-left: 0; overflow: hidden;
     transition: max-width .4s var(--ease-out), opacity .25s var(--ease-out), margin-left .4s var(--ease-out);
@@ -228,7 +211,6 @@
   .dots { display: flex; gap: 6px; margin-top: 8px; }
   .dcol { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .dw { font-size: 9.5px; font-weight: 600; color: var(--faint); line-height: 1; }
-  /* small circles, finger-sized hit area */
   .dot { position: relative; }
   .dot::after { content: ""; position: absolute; inset: -6px -3px; }
   .dot {
@@ -247,11 +229,9 @@
   .sh { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
   .sh b { font-weight: 600; color: var(--text); white-space: nowrap; }
   .mh i { border-radius: 3px; background: var(--track); transition: background-color .3s; }
-  /* 30 days: one strip, a little extra space before each Monday, dates underneath */
-  .srow { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); /* minmax: labels must not widen their column */ column-gap: 2px; row-gap: 5px; }
+  .srow { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); column-gap: 2px; row-gap: 5px; }
   .srow i { grid-row: 1; height: 22px; border-radius: 4px; }
   .sl { grid-row: 2; font-size: 10.5px; line-height: 1; color: var(--muted); white-space: nowrap; }
-  /* 13 / 53 weeks: weekdays on the left, months on top */
   .sgrid { display: grid; grid-template-columns: auto repeat(var(--w), minmax(0, 1fr)); grid-auto-rows: auto; column-gap: 3px; row-gap: 3px; align-items: center; }
   .sgrid .ml { grid-row: 1; font-size: 10.5px; line-height: 1; color: var(--muted); white-space: nowrap; padding-bottom: 3px; }
   .sgrid .wl { grid-column: 1; font-size: 10px; color: var(--muted); padding-right: 4px; height: 0; display: flex; align-items: center; line-height: 1; }
@@ -263,7 +243,6 @@
     .mh.y .sgrid { column-gap: 1px; row-gap: 1px; } .mh.y i { border-radius: 1px; }
     .srow { column-gap: 2px; }
   }
-  /* colour key above the list */
   .view-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -8px 4px 18px; font-size: 12px; color: var(--muted); }
   .view-legend .vl-t { font-weight: 600; color: var(--text); margin-right: 2px; }
   .view-legend span { display: inline-flex; align-items: center; gap: 5px; }
@@ -286,9 +265,6 @@
   .ic-blank { width: 18px; height: 18px; flex: none; }
   .menu .lbl { white-space: nowrap; }
 
-  /* check button */
-  /* Motion: press sinks slightly and springs back; each repetition glows softly inside the button and
-     rolls the digit; completion = ring closes → disc pops in with a small overshoot → tick draws. */
   .check {
     width: 48px; height: 48px; border: 0; border-radius: 50%; padding: 0; position: relative;
     background: transparent; display: grid; place-items: center;
@@ -310,12 +286,10 @@
   .ring .track { stroke: var(--track); }
   .ring .prog { stroke: var(--c); stroke-linecap: round; transition: stroke-dashoffset .45s var(--ease-std); }
   .flash { position: absolute; inset: 4px; border-radius: 50%; background: var(--c); opacity: 0; pointer-events: none; }
-  /* segmented ring: track + fill arcs per repetition (butt caps keep the gaps crisp) */
   .ring.segmented .track, .ring.segmented .prog { display: none; }
   .ring .seg { fill: none; stroke-width: 3.5; stroke-linecap: butt; }
   .ring .seg-t { stroke: var(--track); }
   .ring .seg-f { stroke: var(--c); }
-  /* counter drum: digits stacked in one clipped cell */
   .num {
     position: relative; display: grid; height: 20px; min-width: 1ch; overflow: hidden; place-items: center;
     font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 20px;
@@ -338,7 +312,6 @@
   .empty .big { font-size: 40px; margin-bottom: 8px; }
   .empty p { color: var(--muted); margin: 6px 0 16px; }
 
-  /* --- popover menu --- */
   .menu {
     position: absolute; z-index: 30; min-width: 220px; padding: 6px; background: var(--card);
     border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-lg);
@@ -354,12 +327,10 @@
   .menu button svg.ic { width: 18px; height: 18px; color: var(--muted); }
   .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
 
-  /* --- overlay sheets --- */
   .overlay {
     position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px;
     background: rgba(10, 12, 20, .45); opacity: 0; transition: opacity .22s var(--ease-in);
   }
-  /* opening is unhurried, closing is quick (transition timing comes from the state being entered) */
   .overlay.open { opacity: 1; transition: opacity .3s var(--ease-out); }
   .overlay.open .sheet { transition: transform .5s var(--ease-std); }
   .sheet {
@@ -368,7 +339,7 @@
     transform: translateY(24px) scale(.98); transition: transform .24s var(--ease-in);
   }
   .overlay.open .sheet { transform: none; }
-  .sheet:focus { outline: none; } /* focused only to move keyboard focus into the dialog */
+  .sheet:focus { outline: none; }
   @media (max-width: 520px) {
     .overlay { place-items: end center; padding: 0; }
     .sheet { border-radius: 22px 22px 0 0; max-height: 92vh; transform: translateY(100%); }
@@ -376,7 +347,46 @@
   .sheet-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   .sheet-head h2 { flex: 1; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
 
-  /* form */
+  .overlay.page { padding: 0; place-items: stretch; background: var(--bg); opacity: 1; transform: translateX(100%); transition: transform .26s var(--ease-in); }
+  .overlay.page.open { transform: none; transition: transform .42s var(--ease-std); }
+  .overlay.page .sheet {
+    max-width: none; max-height: none; height: 100%; border: 0; border-radius: 0; box-shadow: none; background: transparent; transform: none;
+    padding: 0 max(16px, calc((100% - 640px) / 2)) calc(32px + env(safe-area-inset-bottom));
+  }
+  .page-head { display: flex; align-items: center; gap: 6px; margin: 0 0 14px -8px; position: sticky; top: 0; z-index: 1; background: var(--bg); padding: calc(12px + env(safe-area-inset-top)) 0 8px; }
+  .page-head h2 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+  .set-group { margin-bottom: 26px; }
+  .set-group h3 { margin: 0 0 8px 4px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .set-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .set-row {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 13px 14px; min-height: 54px;
+    background: none; border: 0; border-radius: 0; text-align: left; color: var(--text); font: inherit; cursor: pointer;
+  }
+  .set-row + .set-row, .set-user + .set-error + .set-row, .set-user + .set-row { border-top: 1px solid var(--border); }
+  .set-row:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+  .set-row.danger, .set-row.danger .set-ic { color: var(--danger); }
+  .set-ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--track); color: var(--muted); }
+  .set-ic svg.ic { width: 18px; height: 18px; }
+  .set-txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .set-txt b { font-weight: 600; }
+  .set-txt small { font-size: 13px; color: var(--muted); }
+  .set-row .check { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; transition: background-color .2s, border-color .2s; }
+  .set-row[aria-checked=true] .check { background: var(--accent); border-color: var(--accent); }
+  .set-row[aria-checked=true] .check::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+  .set-user { margin: 0; border-radius: 0; background: none; padding: 14px; }
+  .set-error { margin: -4px 14px 10px; }
+  .set-hint { margin: 8px 4px 0; font-size: 13px; color: var(--muted); }
+  .set-link { margin: 8px 0 0; padding: 4px; background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--track); border-radius: 14px; }
+  .seg button { height: 40px; border: 0; border-radius: 10px; background: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; transition: background-color .2s, color .2s, box-shadow .2s; }
+  .seg button[aria-checked=true] { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+  .icon-styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .icon-style { display: grid; gap: 10px; padding: 12px; background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; text-align: left; font: inherit; color: var(--text); cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+  .icon-style[aria-checked=true] { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .icon-style .row { display: flex; gap: 6px; }
+  .icon-style .hicon { width: 34px; height: 34px; border-radius: 10px; font-size: 17px; }
+  .icon-style b { font-weight: 600; font-size: 14px; }
+
   .form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .field { min-width: 0; }
   .field > .lbl { display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
@@ -416,7 +426,6 @@
   .weekdays button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
   .form-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-  /* history */
   .h-ic { width: 48px; height: 48px; font-size: 24px; }
   #hSheet .sheet-head { align-items: flex-start; }
   .h-title { flex: 1; min-width: 0; padding-top: 2px; }
@@ -429,7 +438,6 @@
   .tag.arch { color: var(--warn); background: color-mix(in srgb, var(--warn) 13%, transparent); }
   .tag.cat { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 
-  /* habit types: chips in the form, manager dialog */
   .lbl-row { display: flex !important; align-items: center; justify-content: space-between; }
   .link-btn { border: 0; background: none; padding: 2px 0; color: var(--accent); font-size: 13px; font-weight: 600; }
   .link-btn:hover:not(:disabled) { text-decoration: underline; }
@@ -454,7 +462,6 @@
   .cat-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 18px; background: var(--bg); border-radius: 12px; }
   .section.plain .sec-h { display: none; }
 
-  /* manual order: compact cards with a drag handle */
   .drag-handle { display: none; grid-column: 3; grid-row: 1; width: 44px; height: 44px; padding: 0; place-items: center; cursor: grab; touch-action: none; color: var(--muted); }
   .ctl { grid-column: 3; grid-row: 1; }
   body.reordering .ctl, body.reordering .dots, body.reordering .mh, body.reordering .meta, body.reordering #hint { display: none; }
@@ -474,7 +481,6 @@
   body.reordering .wrap { padding-bottom: 110px; }
   .menu-h { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px 4px; }
 
-  /* details popover behind the "i" button */
   .menu.pop { width: min(330px, calc(100vw - 16px)); padding: 12px 14px 4px; }
   .pop-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
   .fact { display: flex; align-items: center; gap: 12px; padding: 11px 0; }
@@ -524,7 +530,6 @@
     transform: translate(-50%, calc(-100% - 8px)); opacity: 0; transition: opacity .15s;
   }
   .tip.show { opacity: 1; }
-  /* week tiles & month calendar */
   .dring { position: relative; display: grid; place-items: center; flex: none; }
   .dring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
   .dring circle { fill: none; }
@@ -583,8 +588,6 @@
   .legend .lv0 { background: var(--track); } .legend .lv1 { background: color-mix(in srgb, var(--c) 30%, var(--track)); }
   .legend .lv2 { background: color-mix(in srgb, var(--c) 60%, var(--track)); } .legend .lv3 { background: var(--c); }
 
-  /* confirm */
-  /* account & sync */
   .acct-btn { position: relative; }
   .sync-dot { position: absolute; right: 7px; bottom: 8px; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 2px var(--bg); display: none; }
   .acct-btn[data-sync=ok] .sync-dot { display: block; background: var(--good); }
@@ -613,7 +616,6 @@
   .acct-error:empty { display: none; }
   @media (max-width: 480px) {
     .top-actions { gap: 2px; }
-    /* keep the header on one line on phones: period button and "today" pill become icon-only */
     #viewBtn { width: 40px; padding: 0; justify-content: center; }
     #viewBtn span { display: none; }
     .title-row { flex-wrap: nowrap; gap: 6px; }
@@ -626,7 +628,6 @@
   .confirm .sheet { max-width: 400px; }
   .confirm p { color: var(--text); opacity: .8; margin: 0 0 20px; overflow-wrap: anywhere; line-height: 1.5; }
 
-  /* --- archive & footer --- */
   .archive { margin-top: 28px; }
   .arch-toggle { width: 100%; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; padding: 12px 4px; color: var(--muted); font-weight: 600; }
   .arch-toggle:hover:not(:disabled) { color: var(--text); }
@@ -663,7 +664,6 @@
   .install-steps .k { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; white-space: nowrap; }
   .install-steps svg.ic { width: 18px; height: 18px; color: var(--accent); vertical-align: -4px; }
 
-  /* --- toast & confetti --- */
   .toast {
     position: fixed; left: 50%; bottom: 20px; z-index: 40; display: flex; align-items: center; gap: 14px;
     background: var(--text); color: var(--card); padding: 10px 10px 10px 16px; border-radius: 12px;
@@ -695,13 +695,11 @@
     .weeknav > .icon-btn { width: 32px; }
     .days { gap: 2px; }
   }
-  /* --- iPhone / home-screen app --- */
   html, body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
   button, .info, .dot { touch-action: manipulation; }
   .habit, .check, .dot { -webkit-touch-callout: none; }
-  /* respect the Dynamic Island / status bar, home indicator and landscape notch */
   .wrap {
-    overflow-x: clip; /* sideways slide on day change must never cause horizontal scrolling */
+    overflow-x: clip;
     padding-top: max(28px, calc(env(safe-area-inset-top) + 12px));
     padding-bottom: calc(64px + env(safe-area-inset-bottom));
     padding-left: max(16px, env(safe-area-inset-left));
@@ -709,7 +707,7 @@
   }
   .sheet { max-height: calc(100dvh - 32px - env(safe-area-inset-top)); }
   .toast { bottom: calc(20px + env(safe-area-inset-bottom)); }
-  input[type=text], input[type=number] { font-size: 16px; } /* < 16px makes iOS zoom in on focus */
+  input[type=text], input[type=number] { font-size: 16px; }
   @media (max-width: 520px) {
     .sheet { max-height: calc(100dvh - 12px - env(safe-area-inset-top)); padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
   }
@@ -717,7 +715,6 @@
     body { -webkit-user-select: none; user-select: none; }
     input { -webkit-user-select: text; user-select: text; }
   }
-  /* touch screens: no "stuck" hover states after a tap */
   @media (hover: none) {
     button:not(.primary):not(.danger-fill):hover:not(:disabled) { border-color: var(--border); }
     .ghost:hover:not(:disabled), .menu button:hover { background: transparent; color: var(--muted); }
@@ -751,6 +748,10 @@
       <button class="ghost icon-btn" id="themeBtn"></button>
       <button class="ghost icon-btn acct-btn" id="acctBtn" data-sync="none" aria-label="Аккаунт и синхронизация">
         <svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg>
+        <span class="sync-dot"></span>
+      </button>
+      <button class="ghost icon-btn acct-btn" id="setBtn" data-sync="none" aria-label="Настройки" title="Настройки">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
         <span class="sync-dot"></span>
       </button>
       <button class="primary add-btn" id="addBtn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Привычка</span></button>
@@ -799,13 +800,79 @@
     <button class="install-btn" id="installBtn" hidden>
       <svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>Установить приложение
     </button>
-    <button class="ghost" id="exportBtn">Экспорт данных</button>
-    <button class="ghost" id="importBtn">Импорт</button>
-    <input type="file" id="importFile" accept="application/json,.json" hidden>
   </footer>
 </div>
 
-<!-- add / edit habit -->
+<div class="overlay page" id="viewOv" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
+    <div class="page-head">
+      <button class="ghost icon-btn" data-close title="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <h2 id="viewTitle">Вид списка</h2>
+    </div>
+    <section class="set-group">
+      <h3>История на карточках</h3>
+      <div class="seg" id="viewSeg" role="radiogroup" aria-label="История на карточках"></div>
+      <p class="set-hint" id="viewHint"></p>
+    </section>
+    <section class="set-group">
+      <h3>Группировка</h3>
+      <div class="set-card" id="groupList" role="radiogroup" aria-label="Группировка"></div>
+      <button type="button" class="set-link" id="editCats">Настроить типы</button>
+    </section>
+    <section class="set-group">
+      <h3>Порядок</h3>
+      <div class="set-card">
+        <button type="button" class="set-row" id="reorderBtn">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M8 5v14M4.5 8.5L8 5l3.5 3.5M16 19V5M12.5 15.5L16 19l3.5-3.5"/></svg></span>
+          <span class="set-txt"><b>Изменить порядок привычек</b><small>Перетащите карточки в нужном порядке</small></span>
+        </button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="overlay page" id="setOv" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="page-head">
+      <button class="ghost icon-btn" data-close title="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <h2 id="setTitle">Настройки</h2>
+    </div>
+    <section class="set-group" id="setAcctGroup">
+      <h3>Аккаунт</h3>
+      <div class="set-card">
+        <div class="acct-user set-user"><span class="acct-ava"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/></svg></span><div><div class="acct-email" id="setEmail"></div><div class="acct-status" id="setStatus"></div></div></div>
+        <div class="acct-error set-error" id="setError"></div>
+        <button type="button" class="set-row" id="setSyncNow">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6"/></svg></span>
+          <span class="set-txt"><b>Синхронизировать сейчас</b></span>
+        </button>
+        <button type="button" class="set-row danger" id="setSignOut">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M14 4.5h3.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H14M10 16.5L5.5 12 10 7.5M5.5 12H15"/></svg></span>
+          <span class="set-txt"><b>Выйти из аккаунта</b></span>
+        </button>
+      </div>
+    </section>
+    <section class="set-group">
+      <h3>Иконки привычек</h3>
+      <div class="icon-styles" id="iconStyles" role="radiogroup" aria-label="Иконки привычек"></div>
+    </section>
+    <section class="set-group">
+      <h3>Данные</h3>
+      <div class="set-card">
+        <button type="button" class="set-row" id="exportBtn">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M12 15V3.5M7.5 8L12 3.5 16.5 8M5 13.5v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></span>
+          <span class="set-txt"><b>Экспорт данных</b><small>Сохранить копию всех привычек в файл</small></span>
+        </button>
+        <button type="button" class="set-row" id="importBtn">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5V15M7.5 10.5L12 15l4.5-4.5M5 13.5v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></span>
+          <span class="set-txt"><b>Импорт</b><small>Заменить данные копией из файла</small></span>
+        </button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </section>
+  </div>
+</div>
+
 <div class="overlay" id="formOv" hidden>
   <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="formTitle">
     <div class="sheet-head">
@@ -880,7 +947,6 @@
   </div>
 </div>
 
-<!-- install instructions (iPhone / browsers without a one-tap install) -->
 <div class="overlay" id="installOv" hidden>
   <div class="card sheet install-sheet" role="dialog" aria-modal="true" aria-labelledby="installTitle">
     <div class="sheet-head">
@@ -892,7 +958,6 @@
   </div>
 </div>
 
-<!-- account & sync -->
 <div class="overlay" id="acctOv" hidden>
   <div class="card sheet acct-sheet" role="dialog" aria-modal="true" aria-labelledby="acctTitle">
     <div class="sheet-head">
@@ -906,7 +971,7 @@
     </div>
 
     <div id="acct-email" hidden>
-      <p class="acct-note">Войдите по почте — без пароля. Привычки будут храниться в вашем аккаунте и синхронизироваться между телефоном и компьютером.</p>
+      <p class="acct-note">Войдите по почте — без пароля. Привычки будут храниться в Вашем аккаунте и синхронизироваться между телефоном и компьютером.</p>
       <form id="acctEmailForm" class="acct-form">
         <input type="email" id="acctEmailInput" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="Почта" required>
         <button type="submit" class="primary" id="acctSend">Получить ссылку</button>
@@ -944,19 +1009,9 @@
       <p class="acct-note"><b>Код скопирован.</b> Откройте приложение «Привычки» на экране «Домой» и вставьте его в окне входа.</p>
       <p class="acct-hint">Если код не подошёл, запросите в приложении новое письмо.</p>
     </div>
-
-    <div id="acct-in" hidden>
-      <div class="acct-user"><span class="acct-ava"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/></svg></span><div><div class="acct-email" id="acctEmail"></div><div class="acct-status" id="acctStatus"></div></div></div>
-      <div class="acct-error" id="acctError"></div>
-      <div class="form-actions">
-        <button type="button" id="acctSignOut">Выйти</button>
-        <button type="button" class="primary" id="acctSyncNow">Синхронизировать</button>
-      </div>
-    </div>
   </div>
 </div>
 
-<!-- habit types -->
 <div class="overlay" id="catOv" hidden>
   <div class="card sheet cat-sheet" role="dialog" aria-modal="true" aria-labelledby="catTitle">
     <div class="sheet-head">
@@ -972,7 +1027,6 @@
   </div>
 </div>
 
-<!-- history -->
 <div class="overlay" id="histOv" hidden>
   <div class="card sheet" id="hSheet" role="dialog" aria-modal="true" aria-labelledby="hName">
     <div class="sheet-head">
@@ -1030,19 +1084,16 @@ const THEME_STORE = 'habit-tracker-theme';
 const VIEW_STORE = 'habit-tracker-view';
 const GROUP_STORE = 'habit-tracker-group';
 const ICON_STORE = 'habit-tracker-icons';
-// Cloud sync state (the sync code itself is at the end of the script; save() needs this early)
 const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
-// accept a pasted endpoint like https://xxx.supabase.co/rest/v1/ — the client needs just the project origin
 cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');
 cloudCfg.supabaseKey = String(cloudCfg.supabaseKey || '').trim();
 const cloud = {
   enabled: /^https:\/\/[^/]+\.supabase\.(co|in)\/?$/.test(cloudCfg.supabaseUrl || '') && (cloudCfg.supabaseKey || '').length > 20,
   sb: null, session: null, channel: null,
-  status: 'off',            // off | syncing | ok | offline | error
+  status: 'off',
   lastSync: null, error: '',
   pushing: false, again: false, timer: null, applying: false,
 };
-// What each habit card shows under its name
 const VIEWS = {
   '7d': { id: '7d', short: 'Неделя', label: 'За последние 7 дней' },
   '30d': { id: '30d', short: 'Месяц', label: 'За последний месяц', head: 'Последние 30 дней', cells: 'days', days: 30 },
@@ -1059,8 +1110,6 @@ const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', '�
 const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const COLORS = ['#4f46e5', '#0ea5e9', '#14b8a6', '#22c55e', '#eab308', '#f97316', '#ef4444', '#ec4899', '#a855f7', '#64748b'];
-// Habit icons: one minimal line drawing (24×24 grid, round 1.8px strokes) plus the emoji used
-// in the "Эмодзи" style. Habits store the key; old emoji values are mapped back to keys.
 const ICONS = {
   check:    { e: '✅', s: '<circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.5 2.5 5-5.3"/>' },
   water:    { e: '💧', s: '<path d="M12 3.5c3.2 4.1 5.5 7.4 5.5 10.6a5.5 5.5 0 0 1-11 0C6.5 10.9 8.8 7.6 12 3.5z"/><path d="M9.3 14.5a2.8 2.8 0 0 0 2.4 2.6"/>' },
@@ -1095,7 +1144,6 @@ const ICONS = {
   coffee:   { e: '☕', s: '<path d="M4.5 9.5h12v4.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M16.5 10.5h1.3a2.3 2.3 0 0 1 0 4.6h-1.5M8.5 3.5v2.5M12.5 3.5v2.5"/>' },
   clock:    { e: '⏰', s: '<circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M4.5 5.5l2.5-2M19.5 5.5l-2.5-2"/>' },
 };
-// Full-colour flat illustrations of the same subjects, for the "Иллюстрации" style
 const ICON_ART = {
   check: '<circle cx="12" cy="12" r="10" fill="#22c55e"/><path d="M12 2a10 10 0 0 1 9.5 7A10 10 0 0 0 4 6.5 10 10 0 0 1 12 2z" fill="#4ade80"/><path d="M7.5 12.4l3 3 6-6.3" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
   water: '<path d="M12 2.5c3.8 4.8 6.8 8.6 6.8 12.2a6.8 6.8 0 0 1-13.6 0C5.2 11.1 8.2 7.3 12 2.5z" fill="#38bdf8"/><path d="M12 2.5c3.8 4.8 6.8 8.6 6.8 12.2a6.8 6.8 0 0 1-6.8 6.8z" fill="#0ea5e9"/><ellipse cx="9.3" cy="14.6" rx="1.4" ry="2.4" fill="#e0f2fe" transform="rotate(-18 9.3 14.6)"/>',
@@ -1143,7 +1191,6 @@ function setIcon(box, icon) {
   const html = iconHTML(icon);
   if (box._ic !== html) { box.innerHTML = html; box._ic = html; }
 }
-// Markup for a habit icon in the current style; unknown legacy emoji are shown as-is
 function iconHTML(icon) {
   const def = ICONS[icon];
   if (!def) return esc(icon);
@@ -1186,28 +1233,20 @@ const IC = {
   auto: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
 };
 
-// state: {
-//   habits: [{ id, name, target, unit, icon, color, time, days (Mon=0 indices) | null, why, cat | null, created, archived? }],
-//   categories: [{ id, name }],               — user-defined habit types, in display order
-//   log:  { 'YYYY-MM-DD': { habitId: count } },
-//   skip: { 'YYYY-MM-DD': { habitId: 1 } }   — skipped days don't count as misses
-// }
-let state; // loaded below, once the date helpers normalize() relies on exist
+let state;
 let viewDate = new Date();
-const cards = new Map(); // habit id -> card element, kept between renders so CSS transitions can run
+const cards = new Map();
 
 function load() {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(STORE)); } catch {}
   return normalize(s);
 }
-// Repairs anything missing or malformed (old versions, hand-edited or foreign import files)
 function normalize(s) {
   const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
   const isKey = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
   if (!isObj(s) || !Array.isArray(s.habits) || !isObj(s.log)) s = { habits: [], log: {} };
   if (!isObj(s.skip)) s.skip = {};
-  // user-defined habit types: [{ id, name }] in display order
   const catIds = new Set();
   s.categories = (Array.isArray(s.categories) ? s.categories : []).filter(c => {
     if (!isObj(c) || typeof c.id !== 'string' || !c.id || catIds.has(c.id)) return false;
@@ -1224,7 +1263,7 @@ function normalize(s) {
     h.name = String(h.name ?? '').trim().slice(0, 60) || 'Привычка';
     h.target = Math.max(1, Math.min(100, parseInt(h.target) || 1));
     if (typeof h.icon !== 'string' || !h.icon || h.icon.length > 10) h.icon = 'check';
-    if (!ICONS[h.icon]) h.icon = EMOJI_TO_ICON[h.icon] || EMOJI_TO_ICON[h.icon.replace(/️/g, '')] || h.icon; // old emoji → icon key
+    if (!ICONS[h.icon]) h.icon = EMOJI_TO_ICON[h.icon] || EMOJI_TO_ICON[h.icon.replace(/️/g, '')] || h.icon;
     if (typeof h.color !== 'string' || !/^#[0-9a-f]{3,8}$/i.test(h.color)) h.color = COLORS[i % COLORS.length];
     if (!TIMES.some(t => t.v === h.time)) h.time = 'any';
     h.days = Array.isArray(h.days) ? [...new Set(h.days.map(Number).filter(x => x >= 0 && x <= 6))].sort() : null;
@@ -1236,7 +1275,6 @@ function normalize(s) {
     if (h.updated != null && !isKey(h.updated)) delete h.updated;
     if (!catIds.has(h.cat)) h.cat = null;
   });
-  // keep only valid days with positive whole counts
   for (const map of [s.log, s.skip]) for (const k of Object.keys(map)) {
     if (!isKey(k) || !isObj(map[k])) { delete map[k]; continue; }
     for (const id of Object.keys(map[k])) {
@@ -1248,11 +1286,9 @@ function normalize(s) {
   return s;
 }
 let saveWarned = false;
-// localStorage is the instant offline copy; when signed in, every save is also queued for Supabase
 function save() {
   try { localStorage.setItem(STORE, JSON.stringify(state)); saveWarned = false; }
   catch {
-    // private mode / full storage: tell the user once instead of silently losing marks
     if (!saveWarned && !cloud.session) { saveWarned = true; setTimeout(() => toast('Не удалось сохранить: хранилище браузера недоступно или заполнено'), 0); }
   }
   cloudQueue();
@@ -1263,7 +1299,7 @@ const parseKey = k => { const [y, m, d] = k.split('-').map(Number); return new D
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const todayKey = () => key(new Date());
 const isToday = d => key(d) === todayKey();
-const weekday = d => (d.getDay() + 6) % 7; // Monday = 0
+const weekday = d => (d.getDay() + 6) % 7;
 const count = (h, d) => state.log[key(d)]?.[h.id] || 0;
 const isSkipped = (h, d) => !!state.skip[key(d)]?.[h.id];
 const isDue = (h, d) => !h.days || h.days.includes(weekday(d));
@@ -1272,7 +1308,6 @@ const fmtLong = k => parseKey(k).toLocaleDateString('ru-RU', { day: 'numeric', m
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 state = load();
 
-// Last day a habit was tracked: the day it was archived, or today
 function lifeEnd(h) {
   const t = todayKey();
   return h.archived && h.archived < t ? h.archived : t;
@@ -1296,11 +1331,8 @@ function setSkip(h, d, on) {
   save(); render();
 }
 
-// A day "counts" for a habit when it is scheduled and not skipped
 const counts = (h, d) => isDue(h, d) && !isSkipped(h, d);
 
-// Current streak of completed scheduled days; unscheduled/skipped days are neutral,
-// and an unfinished today doesn't break it yet
 function streak(h) {
   let s = 0;
   const t = todayKey(), end = lifeEnd(h);
@@ -1314,7 +1346,7 @@ function streak(h) {
 
 function lifeStats(h) {
   let best = 0, run = 0, full = 0, due = 0, reps = 0, score = 0;
-  const alpha = 1 - Math.pow(.5, 1 / 13); // habit strength, exponential smoothing like Loop Habit Tracker
+  const alpha = 1 - Math.pow(.5, 1 / 13);
   for (let d = parseKey(h.created), end = lifeEnd(h); key(d) <= end; d = addDays(d, 1)) {
     const c = count(h, d);
     reps += c;
@@ -1327,8 +1359,6 @@ function lifeStats(h) {
   return { best, full, due, reps, score };
 }
 
-// Missed scheduled days in a row, counting back from yesterday (skipped / off days are ignored).
-// ever = the habit has been completed at some point before that run of misses.
 function missRun(h) {
   let m = 0, ever = false;
   for (let d = addDays(new Date(), -1), guard = 0; key(d) >= h.created && guard < 800; d = addDays(d, -1), guard++) {
@@ -1339,15 +1369,10 @@ function missRun(h) {
   return { m, ever };
 }
 
-// What the reminder badge on a card should say today, if anything:
-//  · a single fresh miss after a done day → "Вчера пропуск" (the Atoms "never miss twice" nudge, chain still savable)
-//  · several misses after a done day      → "3 пропуска подряд" (calm, no alarm colour)
-//  · never done since it was created      → "Ещё не выполнялась"
 function missBadge(h) {
   if (count(h, new Date()) >= h.target) return null;
   const { m, ever } = missRun(h);
   if (!m) return null;
-  // variants from longest to shortest: the card shows the longest one that fits
   if (!ever) return { texts: ['Ещё не выполнялась', 'Не выполнялась', '0 раз'], title: 'С момента создания привычка ни разу не была выполнена', calm: true };
   if (m === 1) return { texts: ['Вчера пропуск', 'Пропуск', '!'], title: 'Вчера пропущено — не пропускай второй раз подряд', calm: false };
   const word = plural(m, 'пропуск', 'пропуска', 'пропусков');
@@ -1359,7 +1384,6 @@ function activeOn(d) {
   return state.habits.filter(h => !h.archived && k >= h.created);
 }
 
-// Share of the day's scheduled habits done (partial repetitions count proportionally)
 function dayProgress(d) {
   const hs = activeOn(d).filter(h => counts(h, d));
   if (!hs.length) return { frac: 0, done: 0, total: 0 };
@@ -1367,7 +1391,6 @@ function dayProgress(d) {
   return { frac: hs.reduce((s, h) => s + Math.min(count(h, d) / h.target, 1), 0) / hs.length, done, total: hs.length };
 }
 
-// Consecutive days where every scheduled habit was done
 function perfectStreak() {
   const first = state.habits.filter(h => !h.archived).map(h => h.created).sort()[0];
   if (!first) return 0;
@@ -1391,8 +1414,6 @@ const days = n => `${n} ${plural(n, 'день', 'дня', 'дней')}`;
 const schedText = h => !h.days ? 'каждый день' : h.days.length === 5 && h.days.every(x => x < 5) ? 'по будням'
   : h.days.length === 2 && h.days.every(x => x >= 5) ? 'по выходным' : h.days.map(x => WEEKDAYS[x]).join(', ');
 
-// Counter drum: the new number rolls in while the old one rolls out at the same time, inside a
-// clipped slot — no blank moment, no digits floating outside the circle. dir: 1 = up (+1), -1 = down.
 function rollNumber(slot, text, dir, animate) {
   if (slot._val === text) return;
   slot._val = text;
@@ -1410,7 +1431,6 @@ function rollNumber(slot, text, dir, animate) {
   nu.animate([{ transform: `translateY(${100 * dir}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], opts);
 }
 
-// Segmented ring for small goals (2…12): one arc per repetition, so every tap visibly "fills a slot"
 const SEG_MAX = 12;
 function buildSegments(svg, n) {
   const C = RING_C, gap = n > 8 ? 2.6 : 3.2, len = C / n - gap;
@@ -1442,7 +1462,6 @@ function paintSegments(svg, filled, animate) {
     }
   });
 }
-// Numbers in the summary count up/down to the new value in step with the ring
 function countTo(el, to, suffix = '') {
   const from = parseInt(el.textContent) || 0;
   cancelAnimationFrame(el._raf);
@@ -1455,22 +1474,18 @@ function countTo(el, to, suffix = '') {
   };
   el._raf = requestAnimationFrame(step);
 }
-// Tap feedback stays strictly inside the button: a soft tinted glow for each repetition
 function flash(el) {
   el.animate([{ opacity: .22, transform: 'scale(.72)' }, { opacity: 0, transform: 'scale(1)' }],
     { duration: 420, easing: 'cubic-bezier(.2, .8, .2, 1)' });
 }
 
-// ---------- overlays ----------
-
-// Dialogs that are open or opening (the "open" class lands two frames later, for the transition)
 const shownOverlays = () => [...document.querySelectorAll('.overlay')].filter(o => o._shown);
 function openOverlay(ov) {
-  if (!ov._shown) ov._opener = document.activeElement; // focus goes back here on close
+  if (!ov._shown) ov._opener = document.activeElement;
   ov._shown = true;
   ov.hidden = false;
   document.body.classList.add('locked');
-  requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); })); // unless closed meanwhile
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); }));
   const sheet = ov.querySelector('.sheet');
   sheet.tabIndex = -1;
   sheet.focus({ preventScroll: true });
@@ -1485,7 +1500,6 @@ function closeOverlay(ov) {
   if (ov._opener?.isConnected) ov._opener.focus({ preventScroll: true });
   ov._opener = null;
 }
-// Keep Tab inside the topmost open dialog
 addEventListener('keydown', e => {
   if (e.key !== 'Tab') return;
   const ov = shownOverlays().pop();
@@ -1510,7 +1524,6 @@ addEventListener('keydown', e => {
   else if (reordering) setReorder(false);
 });
 
-// In-page replacement for confirm(): native dialogs are blocked in some embedded browsers
 let confirmResolve = null;
 function askConfirm(title, text, yesLabel) {
   $('cTitle').textContent = title;
@@ -1538,11 +1551,9 @@ function toast(text, action, label = 'Отменить') {
   $('toastUndo').onclick = () => { action?.(); hideToast(); };
   $('toast').classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(hideToast, label === 'Отменить' ? 5000 : 12000); // update offers stay longer
+  toastTimer = setTimeout(hideToast, label === 'Отменить' ? 5000 : 12000);
 }
 function hideToast() { $('toast').classList.remove('show'); }
-
-// ---------- popover menu ----------
 
 let menuEl = null;
 function closeMenu() {
@@ -1573,8 +1584,7 @@ function openMenu(anchor, items) {
 function placeMenu(anchor) {
   document.body.append(menuEl);
   const r = anchor.getBoundingClientRect(), mw = menuEl.offsetWidth;
-  // long menus (e.g. the view menu on a short screen) scroll inside instead of running off-screen
-  const roomBelow = innerHeight - r.bottom - 6 - 28, roomAbove = r.top - 6 - 16; // 28: clear of the iPhone home indicator
+  const roomBelow = innerHeight - r.bottom - 6 - 28, roomAbove = r.top - 6 - 16;
   const below = menuEl.offsetHeight <= roomBelow || roomBelow >= roomAbove;
   menuEl.style.maxHeight = Math.max(160, below ? roomBelow : roomAbove) + 'px';
   const mh = menuEl.offsetHeight;
@@ -1582,7 +1592,6 @@ function placeMenu(anchor) {
   menuEl.style.top = (below ? r.bottom + 6 : r.top - mh - 6) + scrollY + 'px';
   menuEl.style.transformOrigin = below ? 'top right' : 'bottom right';
 }
-// Small read-only popover (e.g. habit details behind the "i" button)
 function openPopover(anchor, html, color) {
   closeMenu();
   menuEl = document.createElement('div');
@@ -1605,7 +1614,6 @@ function habitMenu(anchor, id) {
     h.target > 1 && c < h.target && { icon: IC.full, label: 'Выполнить полностью', run: () => changeCount(h, viewDate, h.target) },
     h.target > 1 && c > 0 && { icon: IC.minus, label: 'Убрать одно повторение', run: () => changeCount(h, viewDate, c - 1) },
     c > 0 && { icon: IC.reset, label: 'Сбросить отметку', run: () => changeCount(h, viewDate, 0) },
-    // skipping only makes sense for a scheduled day that isn't marked yet
     (skipped || (isDue(h, viewDate) && !c)) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
     '-',
     { icon: IC.edit, label: 'Изменить', run: () => openForm(id) },
@@ -1614,14 +1622,10 @@ function habitMenu(anchor, id) {
   ].filter(Boolean));
 }
 
-// ---------- daily list ----------
-
-// Grouping of the daily list: by time of day, by the user's own types, or one plain list.
-// Habits not scheduled for the shown day always go to the trailing "off" section.
 const GROUPS = {
-  time: { label: 'По времени дня' },
-  custom: { label: 'По типам' },
-  none: { label: 'Без сортировки' },
+  time: { label: 'По времени дня', hint: 'Утро, день, вечер' },
+  custom: { label: 'По типам', hint: 'Ваши группы, например «Спорт»' },
+  none: { label: 'Одним списком', hint: 'Без групп, в Вашем порядке' },
 };
 let groupMode = 'time';
 const catName = id => state.categories.find(c => c.id === id)?.name;
@@ -1637,7 +1641,7 @@ function sectionOf(h) {
   return groupMode === 'time' ? 't:' + h.time : groupMode === 'custom' ? 'c:' + (h.cat || '') : 'all';
 }
 
-const sectionEls = new Map(); // section id -> <section>, created on demand
+const sectionEls = new Map();
 function sectionEl(id) {
   let el = sectionEls.get(id);
   if (!el) {
@@ -1653,7 +1657,7 @@ function sectionEl(id) {
 function buildCard(id) {
   const el = document.createElement('div');
   el.className = 'card habit enter';
-  if (firstRender) el.style.animationDelay = Math.min(entering++, 10) * 40 + 'ms'; // cards cascade in on launch
+  if (firstRender) el.style.animationDelay = Math.min(entering++, 10) * 40 + 'ms';
   el.innerHTML = `
     <div class="hicon"></div>
     <div class="info" tabindex="0" role="button" title="История и статистика">
@@ -1673,34 +1677,28 @@ function buildCard(id) {
       <span class="num"></span>
       <svg class="tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
     </button>
-    <!-- last in the row, so "⋮" sits in the same spot on every card whether or not "−" is shown -->
     <button class="ghost more" title="Действия">${IC.more}</button>
     </div>
     <button class="ghost drag-handle" title="Перетащите, чтобы изменить порядок (или стрелки ↑ ↓)" aria-label="Переместить привычку">${IC.grip}</button>
     <div class="mh"></div>`;
   el.dataset.id = id;
   el.addEventListener('animationend', e => { if (e.target === el) el.classList.remove('enter'); });
-  // strip/map cell tooltips are filled in on hover only — formatting 371 dates per card on every render is costly
   el.querySelector('.mh').addEventListener('pointerover', e => {
     const mh = e.currentTarget, L = stripCache.get(mh.dataset.k), i = e.target.tagName === 'I' ? mh._cells?.indexOf(e.target) : -1;
     if (L && i >= 0) e.target.title = dayTip(findHabit(id), L.days[i]);
   });
   addDrag(el);
 
-  // Tap: +1 (or toggle for once-a-day). Tapping a completed habit takes back only the last
-  // repetition, so an accidental tap never wipes the whole day's progress.
   const check = el.querySelector('.check');
   check.onclick = () => {
     if (el._held) { el._held = false; return; }
     const h = findHabit(id), c = count(h, viewDate);
     changeCount(h, viewDate, c >= h.target ? h.target - 1 : c + 1);
   };
-  // Long press fills the goal at once (handy for "8 стаканов")
-  // The ring only shows after 200 ms of holding, so normal taps never flash a half-drawn indicator.
   let holdTimer = null, holdShow = null;
   const endHold = () => { clearTimeout(holdTimer); clearTimeout(holdShow); check.classList.remove('holding'); };
   check.addEventListener('pointerdown', e => {
-    el._held = false; // a hold released outside the button never got its click; don't eat the next tap
+    el._held = false;
     const h = findHabit(id);
     if (e.button !== 0 || h.target === 1 || count(h, viewDate) >= h.target) return;
     holdShow = setTimeout(() => check.classList.add('holding'), 200);
@@ -1718,7 +1716,6 @@ function buildCard(id) {
   info.onclick = e => { if (!e.target.closest('.dot') && !el._swiped && !reordering) openHistory(id); };
   addSwipe(el, id);
   info.onkeydown = e => { if (e.target === info && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openHistory(id); } };
-  // Tap a past day right on the card to toggle it (Loop-style quick back-filling)
   el.querySelectorAll('.dot').forEach((dot, i) => dot.onclick = () => {
     if (el._swiped) return;
     const h = findHabit(id), d = addDays(viewDate, i - 6);
@@ -1726,10 +1723,6 @@ function buildCard(id) {
   });
   return el;
 }
-
-// ---------- manual order ----------
-// Habits are listed in the order of state.habits; in "reorder" mode cards are dragged by a handle
-// within their section, and the new relative order is written back into state.habits.
 
 let reordering = false;
 function setReorder(on) {
@@ -1744,7 +1737,6 @@ $('reorderDone').onclick = () => setReorder(false);
 
 const liveCards = list => [...list.children].filter(c => c.classList.contains('habit') && !c.classList.contains('leaving'));
 
-// Write the DOM order of one section back into state.habits, keeping every other habit in its slot
 function commitOrder(list) {
   const ids = liveCards(list).map(c => c.dataset.id), set = new Set(ids);
   const byId = new Map(state.habits.map(h => [h.id, h]));
@@ -1753,7 +1745,6 @@ function commitOrder(list) {
   save();
 }
 
-// Animate cards from where they were to where the DOM now puts them
 function flip(els, mutate) {
   const before = new Map(els.map(e => [e, e.getBoundingClientRect().top]));
   mutate();
@@ -1773,7 +1764,6 @@ function addDrag(el) {
     const list = el.parentElement;
     const desired = drag.top0 + (drag.y - drag.y0) + (scrollY - drag.scroll0);
     el.style.transform = `translateY(${desired - el.offsetTop}px)`;
-    // a fast flick can pass several cards in one move: keep swapping until the card is in place
     for (let guard = 0; guard < 100; guard++) {
       const sibs = liveCards(list), i = sibs.indexOf(el);
       const prev = sibs[i - 1], next = sibs[i + 1];
@@ -1782,7 +1772,6 @@ function addDrag(el) {
       else break;
     }
     el.style.transform = `translateY(${desired - el.offsetTop}px)`;
-    // keep scrolling while the finger rests near the top/bottom edge
     const edge = 70, v = drag.y < edge ? -(edge - drag.y) / 5 : drag.y > innerHeight - edge ? (drag.y - innerHeight + edge) / 5 : 0;
     if (v) { scrollBy(0, v); drag.raf = requestAnimationFrame(step); }
     else drag.raf = null;
@@ -1812,7 +1801,6 @@ function addDrag(el) {
   };
   handle.addEventListener('pointerup', end);
   handle.addEventListener('pointercancel', end);
-  // keyboard: ↑ / ↓ move the habit one place within its section
   handle.addEventListener('keydown', e => {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
     e.preventDefault();
@@ -1825,7 +1813,6 @@ function addDrag(el) {
   });
 }
 
-// Swipe a card right to complete, left to reset (Productive-style)
 function addSwipe(el, id) {
   const LIMIT = 90;
   let start = null, dx = 0, dragging = false;
@@ -1839,7 +1826,7 @@ function addSwipe(el, id) {
     const mx = e.clientX - start.x, my = e.clientY - start.y;
     if (!dragging) {
       if (Math.abs(mx) < 10 || Math.abs(mx) < Math.abs(my) * 1.3) {
-        if (Math.abs(my) > 12) start = null; // vertical scroll wins
+        if (Math.abs(my) > 12) start = null;
         return;
       }
       dragging = true;
@@ -1857,7 +1844,7 @@ function addSwipe(el, id) {
     start = null;
     if (!dragging) return;
     el._swiped = true;
-    setTimeout(() => el._swiped = false, 50); // swallow the click that follows the drag
+    setTimeout(() => el._swiped = false, 50);
     el.classList.remove('swiping', 'sw-done', 'sw-undo');
     el.style.removeProperty('--sw');
     el.animate([{ transform: `translateX(${dx * .85}px)` }, { transform: 'none' }], { duration: 300, easing: EASE });
@@ -1870,7 +1857,6 @@ function addSwipe(el, id) {
   el.addEventListener('pointercancel', end);
 }
 
-// Every mark goes through here: crossing the "done" line in either direction offers an undo
 function changeCount(h, d, n, clearSkip = false) {
   const prev = count(h, d), prevSkip = isSkipped(h, d);
   n = Math.max(0, Math.min(h.target, n));
@@ -1882,7 +1868,7 @@ function changeCount(h, d, n, clearSkip = false) {
   if (wasDone !== isDone || (n === 0 && prev > 1)) {
     const dayNote = isToday(d) ? '' : ` (${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })})`;
     toast(`${h.name}${dayNote}: ${isDone ? 'выполнено' : n ? `${n} из ${h.target}` : 'отметка снята'}`, () => {
-      if (!findHabit(h.id)) return; // deleted in the meantime
+      if (!findHabit(h.id)) return;
       setMap(state.log, key(d), h.id, prev);
       if (prevSkip) setMap(state.skip, key(d), h.id, 1);
       save(); render();
@@ -1902,7 +1888,7 @@ function updateCard(el, h) {
   el.classList.toggle('offday', !due && !done);
   el.classList.toggle('has-count', c > 0);
   setIcon(el.querySelector('.hicon'), h.icon);
-  const sameDay = el._day === day; // same day as last update → this is a live change worth animating
+  const sameDay = el._day === day;
   const ringSvg = el.querySelector('.ring'), segmented = multi && h.target <= SEG_MAX;
   if (segmented) {
     if (el._segN !== h.target) { buildSegments(ringSvg, h.target); el._segN = h.target; }
@@ -1918,11 +1904,10 @@ function updateCard(el, h) {
   const minusBtn = el.querySelector('.step-minus');
   minusBtn.hidden = !multi;
   minusBtn.classList.toggle('idle', c === 0);
-  minusBtn.disabled = c === 0; // invisible button must not take focus or taps
+  minusBtn.disabled = c === 0;
 
   const num = el.querySelector('.num');
   const numText = multi && c > 0 && c < h.target ? String(c) : '';
-  // on completion the last digit stays and fades out with CSS; otherwise roll to the new value
   if (numText) rollNumber(num, numText, c > (el._c ?? c) ? 1 : -1, sameDay);
   else if (!done) rollNumber(num, '', 1, false);
   const grew = sameDay && c > (el._c ?? c);
@@ -1932,8 +1917,6 @@ function updateCard(el, h) {
   el._day = day; el._c = c;
 
   el.querySelector('.name').textContent = h.name;
-  // The meta line always has text (so the card never changes height) and only the parts that
-  // actually change are touched — a new streak fades in instead of making the card jump.
   const meta = el.querySelector('.meta');
   const lead = skipped ? '<span class="badge skip">Пропущено</span>'
     : multi ? `<span>${c} / ${h.target}${h.unit ? ' ' + esc(h.unit) : ''}</span>`
@@ -1941,26 +1924,22 @@ function updateCard(el, h) {
   const badge = isToday(viewDate) && !skipped && due ? missBadge(h) : null, warn = !!badge;
   if (meta.dataset.lead !== lead) {
     meta.querySelector('.m-lead').innerHTML = lead; meta.dataset.lead = lead;
-    // "3 / 8 стаканов" briefly takes the habit colour when a repetition is added
     if (multi && grew && !reducedMotion) meta.querySelector('.m-lead > span').animate([{ color: h.color }, { color: h.color, offset: .35 }, {}], { duration: 700, easing: 'ease-out' });
   }
   const st = meta.querySelector('.m-streak');
-  st.textContent = s ? `🔥 ${days(s)}` : st.textContent; // keep old text while it fades out
+  st.textContent = s ? `🔥 ${days(s)}` : st.textContent;
   st.classList.toggle('on', !!s);
   const warnEl = meta.querySelector('.m-warn');
   warnEl.classList.toggle('on', warn);
-  // no room for the words on a narrow card → shrink to a "!" pill instead of cutting text
   if (warn) {
     warnEl.title = badge.title;
     warnEl.classList.toggle('calm', badge.calm);
-    // pick the longest wording that fits next to the count/streak on this card
     const room = meta.clientWidth - meta.querySelector('.m-lead').offsetWidth - (s ? meta.querySelector('.m-streak').scrollWidth + 8 : 0) - 8;
     const label = warnEl.querySelector('.w-long');
     for (const t of badge.texts) { label.textContent = t; if (label.offsetWidth + 14 <= room) break; }
   }
 
   const todayK = todayKey();
-  // 7 days: weekday above, date inside each circle
   el.querySelectorAll('.dcol').forEach((col, i) => {
     const d = addDays(viewDate, i - 6), k = key(d), v = count(h, d), dot = col.lastElementChild;
     dot.className = 'dot ' + (v >= h.target ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : !isDue(h, d) ? 'off' : '') + (i === 6 ? ' cur' : '');
@@ -1970,14 +1949,12 @@ function updateCard(el, h) {
     col.firstElementChild.textContent = WEEKDAYS[weekday(d)];
   });
 
-  // Longer periods: 30-day strip, or a map of 13 / 53 weeks — with dates, months, weekdays and a total
   const mh = el.querySelector('.mh');
   const view = VIEWS[document.body.dataset.view];
   if (!view.cells) return;
   const layoutKey = `${view.id}|${day}`;
   const L = stripLayout(view, layoutKey);
   if (mh.dataset.k !== layoutKey) { mh.dataset.k = layoutKey; mh.className = `mh ${L.cls}`; mh.innerHTML = L.html; mh._cells = [...mh.querySelectorAll('i')]; }
-  // hot loop (up to 371 cells × every card): plain lookups on precomputed day keys, no Date work
   const { log, skip } = state, id = h.id, tgt = h.target, end = lifeEnd(h);
   let dueN = 0, fullN = 0;
   mh._cells.forEach((cell, i) => {
@@ -1990,8 +1967,6 @@ function updateCard(el, h) {
   mh.querySelector('.sh-r').textContent = dueN ? `${fullN} из ${days(dueN)} · ${Math.round(fullN / dueN * 100)}%` : 'пока нет данных';
 }
 
-// Skeleton for a period strip/map: day cells plus date, month and weekday labels.
-// Identical for every card, so it is built once per view + day and shared.
 const stripCache = new Map();
 function stripLayout(view, cacheKey) {
   let L = stripCache.get(cacheKey);
@@ -2008,14 +1983,12 @@ function buildStripLayout(view) {
   const vd = viewDate, mon = d => MONTHS_SHORT[d.getMonth()];
   if (view.cells === 'days') {
     const n = view.days, days = Array.from({ length: n }, (_, i) => addDays(vd, i - n + 1));
-    // a thin spacer track before every Monday groups the strip into weeks while all day cells stay equal
     const col = [], tracks = [];
     days.forEach((d, i) => {
       if (i > 0 && weekday(d) === 0) tracks.push('4px');
       tracks.push('minmax(0, 1fr)');
       col.push(tracks.length);
     });
-    // labels under the strip: first day, every 1st of a month, and Mondays where there's room
     let html = '', end = -1;
     days.forEach((d, i) => {
       const first = d.getDate() === 1;
@@ -2032,7 +2005,6 @@ function buildStripLayout(view) {
   }
   const W = view.weeks, start = addDays(vd, -weekday(vd) - (W - 1) * 7);
   const days = Array.from({ length: W * 7 }, (_, i) => addDays(start, i));
-  // month names above the week where the month starts
   let months = '', end = -1;
   for (let c = 0; c < W; c++) {
     const wk = days.slice(c * 7, c * 7 + 7), firstOf = wk.find(d => d.getDate() === 1);
@@ -2047,11 +2019,10 @@ function buildStripLayout(view) {
   };
 }
 
-// Colour key shown above the list for the longer periods
 function renderLegend() {
   const v = VIEWS[document.body.dataset.view];
   $('viewLegend').hidden = !state.habits.some(h => !h.archived);
-  $('viewLegend').classList.toggle('round', !v.cells); // the 7-day view uses circles
+  $('viewLegend').classList.toggle('round', !v.cells);
   $('viewLegend').innerHTML = `<span class="vl-t">${v.label}</span>
     <span><i class="lg0"></i>не выполнено</span><span><i class="lg1"></i>частично</span><span><i class="lg3"></i>выполнено</span>
     <span><i class="lgs"></i>пропуск</span>${v.cells ? '' : '<span><i class="lgo"></i>не в плане</span>'}<span><i class="lgc"></i>выбранный день</span>`;
@@ -2072,7 +2043,6 @@ let wasAllDone = null;
 let firstRender = true, entering = 0;
 function render() {
   const now = new Date(), hr = now.getHours();
-  // the date part is hidden on phones (the week strip already shows it)
   $('hello').innerHTML = isToday(viewDate)
     ? esc(hr < 5 ? 'Доброй ночи' : hr < 12 ? 'Доброе утро' : hr < 18 ? 'Добрый день' : 'Добрый вечер') +
       `<span class="hello-date"> · ${esc(now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }))}</span>`
@@ -2088,7 +2058,6 @@ function render() {
   $('empty').hidden = active.length > 0;
   $('hint').hidden = !active.length;
 
-  // Remove cards for habits that are gone (archived, deleted, or not yet created on this day)
   const ids = new Set(habits.map(h => h.id));
   for (const [id, el] of cards) if (!ids.has(id)) { cards.delete(id); removeCard(el); }
 
@@ -2096,7 +2065,6 @@ function render() {
   const bySection = Object.fromEntries(defs.map(s => [s.id, []]));
   for (const h of habits) (bySection[sectionOf(h)] ?? bySection.off).push(h);
 
-  // put section elements in order, moving only those that are out of place (moves cancel transitions)
   const box = $('sections');
   let prevSec = null;
   for (const s of defs) {
@@ -2118,14 +2086,13 @@ function render() {
       const want = nextLive(prev ? prev.nextElementSibling : list.firstElementChild);
       if (el !== want) list.insertBefore(el, want);
       prev = el;
-      sec.hidden = false; // must be laid out before updateCard measures the heatmap width
+      sec.hidden = false;
       updateCard(el, h);
     }
     sec.hidden = !hs.length;
     const doneN = hs.filter(h => count(h, viewDate) >= h.target).length;
     sec.querySelector('.cnt').textContent = s.id === 'off' ? '' : `${doneN} / ${hs.length}`;
   }
-  // sections of another mode or a deleted type: hide, and drop once their leaving cards are gone
   const live = new Set(defs.map(s => s.id));
   for (const [id, sec] of sectionEls) {
     if (live.has(id)) continue;
@@ -2153,7 +2120,6 @@ function renderWeek() {
     b.onclick = () => { if (k !== key(viewDate)) goTo(d); };
   });
   $('next').disabled = key(addDays(start, 6)) >= tk;
-  // no point paging back past the week the first habit was created
   const first = firstHabitDay();
   $('prev').disabled = !first || key(start) <= first;
 }
@@ -2167,18 +2133,25 @@ function renderHero() {
   countTo($('heroPct'), Math.round(p.frac * 100), '%');
   $('heroProg').style.strokeDashoffset = HERO_C * (1 - p.frac);
   const left = p.total - p.done, allDone = p.total > 0 && !left;
-  $('heroMsg').textContent = !p.total && !activeOn(viewDate).length ? 'В этот день привычек ещё не было'
-    : !p.total ? 'На этот день ничего не запланировано — отдыхайте'
-    : allDone ? (today ? 'Все привычки выполнены! 🎉' : 'Идеальный день 🎉')
-    : !p.done ? (today ? 'Начните с самой простой привычки' : 'В этот день ничего не отмечено')
-    : `Осталось ${left} — вы справитесь`;
+  $('heroMsg').textContent = !p.total && !activeOn(viewDate).length ? 'Привычек ещё не было'
+    : !p.total ? 'Выходной — отдыхайте'
+    : allDone ? (today ? 'Всё выполнено! 🎉' : 'Идеальный день 🎉')
+    : !p.done ? (today ? 'Начните с простой привычки' : 'Ничего не отмечено')
+    : `Осталось ${left} — Вы справитесь`;
 
   const chips = [];
   const ps = perfectStreak();
-  if (ps) chips.push(`⭐ Идеальных дней подряд: ${ps}`);
+  if (ps) chips.push(`⭐ Идеально ${days(ps)} подряд`);
   const best = state.habits.filter(h => !h.archived).map(h => ({ h, s: streak(h) })).sort((a, b) => b.s - a.s)[0];
-  if (best?.s >= 2) chips.push(`🔥 Лучшая серия: ${best.h.name} · ${days(best.s)}`);
-  $('heroChips').innerHTML = chips.map(c => `<span class="chip">${esc(c)}</span>`).join('');
+  if (best?.s >= 2) chips.push(`🔥 ${best.h.name} · ${days(best.s)}`);
+  if (!chips.length) {
+    let done = 0, total = 0;
+    for (let i = 0; i < 7; i++) { const d = dayProgress(addDays(viewDate, -i)); done += d.done; total += d.total; }
+    chips.push(`📅 За 7 дней: ${total ? Math.round(done / total * 100) : 0}%`);
+  }
+  const box = $('heroChips');
+  box.innerHTML = chips.map(c => `<span class="chip" title="${esc(c)}">${esc(c)}</span>`).join('');
+  while (box.children.length > 1 && box.scrollWidth > box.clientWidth) box.lastElementChild.remove();
 
   if (today && allDone && wasAllDone === false) celebrate();
   if (today) wasAllDone = allDone;
@@ -2203,8 +2176,6 @@ function celebrate() {
     ], { duration: 1300 + Math.random() * 700, easing: 'cubic-bezier(.2, .7, .4, 1)' }).onfinish = () => p.remove();
   }
 }
-
-// ---------- archive ----------
 
 function archiveHabit(id) {
   const h = findHabit(id);
@@ -2268,12 +2239,9 @@ function renderArchive() {
   for (const row of [...list.children]) if (!known.has(row.dataset.id)) row.remove();
 }
 
-// ---------- add / edit form ----------
-
 let editingId = null;
 const form = { icon: 'check', color: COLORS[0], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null, newCat: false };
 
-// icon grid & templates are redrawn on open, so they follow the chosen icon style
 function drawIconPickers() {
   $('emojis').innerHTML = ICON_KEYS.map(k => `<button type="button" data-v="${k}" title="${k}">${iconHTML(k)}</button>`).join('');
   $('templates').innerHTML = TEMPLATES.map((t, i) => `<button type="button" data-i="${i}"><span class="ti">${iconHTML(t.icon)}</span>${esc(t.name)}</button>`).join('');
@@ -2293,7 +2261,6 @@ function syncForm() {
   const setCollapse = (el, open) => { el.classList.toggle('open', open); el.inert = !open; };
   setCollapse($('goalWrap'), form.goal === 'multi');
   setCollapse($('daysWrap'), form.sched === 'days');
-  // type chips are rebuilt every time: types can be created or renamed while the form is open
   if (form.cat && !catName(form.cat)) form.cat = null;
   $('catChips').innerHTML = [{ id: '', name: 'Без типа' }, ...state.categories]
     .map(c => `<button type="button" data-v="${esc(c.id)}" aria-pressed="${(form.cat || '') === c.id}">${esc(c.name)}</button>`).join('')
@@ -2326,7 +2293,6 @@ $('newCatAdd').onclick = () => {
   form.cat = id; form.newCat = false; $('newCatName').value = '';
   syncForm(); render();
 };
-// Enter in the "new type" box creates the type instead of submitting the whole habit
 $('newCatName').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('newCatAdd').click(); } };
 $('formManageCats').onclick = () => openCats();
 pick($('weekdays'), v => {
@@ -2349,7 +2315,7 @@ $('tPlus').onclick = () => $('target').value = clampTarget(+$('target').value + 
 
 function openForm(id = null) {
   const h = id && findHabit(id);
-  editingId = h ? id : null; // a stale id (habit deleted meanwhile) falls back to "new"
+  editingId = h ? id : null;
   $('form').reset();
   $('formTitle').textContent = h ? 'Изменить привычку' : 'Новая привычка';
   $('submit').textContent = h ? 'Сохранить' : 'Добавить';
@@ -2368,7 +2334,6 @@ function openForm(id = null) {
   openOverlay($('formOv'));
   setTimeout(() => $('name').focus({ preventScroll: true }), 60);
 }
-// ---------- habit types (user categories) ----------
 
 function openCats() {
   renderCats();
@@ -2452,7 +2417,6 @@ $('form').onsubmit = e => {
   const h = editingId && findHabit(editingId);
   if (h) {
     Object.assign(h, data, { updated: todayKey() });
-    // trim logged counts that exceed a lowered target
     for (const k in state.log) if (state.log[k][h.id] > target) state.log[k][h.id] = target;
   } else {
     state.habits.push({ id: crypto.randomUUID?.() || String(Date.now()), created: todayKey(), ...data });
@@ -2462,9 +2426,7 @@ $('form').onsubmit = e => {
   if (hist) renderHistory();
 };
 
-// ---------- history ----------
-
-let hist = null; // { id, range: 'week' | 'month' | 'year', anchor: Date }
+let hist = null;
 
 function openHistory(id) {
   const h = findHabit(id);
@@ -2606,7 +2568,6 @@ function renderHistory() {
   }
 }
 
-// What a single day looks like for a habit in the week / month views
 function dayState(h, d) {
   const k = key(d), c = count(h, d);
   if (k > todayKey()) return 'future';
@@ -2619,7 +2580,6 @@ function dayState(h, d) {
   return k === todayKey() ? 'pending' : 'miss';
 }
 
-// Day circle: progress ring around the date, solid disc when the goal is met
 function dayRing(h, d, i, size) {
   const st = dayState(h, d), sw = size > 40 ? 4 : 3, r = size / 2 - sw / 2 - 1, C = 2 * Math.PI * r;
   const frac = st === 'full' ? 1 : st === 'part' ? count(h, d) / h.target : 0;
@@ -2662,7 +2622,6 @@ const legend = () => `<div class="cal-legend">
 
 const svgEl = (w, hgt, inner) => `<svg width="${w}" height="${hgt}" viewBox="0 0 ${w} ${hgt}" role="img">${inner}</svg>`;
 
-// Column path with a 4px rounded top and a square base
 function colPath(x, y, w, hgt) {
   const r = Math.min(4, w / 2, hgt);
   return `M${x},${y + hgt}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + hgt}Z`;
@@ -2695,12 +2654,10 @@ function barChart(box, items, { yMax, ticks, fmt }) {
 function heatmap(box, h, ds) {
   const LW = 24, L = 0, T = 18, W = (box.clientWidth || 540) - LW;
   const offset = weekday(ds[0]), cols = Math.ceil((ds.length + offset) / 7);
-  // never smaller than 11px per day: on a phone the year scrolls sideways instead of turning into dust
   const cs = Math.max(11, Math.min(14, Math.floor(W / cols))), sz = cs - 2;
   const H = T + cs * 7, SW = L + cols * cs;
   const tk = todayKey();
   let s = '', lastX = 0;
-  // weekday names live outside the scroller so they stay put while the year scrolls
   const labels = `<div class="hlabels" style="width:${LW}px;padding-top:${T}px">${WEEKDAYS.map((w, r) => `<span style="height:${cs}px">${r % 2 ? '' : w}</span>`).join('')}</div>`;
   ds.forEach((d, i) => {
     const k = key(d);
@@ -2714,10 +2671,9 @@ function heatmap(box, h, ds) {
   });
   box.innerHTML = `<div class="heatwrap">${labels}<div class="hscroll">${svgEl(SW, H, s)}</div></div><div class="tip"></div>`;
   const sc = box.querySelector('.hscroll');
-  sc.scrollLeft = Math.max(0, lastX + 8 - sc.clientWidth); // show the most recent weeks first
+  sc.scrollLeft = Math.max(0, lastX + 8 - sc.clientWidth);
 }
 
-// Shared hover tooltip for both charts
 for (const box of [$('hChart'), $('hHeat')]) {
   let on = null;
   box.addEventListener('pointermove', e => {
@@ -2740,7 +2696,6 @@ for (const box of [$('hChart'), $('hHeat')]) {
   });
 }
 
-// Re-layout only when the width really changes: mobile Safari fires resize while its toolbars slide
 let resizeTimer, lastWidth = innerWidth;
 addEventListener('resize', () => {
   clearTimeout(resizeTimer);
@@ -2751,8 +2706,6 @@ addEventListener('resize', () => {
     if (hist) renderHistory();
   }, 150);
 });
-
-// ---------- week strip & navigation ----------
 
 $('heroProg').setAttribute('stroke-dasharray', HERO_C);
 $('heroProg').style.strokeDashoffset = HERO_C;
@@ -2767,7 +2720,6 @@ function goTo(d) {
   viewDate = d;
   render();
   if (reducedMotion) return;
-  // the day's content glides in from the side you moved to; rings and numbers animate on their own
   const opts = { duration: 320, easing: 'cubic-bezier(.2, .8, .2, 1)' };
   $('title').animate([{ opacity: 0, transform: `translateX(${8 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
   $('sections').animate([{ opacity: .35, transform: `translateX(${10 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
@@ -2778,7 +2730,6 @@ $('prev').onclick = () => {
   goTo(first && key(d) < first ? parseKey(first) : d);
 };
 $('todayBtn').onclick = () => goTo(new Date());
-// "T" jumps back to today from anywhere (unless typing or a dialog is open)
 addEventListener('keydown', e => {
   if ((e.key === 't' || e.key === 'T' || e.key === 'е' || e.key === 'Е') && !e.ctrlKey && !e.metaKey && !e.altKey
       && !e.target.closest?.('input, textarea') && !shownOverlays().length && !isToday(viewDate)) goTo(new Date());
@@ -2788,54 +2739,71 @@ $('next').onclick = () => {
   goTo(key(d) > todayKey() ? new Date() : d);
 };
 
-// ---------- view & theme ----------
-
 const getPref = (k, def) => { try { return localStorage.getItem(k) || def; } catch { return def; } };
 const setPref = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 
 function applyView(v) {
-  if (v === 'list') v = '7d'; else if (v === 'heat') v = '90d'; // values saved by older versions
+  if (v === 'list') v = '7d'; else if (v === 'heat') v = '90d';
   if (!VIEWS[v]) v = '7d';
   document.body.dataset.view = v;
   $('viewBtn').innerHTML = `${IC.cal}<span>${VIEWS[v].short}</span>`;
   $('viewBtn').title = `На карточках: ${VIEWS[v].label.toLowerCase()}`;
 }
-$('viewBtn').onclick = e => {
-  if (menuEl?._for === 'view') return closeMenu();
-  const cur = document.body.dataset.view, mark = on => on ? IC.full : '<i class="ic-blank"></i>';
-  openMenu(e.currentTarget, [
-    { header: 'Показывать на карточках' },
-    ...Object.values(VIEWS).map(v => ({
-      icon: mark(v.id === cur), label: v.label,
-      run: () => { setPref(VIEW_STORE, v.id); applyView(v.id); render(); },
-    })),
-    '-',
-    { header: 'Сортировка' },
-    ...Object.entries(GROUPS).map(([id, g]) => ({
-      icon: mark(id === groupMode), label: g.label,
-      run: () => {
-        groupMode = id; setPref(GROUP_STORE, id); render();
-        if (id === 'custom' && !state.categories.length) openCats(); // nothing to group by yet
-      },
-    })),
-    { icon: IC.edit, label: 'Настроить типы…', run: openCats },
-    '-',
-    { header: 'Иконки' },
-    ...Object.entries(ICON_STYLES).map(([id, label]) => ({
-      icon: mark(id === document.body.dataset.icons), label,
-      run: () => { setPref(ICON_STORE, id); applyIcons(id); },
-    })),
-    '-',
-    { icon: IC.order, label: 'Изменить порядок привычек', run: () => setReorder(true) },
-  ]);
-  menuEl._for = 'view';
+function renderViewPage() {
+  const cur = document.body.dataset.view;
+  $('viewSeg').innerHTML = Object.values(VIEWS).map(v =>
+    `<button type="button" role="radio" aria-checked="${v.id === cur}" data-v="${v.id}">${v.short}</button>`).join('');
+  $('viewHint').textContent = `Под каждой привычкой — отметки ${VIEWS[cur].label.toLowerCase()}.`;
+  $('groupList').innerHTML = Object.entries(GROUPS).map(([id, g]) =>
+    `<button type="button" class="set-row" role="radio" aria-checked="${id === groupMode}" data-g="${id}">
+      <span class="set-txt"><b>${g.label}</b><small>${g.hint}</small></span><span class="check"></span>
+    </button>`).join('');
+  $('editCats').hidden = groupMode !== 'custom';
+}
+$('viewBtn').onclick = () => { renderViewPage(); openOverlay($('viewOv')); };
+$('viewSeg').onclick = e => {
+  const b = e.target.closest('[data-v]');
+  if (!b) return;
+  setPref(VIEW_STORE, b.dataset.v); applyView(b.dataset.v); render(); renderViewPage();
+};
+$('groupList').onclick = e => {
+  const b = e.target.closest('[data-g]');
+  if (!b) return;
+  groupMode = b.dataset.g; setPref(GROUP_STORE, groupMode); render(); renderViewPage();
+  if (groupMode === 'custom' && !state.categories.length) openCats();
+};
+$('editCats').onclick = openCats;
+$('reorderBtn').onclick = () => { closeOverlay($('viewOv')); setReorder(true); };
+
+function previewIcon(style, icon, c) {
+  const def = ICONS[icon];
+  const bg = style === 'tile' ? c : style === 'mono' ? 'var(--track)' : `color-mix(in srgb, ${c} ${style === 'art' ? 9 : 14}%, var(--card))`;
+  const fg = style === 'tile' ? '#fff' : style === 'mono' ? 'var(--text)' : c;
+  const inner = style === 'emoji' ? def.e
+    : style === 'art' ? `<svg class="ha" viewBox="0 0 24 24" aria-hidden="true">${ICON_ART[icon]}</svg>`
+    : `<svg class="hi" viewBox="0 0 24 24" aria-hidden="true">${def.s}</svg>`;
+  return `<span class="hicon" style="background:${bg};color:${fg}">${inner}</span>`;
+}
+function renderSettings() {
+  const cur = document.body.dataset.icons;
+  const sample = [['run', '#f97316'], ['book', '#3b82f6'], ['water', '#06b6d4'], ['leaf', '#22c55e']].filter(([k]) => ICONS[k]);
+  $('iconStyles').innerHTML = Object.entries(ICON_STYLES).map(([id, label]) =>
+    `<button type="button" class="icon-style" role="radio" aria-checked="${id === cur}" data-s="${id}">
+      <span class="row">${sample.map(([k, c]) => previewIcon(id, k, c)).join('')}</span><b>${label}</b>
+    </button>`).join('');
+  renderAccount();
+}
+$('setBtn').onclick = () => { renderSettings(); openOverlay($('setOv')); };
+$('iconStyles').onclick = e => {
+  const b = e.target.closest('[data-s]');
+  if (!b) return;
+  setPref(ICON_STORE, b.dataset.s); applyIcons(b.dataset.s); renderSettings();
 };
 
 const THEMES = ['auto', 'light', 'dark'];
 function applyTheme(t) {
   if (t === 'auto') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.dataset.theme = t;
-  // the browser/status bar colour follows a manual theme choice too
   document.querySelectorAll('meta[name=theme-color]').forEach(m => {
     m.content = t === 'dark' ? '#0e1015' : t === 'light' ? '#f4f5f9' : m.media.includes('dark') ? '#0e1015' : '#f4f5f9';
   });
@@ -2848,12 +2816,9 @@ $('themeBtn').onclick = () => {
   setPref(THEME_STORE, t); applyTheme(t);
 };
 
-// ---------- export / import ----------
-
 $('exportBtn').onclick = async () => {
   const name = `habits-${todayKey()}.json`;
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  // iPhone home-screen apps can't download; the share sheet lets you save to Files instead
   const file = new File([blob], name, { type: 'application/json' });
   if (matchMedia('(display-mode: standalone)').matches && navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: 'Трекер привычек' }); return; }
@@ -2877,7 +2842,7 @@ $('importFile').onchange = async e => {
   if (!ok) return;
   state = normalize(data);
   cards.forEach(el => el.remove()); cards.clear();
-  wasAllDone = null; // no confetti just for importing a finished day
+  wasAllDone = null;
   save(); render();
   toast('Данные импортированы');
 };
@@ -2888,26 +2853,21 @@ document.body.dataset.icons = ICON_STYLES[getPref(ICON_STORE, 'color')] ? getPre
 groupMode = GROUPS[getPref(GROUP_STORE, 'time')] ? getPref(GROUP_STORE, 'time') : 'time';
 render();
 
-// Home-screen app: offline cache, durable storage, and a fresh render when reopened on a new day
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   addEventListener('load', async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;
       const reg = await navigator.serviceWorker.register('sw.js');
-      // a new version was deployed while the app was open: offer to reload into it
       reg.addEventListener('updatefound', () => {
         const nw = reg.installing;
         nw?.addEventListener('statechange', () => {
           if (nw.state === 'activated' && hadController) toast('Доступна новая версия приложения', () => location.reload(), 'Обновить');
         });
       });
-      // an installed app can stay open for days — look for updates when it comes back to the foreground
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
     } catch {}
   });
 }
-
-// ---------- install (Android / desktop one-tap, iPhone & others via instructions) ----------
 
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone === true;
 const UA = navigator.userAgent;
@@ -2916,7 +2876,7 @@ const isMacSafari = !isIOS && /Macintosh/.test(UA) && /Safari\//.test(UA) && !/C
 const isAndroid = /Android/.test(UA);
 let installPrompt = null;
 
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; updateInstallBtn(); }); // Chrome / Edge / Samsung
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; updateInstallBtn(); });
 addEventListener('appinstalled', () => { installPrompt = null; updateInstallBtn(); toast('Приложение установлено'); });
 function updateInstallBtn() {
   $('installBtn').hidden = isStandalone() || !(installPrompt || isIOS || isMacSafari || isAndroid);
@@ -2952,7 +2912,6 @@ $('installBtn').onclick = async () => {
 updateInstallBtn();
 matchMedia('(display-mode: standalone)').addEventListener?.('change', updateInstallBtn);
 
-// Home-screen shortcut "Новая привычка" (long-press the icon on Android / right-click on desktop)
 if (new URLSearchParams(location.search).get('action') === 'new') {
   history.replaceState(null, '', location.pathname);
   setTimeout(() => openForm(), 300);
@@ -2961,16 +2920,15 @@ navigator.storage?.persist?.().catch(() => {});
 let lastDay = todayKey();
 function checkDayChange() {
   if (document.visibilityState !== 'visible' || todayKey() === lastDay) return;
-  if (key(viewDate) === lastDay) viewDate = new Date(); // was looking at "today" — follow it to the new day
+  if (key(viewDate) === lastDay) viewDate = new Date();
   lastDay = todayKey();
   wasAllDone = null;
   render();
   if (hist) renderHistory();
 }
 document.addEventListener('visibilitychange', checkDayChange);
-setInterval(checkDayChange, 60 * 1000); // app left open over midnight
+setInterval(checkDayChange, 60 * 1000);
 
-// Another tab or window changed the data: pick it up
 addEventListener('storage', e => {
   if (e.key !== STORE) return;
   state = load();
@@ -2978,17 +2936,8 @@ addEventListener('storage', e => {
   if (hist) { if (findHabit(hist.id)) renderHistory(); else { closeOverlay($('histOv')); hist = null; } }
 });
 
-// =====================================================================================
-// Cloud sync (Supabase): email sign-in, one JSON row per user in public.habit_data.
-//
-// Offline-first: the app always works on the local copy; changes are pushed in the background.
-// Every row has a version number. A push only succeeds if nobody else changed the row since our
-// last sync ("base"); otherwise we pull the other device's version and do a three-way merge:
-// whatever we changed locally since base wins, everything else comes from the server.
-// =====================================================================================
-
-const BASE_STORE = 'habit-tracker-sync-base';   // { uid, version, data } — last state both sides agreed on
-const OWNER_STORE = 'habit-tracker-owner';      // account the local data belongs to
+const BASE_STORE = 'habit-tracker-sync-base';
+const OWNER_STORE = 'habit-tracker-owner';
 
 const emptyState = () => ({ habits: [], categories: [], log: {}, skip: {} });
 function loadBase() {
@@ -2999,15 +2948,12 @@ function saveBase(version, data) {
   try { localStorage.setItem(BASE_STORE, JSON.stringify({ uid: cloud.session.user.id, version, data })); } catch {}
 }
 
-// Three-way merge of whole tracker states. base may be null (first sync on this device) — then
-// nothing counts as "deleted" and both sides are simply combined.
 function mergeStates(base, local, remote) {
   base = base || emptyState();
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const mergeList = (B, L, R) => {
     const bm = new Map(B.map(x => [x.id, x])), lm = new Map(L.map(x => [x.id, x])), rm = new Map(R.map(x => [x.id, x]));
-    const pick = id => (same(lm.get(id), bm.get(id)) ? rm.get(id) : lm.get(id)); // local edit/delete wins
-    // order: whichever side reordered since base leads; the other side's new items are appended
+    const pick = id => (same(lm.get(id), bm.get(id)) ? rm.get(id) : lm.get(id));
     const localReordered = !same(L.map(x => x.id).filter(id => bm.has(id)), B.map(x => x.id).filter(id => lm.has(id)));
     const lead = localReordered ? L : R, rest = localReordered ? R : L;
     const ids = [...new Set([...lead.map(x => x.id), ...rest.map(x => x.id)])];
@@ -3032,7 +2978,6 @@ function mergeStates(base, local, remote) {
   };
 }
 
-// Swap in a state that came from the server without echoing it straight back
 function applyState(next) {
   cloud.applying = true;
   state = normalize(next);
@@ -3051,18 +2996,17 @@ function setSync(status, error = '') {
 function cloudQueue() {
   if (!cloud.session || cloud.applying) return;
   clearTimeout(cloud.timer);
-  cloud.timer = setTimeout(cloudPush, 700); // batch quick taps into one request
+  cloud.timer = setTimeout(cloudPush, 700);
   if (cloud.status !== 'syncing') setSync('syncing');
 }
 
-// Fetch the server row and fold it into local data. Returns true if we still have something to push.
 async function cloudPull() {
   const uid = cloud.session.user.id;
   const { data: row, error } = await cloud.sb.from('habit_data').select('data, version').eq('user_id', uid).maybeSingle();
   if (error) throw error;
   const base = loadBase();
-  if (!row) return true; // no row yet: upload what we have
-  if (row.version === base.version) return JSON.stringify(state) !== JSON.stringify(base.data); // only our own edits pending
+  if (!row) return true;
+  if (row.version === base.version) return JSON.stringify(state) !== JSON.stringify(base.data);
   const remote = normalize(row.data);
   const merged = normalize(mergeStates(base.data, state, remote));
   saveBase(row.version, remote);
@@ -3078,12 +3022,12 @@ async function cloudPush() {
   try {
     for (let attempt = 0; attempt < 4; attempt++) {
       const base = loadBase(), uid = cloud.session.user.id;
-      if (base.version != null && JSON.stringify(state) === JSON.stringify(base.data)) break; // nothing new
+      if (base.version != null && JSON.stringify(state) === JSON.stringify(base.data)) break;
       const payload = JSON.parse(JSON.stringify(state));
       if (base.version == null) {
         const { error } = await cloud.sb.from('habit_data').insert({ user_id: uid, data: payload, version: 1 });
         if (!error) { saveBase(1, payload); break; }
-        if (error.code !== '23505') throw error;           // 23505: row already exists → someone was first
+        if (error.code !== '23505') throw error;
       } else {
         const { data, error } = await cloud.sb.from('habit_data')
           .update({ data: payload, version: base.version + 1, updated_at: new Date().toISOString() })
@@ -3091,7 +3035,7 @@ async function cloudPush() {
         if (error) throw error;
         if (data?.length) { saveBase(base.version + 1, payload); break; }
       }
-      if (!(await cloudPull())) break;                     // conflict: merge the other device's changes, retry
+      if (!(await cloudPull())) break;
     }
     setSync('ok');
   } catch (e) {
@@ -3114,7 +3058,6 @@ async function cloudSync() {
 
 async function startSync() {
   const uid = cloud.session.user.id;
-  // local data that belongs to a different account must never be merged into this one
   let owner = null; try { owner = localStorage.getItem(OWNER_STORE); } catch {}
   if (owner && owner !== uid) {
     try { localStorage.removeItem(BASE_STORE); } catch {}
@@ -3125,7 +3068,7 @@ async function startSync() {
   cloud.channel?.unsubscribe();
   cloud.channel = cloud.sb.channel('habit_data:' + uid)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'habit_data', filter: `user_id=eq.${uid}` }, p => {
-      if (p.new?.version !== loadBase().version) cloudSync(); // another device saved
+      if (p.new?.version !== loadBase().version) cloudSync();
     })
     .subscribe();
 }
@@ -3137,7 +3080,7 @@ function stopSync() {
 
 async function initCloud(client) {
   if (!cloud.enabled && !client) { renderAccount(); return; }
-  const fromLink = /access_token|refresh_token/.test(location.hash); // opened from the email link
+  const fromLink = /access_token|refresh_token/.test(location.hash);
   try {
     if (!client) {
       await new Promise((res, rej) => {
@@ -3154,25 +3097,21 @@ async function initCloud(client) {
     cloud.sb.auth.onAuthStateChange((event, s) => {
       const was = cloud.session?.user.id;
       cloud.session = s;
-      if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname + location.search); // tidy the magic-link URL
-      if (s && s.user.id !== was) { if (authStep === 'code' || authStep === 'email') { authStep = 'in'; } startSync(); }
+      if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname + location.search);
+      if (s && s.user.id !== was) startSync();
       if (!s && was) stopSync();
       renderAccount();
     });
     const { data } = await cloud.sb.auth.getSession();
     if (data.session && !cloud.session) { cloud.session = data.session; startSync(); }
-    // iPhone: the link opens in Safari, whose storage is separate from the home-screen app → offer to hand the login over
     if (fromLink && cloud.session && isIOS && !isStandalone()) { authStep = 'handoff'; openOverlay($('acctOv')); }
   } catch (e) { setSync('error', e.message); }
   renderAccount();
 }
 
-// back online / app reopened → catch up
 addEventListener('online', () => cloud.session && cloudSync());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cloud.session) cloudSync(); });
 setInterval(() => { if (document.visibilityState === 'visible' && cloud.session) cloudSync(); }, 60 * 1000);
-
-// ---------- account sheet ----------
 
 let authStep = 'email', authEmail = '', resendAt = 0;
 const SYNC_TEXT = { off: 'Синхронизация выключена', syncing: 'Синхронизация…', ok: 'Всё синхронизировано', offline: 'Нет сети — изменения сохранены на устройстве и отправятся позже', error: 'Ошибка синхронизации' };
@@ -3180,10 +3119,21 @@ const SYNC_TEXT = { off: 'Синхронизация выключена', syncin
 function renderAccount() {
   const btn = $('acctBtn');
   btn.dataset.sync = cloud.session ? cloud.status : 'none';
-  btn.title = !cloud.enabled && !cloud.sb ? 'Синхронизация не настроена' : cloud.session ? `${cloud.session.user.email} · ${SYNC_TEXT[cloud.status]}` : 'Войти и синхронизировать';
+  btn.title = !cloud.enabled && !cloud.sb ? 'Синхронизация не настроена' : 'Войти и синхронизировать';
+  btn.hidden = !!cloud.session;
+  $('setBtn').dataset.sync = cloud.session ? cloud.status : 'none';
+  $('setAcctGroup').hidden = !cloud.session;
+  if (cloud.session) {
+    $('setEmail').textContent = cloud.session.user.email;
+    const when = cloud.lastSync ? ` · ${cloud.lastSync.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : '';
+    $('setStatus').textContent = SYNC_TEXT[cloud.status] + (cloud.status === 'ok' ? when : '');
+    $('setStatus').dataset.sync = cloud.status;
+    $('setError').textContent = cloud.status === 'error' ? cloud.error : '';
+    if ($('acctOv')._shown && authStep !== 'handoff') { authStep = 'email'; closeOverlay($('acctOv')); toast(`Вы вошли как ${cloud.session.user.email}`); }
+  }
   if (!$('acctOv')._shown) return;
-  const view = !cloud.enabled && !cloud.sb ? 'setup' : cloud.session ? (authStep === 'handoff' ? 'handoff' : 'in') : authStep;
-  for (const v of ['setup', 'email', 'code', 'handoff', 'copied', 'in']) $('acct-' + v).hidden = v !== view;
+  const view = !cloud.enabled && !cloud.sb ? 'setup' : cloud.session ? 'handoff' : authStep;
+  for (const v of ['setup', 'email', 'code', 'handoff', 'copied']) $('acct-' + v).hidden = v !== view;
   if (view === 'code') {
     for (const el of document.querySelectorAll('.acctSentTo')) el.textContent = authEmail;
     const iosApp = isIOS && isStandalone();
@@ -3191,13 +3141,6 @@ function renderAccount() {
       ? 'Нажмите в нём ссылку — откроется Safari. Там нажмите <b>«Скопировать код»</b>, вернитесь сюда и вставьте его.'
       : 'Нажмите ссылку в нём — вход произойдёт сам. Если в письме есть код, можно ввести его здесь.';
     $('acctPaste').hidden = !(iosApp && navigator.clipboard?.readText);
-  }
-  if (view === 'in') {
-    $('acctEmail').textContent = cloud.session.user.email;
-    const when = cloud.lastSync ? ` · ${cloud.lastSync.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : '';
-    $('acctStatus').textContent = SYNC_TEXT[cloud.status] + (cloud.status === 'ok' ? when : '');
-    $('acctStatus').dataset.sync = cloud.status;
-    $('acctError').textContent = cloud.status === 'error' ? cloud.error : '';
   }
   const wait = Math.ceil((resendAt - Date.now()) / 1000);
   $('acctResend').disabled = wait > 0;
@@ -3227,7 +3170,6 @@ $('acctCodeForm').onsubmit = async e => {
   e.preventDefault();
   await signInWithCode($('acctCode').value);
 };
-// either the 6-digit code from the email, or the code copied in Safari (a refresh token of that login)
 async function signInWithCode(raw) {
   const value = raw.trim();
   const digits = value.replace(/[\s-]/g, '');
@@ -3254,22 +3196,21 @@ $('acctCopy').onclick = async () => {
   if (!token) return;
   try { await navigator.clipboard.writeText(token); }
   catch { return toast('Не удалось скопировать код'); }
-  // leave the login to the app: Safari forgets it without revoking, so the copied code stays valid
   stopSync();
   await cloud.sb.auth.signOut({ scope: 'local' });
   authStep = 'copied';
   renderAccount();
 };
-$('acctStay').onclick = () => { authStep = 'in'; renderAccount(); };
+$('acctStay').onclick = () => { authStep = 'email'; closeOverlay($('acctOv')); };
 $('acctResend').onclick = async () => {
   try { await sendLink(authEmail); toast('Письмо отправлено ещё раз'); } catch (err) { toast('Не удалось отправить: ' + err.message); }
 };
 $('acctBack').onclick = () => { authStep = 'email'; renderAccount(); };
-$('acctSyncNow').onclick = () => cloudSync();
-$('acctSignOut').onclick = async () => {
-  const ok = await askConfirm('Выйти из аккаунта?', 'Синхронизация остановится. Привычки останутся на этом устройстве, а в облаке — в вашем аккаунте.', 'Выйти');
+$('setSyncNow').onclick = () => cloudSync();
+$('setSignOut').onclick = async () => {
+  const ok = await askConfirm('Выйти из аккаунта?', 'Синхронизация остановится. Привычки останутся на этом устройстве, а в облаке — в Вашем аккаунте.', 'Выйти');
   if (!ok) return;
-  await cloud.sb.auth.signOut({ scope: 'local' }); // only this device — the others stay signed in
+  await cloud.sb.auth.signOut({ scope: 'local' });
   authStep = 'email';
   renderAccount();
 };
