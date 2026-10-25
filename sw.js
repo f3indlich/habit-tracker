@@ -1,4 +1,4 @@
-const VERSION = 'v14';
+const VERSION = 'v15';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const SHELL_FILES = [
