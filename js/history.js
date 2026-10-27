@@ -1,9 +1,9 @@
-import { $, addDays, days, ofDays, esc, fmtLong, isDue, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, redUi, schedText, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.02a';
-import { setIcon } from './icons.js?v=1.02a';
-import { at, count, counts, findHabit, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, streak, targetOn } from './storage.js?v=1.02a';
-import { addPeriodSwipe, askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast } from './ui.js?v=1.02a';
-import { catName } from './render.js?v=1.02a';
-import { openForm } from './form.js?v=1.02a';
+import { $, addDays, days, ofDays, esc, fmtLong, isDue, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, redUi, schedText, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.03a';
+import { setIcon } from './icons.js?v=1.03a';
+import { at, count, counts, findHabit, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, streak, targetOn } from './storage.js?v=1.03a';
+import { addPeriodSwipe, askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast } from './ui.js?v=1.03a';
+import { catName } from './render.js?v=1.03a';
+import { openForm } from './form.js?v=1.03a';
 
 export let hist = null;
 export const IC_I = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg>';

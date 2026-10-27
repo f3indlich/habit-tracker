@@ -1,10 +1,10 @@
-import { $, isIOS, isStandalone, NS, TEST_MODE } from './core.js?v=1.02a';
-import { findHabit, normalize, save, setState, state } from './storage.js?v=1.02a';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.02a';
-import { render } from './render.js?v=1.02a';
-import { pick } from './form.js?v=1.02a';
-import { hist, renderHistory, setHist } from './history.js?v=1.02a';
-import { pushDisable, pushRefresh, renderPush } from './push.js?v=1.02a';
+import { $, isIOS, isStandalone, NS, TEST_MODE } from './core.js?v=1.03a';
+import { findHabit, normalize, save, setState, state } from './storage.js?v=1.03a';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.03a';
+import { render } from './render.js?v=1.03a';
+import { pick } from './form.js?v=1.03a';
+import { hist, renderHistory, setHist } from './history.js?v=1.03a';
+import { pushDisable, pushRefresh, renderPush } from './push.js?v=1.03a';
 
 export const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
 cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');

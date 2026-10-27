@@ -1,4 +1,4 @@
-import { $, esc } from './core.js?v=1.02a';
+import { $, esc } from './core.js?v=1.03a';
 
 export const ICONS = {
   check:    { e: '✅', s: '<circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.5 2.5 5-5.3"/>' },
