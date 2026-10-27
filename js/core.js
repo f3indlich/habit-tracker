@@ -71,7 +71,34 @@ export const ofDays = n => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'дня' : '
 export const schedText = h => !h.days ? 'каждый день' : h.days.length === 5 && h.days.every(x => x < 5) ? 'по будням'
   : h.days.length === 2 && h.days.every(x => x >= 5) ? 'по выходным' : h.days.map(x => WEEKDAYS[x]).join(', ');
 
-export const redUi = () => document.documentElement.hasAttribute('data-ui-red');
+export const EMOJI_FONT_URL = 'https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap';
+export function hasColorEmoji() {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.font = `24px ${getComputedStyle(document.documentElement).getPropertyValue('--f-emoji').trim() || 'sans-serif'}`;
+    x.textBaseline = 'top';
+    x.fillStyle = '#000';
+    x.fillText('🙂', 2, 2);
+    const d = x.getImageData(0, 0, 32, 32).data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] > 128 && Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]) > 60) return true;
+    }
+    return false;
+  } catch { return false; }
+}
+let emojiChecked = false;
+export function ensureEmojiFont(check = hasColorEmoji) {
+  if (emojiChecked) return false;
+  emojiChecked = true;
+  if (check()) return false;
+  document.head.append(Object.assign(document.createElement('link'), { id: 'emojiFont', rel: 'stylesheet', href: EMOJI_FONT_URL }));
+  return true;
+}
+export const resetEmojiCheck = () => { emojiChecked = false; document.getElementById('emojiFont')?.remove(); };
+
+export const redUi = () =>document.documentElement.hasAttribute('data-ui-red');
 export const getPref = (k, def) => { try { return localStorage.getItem(k) || def; } catch { return def; } };
 export const setPref = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 

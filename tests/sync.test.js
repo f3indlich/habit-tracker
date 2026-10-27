@@ -10,6 +10,8 @@ const db = { rows: {}, fail: null, ops: [] };
 const exec = f => {
   db.ops.push(f.op);
   if (db.fail) return { data: null, error: { message: db.fail } };
+  if (db.limit && f.vals && JSON.stringify(f.vals.data).length > db.limit)
+    return { data: null, status: 400, error: { code: '23514', message: 'new row for relation "habit_data" violates check constraint "habit_data_size_limit"', details: null, hint: null } };
   const uid = f.eq.user_id, row = db.rows[uid];
   if (f.op === 'select') return { data: row ? { data: clone(row.data), version: row.version } : null, error: null };
   if (f.op === 'insert') {
@@ -108,6 +110,43 @@ session = user('u1');
 authCb('SIGNED_IN', session);
 await wait(600);
 ok('switching back loads own habits', findHabit('g')?.name === 'Чтение книг' && state.log[ago(4)]?.g === 1);
+
+const sizeErr = { code: '23514', message: 'new row for relation "habit_data" violates check constraint "habit_data_size_limit"' };
+ok('isSizeError: size limit check violation', isSizeError(sizeErr) === true);
+ok('isSizeError: HTTP 400 with the size limit name', isSizeError({ status: 400, message: 'Bad Request: habit_data_size_limit' }) === true);
+ok('isSizeError: network error is not a size error', isSizeError({ message: 'Failed to fetch' }) === false && isSizeError(new TypeError('Failed to fetch')) === false);
+ok('isSizeError: other table or constraint is not a size error', isSizeError({ code: '23514', message: 'violates check constraint "push_log_day_check"' }) === false && isSizeError({ status: 400, message: 'bad request' }) === false);
+ok('isSizeError: empty error is not a size error', isSizeError({}) === false && isSizeError(null) === false && isSizeError(undefined) === false);
+
+const toasts = [], warns = [], realToast = $('toastText');
+const seen = new MutationObserver(ms => ms.forEach(() => toasts.push(realToast.textContent)));
+seen.observe(realToast, { childList: true });
+const realWarn = console.warn;
+console.warn = (...a) => warns.push(a.map(x => x?.message ?? String(x)).join(' '));
+hideToast(); await wait(50);
+db.limit = JSON.stringify(row1().data).length + 40;
+const vBig = row1().version;
+for (let i = 6; i <= 9; i++) { setNote(findHabit('g'), addDays(new Date(), -i), 'Длинная заметка '.repeat(8) + i); await wait(900); }
+ok('size error shows the toast exactly once', toasts.length === 1 && toasts[0] === SIZE_TOAST && cloud.sizeWarned, toasts);
+ok('size toast is not cut off on a phone', $('toastText').scrollHeight <= $('toastText').clientHeight + 1 && innerWidth < 480, [innerWidth, $('toastText').scrollHeight, $('toastText').clientHeight]);
+ok('toast text is short and calm',SIZE_TOAST.split(/[.!?]\s/).length <= 2 && !/!/.test(SIZE_TOAST));
+ok('settings show size status line', cloud.status === 'error' && $('setError').textContent === 'Не синхронизировано: данных слишком много' && $('setStatus').dataset.sync === 'error', [$('setStatus').textContent, $('setError').textContent]);
+ok('nothing reached the cloud', row1().version === vBig && !row1().data.notes[ago(6)]);
+ok('notes stay in state and on device', [6, 7, 8, 9].every(i => state.notes[ago(i)]?.g && JSON.parse(localStorage.getItem(STORE)).notes[ago(i)]?.g));
+const idle = db.ops.length; await wait(1600);
+ok('size error does not retry on its own', db.ops.length === idle, db.ops.slice(idle));
+ok('size error is not logged as a generic failure', !warns.some(w => /sync failed/.test(w)), warns);
+
+toasts.length = 0;
+db.limit = 0; db.fail = 'Failed to fetch';
+setCount(findHabit('g'), addDays(new Date(), -10), 1);
+await wait(1100);
+ok('other errors show no toast', !toasts.length && cloud.status === 'error' && $('setError').textContent === 'Failed to fetch', toasts);
+ok('other errors are logged with console.warn', warns.some(w => /sync failed/.test(w) && /Failed to fetch/.test(w)), warns);
+db.fail = null;
+await cloudSync(); await wait(400);
+ok('sync recovers once data fits', cloud.status === 'ok' && !!row1().data.notes[ago(9)] && row1().data.log[ago(10)]?.g === 1 && $('setError').textContent === '');
+console.warn = realWarn; seen.disconnect();
 
 await fake.auth.signOut(); await wait(200);
 ok('sign out stops sync and keeps data on device', cloud.status === 'off' && !!findHabit('g'));

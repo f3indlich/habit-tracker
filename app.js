@@ -1,4 +1,4 @@
-import { getPref, GROUP_STORE, ICON_STORE, setPref, TEST_MODE, THEME_STORE, VIEW_STORE } from './js/core.js?v=1.03a';
+import { ensureEmojiFont, getPref, GROUP_STORE, ICON_STORE, setPref, TEST_MODE, THEME_STORE, VIEW_STORE } from './js/core.js?v=1.03a';
 import { ICON_STYLES } from './js/icons.js?v=1.03a';
 import { load, setState } from './js/storage.js?v=1.03a';
 import { shownOverlays, toast } from './js/ui.js?v=1.03a';
@@ -36,6 +36,7 @@ applyView(getPref(VIEW_STORE, 'list'));
 document.body.dataset.icons = ICON_STYLES[getPref(ICON_STORE, 'color')] ? getPref(ICON_STORE, 'color') : 'color';
 setGroupMode(GROUPS[getPref(GROUP_STORE, 'time')] ? getPref(GROUP_STORE, 'time') : 'time');
 render();
+if (!TEST_MODE) requestAnimationFrame(() => ensureEmojiFont());
 
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
 if (LOCAL && 'serviceWorker' in navigator) {

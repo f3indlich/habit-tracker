@@ -1030,6 +1030,7 @@ footer .install-btn svg.ic { width: 18px; height: 18px; }
 }
 .toast.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; transition: transform .45s var(--spring), opacity .2s var(--ease-out); }
 .toast span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; }
+.toast:has(#toastUndo[hidden]) span { -webkit-line-clamp: 4; }
 .toast button { background: transparent; color: var(--card); border-color: color-mix(in srgb, var(--card) 35%, transparent); padding: 7px 12px; flex: none; }
 .confetti { position: fixed; z-index: 50; width: 8px; height: 12px; border-radius: 2px; pointer-events: none; }
 

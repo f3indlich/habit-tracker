@@ -15,8 +15,12 @@ export const cloud = {
   sb: null, session: null, channel: null,
   status: 'off',
   lastSync: null, error: '',
-  pushing: false, again: false, timer: null, applying: false,
+  pushing: false, again: false, timer: null, applying: false, sizeWarned: false,
 };
+export const SIZE_TOAST = 'Данные не помещаются в облако. Всё сохранено на устройстве — удалите старые заметки или архивные привычки.';
+export const SIZE_STATUS = 'Не синхронизировано: данных слишком много';
+export const isSizeError = e => !!e && (String(e.code) === '23514' || e.status === 400)
+  && /habit_data_size_limit/.test([e.message, e.details, e.hint].join(' '));
 export const BASE_STORE = NS + '-sync-base';
 export const OWNER_STORE = NS + '-owner';
 
@@ -112,23 +116,29 @@ export async function cloudPush() {
       if (base.version != null && same(state, base.data)) break;
       const payload = JSON.parse(JSON.stringify(state));
       if (base.version == null) {
-        const { error } = await cloud.sb.from('habit_data').insert({ user_id: uid, data: payload, version: 1 });
+        const { error, status } = await cloud.sb.from('habit_data').insert({ user_id: uid, data: payload, version: 1 });
         if (!error) { saveBase(1, payload); break; }
-        if (error.code !== '23505') throw error;
+        if (error.code !== '23505') throw Object.assign(error, { status });
       } else {
-        const { data, error } = await cloud.sb.from('habit_data')
+        const { data, error, status } = await cloud.sb.from('habit_data')
           .update({ data: payload, version: base.version + 1, updated_at: new Date().toISOString() })
           .eq('user_id', uid).eq('version', base.version).select('version');
-        if (error) throw error;
+        if (error) throw Object.assign(error, { status });
         if (data?.length) { saveBase(base.version + 1, payload); break; }
       }
       if (!(await cloudPull())) break;
     }
     setSync('ok');
   } catch (e) {
-    setSync(navigator.onLine ? 'error' : 'offline', e?.message || String(e));
     clearTimeout(cloud.timer);
-    cloud.timer = setTimeout(cloudPush, navigator.onLine ? 15000 : 60000);
+    if (isSizeError(e)) {
+      setSync('error', SIZE_STATUS);
+      if (!cloud.sizeWarned) { cloud.sizeWarned = true; toast(SIZE_TOAST, null, ''); }
+    } else {
+      console.warn('sync failed', e);
+      setSync(navigator.onLine ? 'error' : 'offline', e?.message || String(e));
+      cloud.timer = setTimeout(cloudPush, navigator.onLine ? 15000 : 60000);
+    }
   } finally {
     cloud.pushing = false;
     if (cloud.again) { cloud.again = false; cloudPush(); }
@@ -151,7 +161,7 @@ export async function cloudSync() {
   try {
     setSync('syncing');
     if (await cloudPull()) await cloudPush(); else setSync('ok');
-  } catch (e) { setSync(navigator.onLine ? 'error' : 'offline', e?.message || String(e)); }
+  } catch (e) { console.warn('sync failed', e); setSync(navigator.onLine ? 'error' : 'offline', e?.message || String(e)); }
 }
 
 export async function startSync() {
