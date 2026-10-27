@@ -4,4 +4,5 @@ exclude:
   - supabase-push.sql
   - supabase-setup.sql
   - README.md
+  - CLAUDE.md
   - demo-data.json
