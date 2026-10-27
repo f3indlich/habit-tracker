@@ -1,16 +1,16 @@
-import { $, addDays, COLORS, DAY_C, days, EASE, esc, fmtLong, GROUP_STORE, HERO_C, isDue, isToday, key, MONTHS_SHORT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=1.00a';
+import { $, addDays, COLORS, DAY_C, days, ofDays, EASE, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isDue, isToday, key, MONTHS_SHORT, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=1.00a';
 import { IC, setIcon } from './icons.js?v=1.00a';
-import { activeOn, count, dayProgress, findHabit, isSkipped, lifeEnd, load, missBadge, perfectStreak, save, setCount, setMap, setSkip, setState, state, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=1.00a';
+import { activeOn, at, count, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=1.00a';
 import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=1.00a';
 import { openCats, openForm } from './form.js?v=1.00a';
-import { dayTip, hist, openHistory, renderHistory, setHist } from './history.js?v=1.00a';
+import { dayTip, hist, openDay, openHistory, renderHistory, setHist } from './history.js?v=1.00a';
 import { userName } from './settings.js?v=1.00a';
 
 export let viewDate = new Date();
 export const cards = new Map();
 
 export function habitMenu(anchor, id) {
-  const h = findHabit(id), c = count(h, viewDate), skipped = isSkipped(h, viewDate);
+  const h = at(findHabit(id), viewDate), c = count(h, viewDate), skipped = isSkipped(h, viewDate);
   const dayWord = isToday(viewDate) ? 'сегодня' : 'в этот день';
   openMenu(anchor, [
     { icon: IC.history, label: 'История и статистика', run: () => openHistory(id) },
@@ -19,6 +19,7 @@ export function habitMenu(anchor, id) {
     h.target > 1 && c > 0 && { icon: IC.minus, label: h.step ? `Убрать шаг (−${c % h.step || h.step})` : 'Убрать одно повторение', run: () => changeCount(h, viewDate, stepDown(h, c)) },
     c > 0 && { icon: IC.reset, label: 'Сбросить отметку', run: () => changeCount(h, viewDate, 0) },
     (skipped || (isDue(h, viewDate) && !c)) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
+    inLife(h, key(viewDate)) && { icon: IC.note, label: noteOf(h, viewDate) ? 'Заметка' : 'Добавить заметку', run: () => openDay(id, viewDate) },
     '-',
     { icon: IC.edit, label: 'Изменить', run: () => openForm(id) },
     { icon: IC.order, label: 'Изменить порядок', run: () => setReorder(true) },
@@ -28,7 +29,7 @@ export function habitMenu(anchor, id) {
 
 export const GROUPS = {
   time: { label: 'По времени дня', hint: 'Утро, день, вечер' },
-  custom: { label: 'По типам', hint: 'Ваши группы, например «Спорт»' },
+  custom: { label: 'По категориям', hint: 'Ваши группы, например «Спорт»' },
   none: { label: 'Одним списком', hint: 'Без групп, в Вашем порядке' },
 };
 export let groupMode = 'time';
@@ -36,7 +37,7 @@ export const catName = id => state.categories.find(c => c.id === id)?.name;
 
 export function sectionDefs() {
   const defs = groupMode === 'time' ? TIMES.map(t => ({ id: 't:' + t.v, label: `${t.icon} ${t.v === 'any' ? 'В любое время' : t.label}` }))
-    : groupMode === 'custom' ? [...state.categories.map(c => ({ id: 'c:' + c.id, label: c.name })), { id: 'c:', label: 'Без типа' }]
+    : groupMode === 'custom' ? [...state.categories.map(c => ({ id: 'c:' + c.id, label: c.name })), { id: 'c:', label: 'Без категории' }]
     : [{ id: 'all', label: '' }];
   return [...defs, { id: 'off', label: '💤 Не по расписанию' }];
 }
@@ -80,6 +81,7 @@ export function buildCard(id) {
       <svg class="ic plus" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>
       <span class="num"></span>
       <svg class="tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      <span class="over" aria-hidden="true"></span>
     </button>
     <button class="ghost more" title="Действия">${IC.more}</button>
     </div>
@@ -96,14 +98,14 @@ export function buildCard(id) {
   const check = el.querySelector('.check');
   check.onclick = () => {
     if (el._held) { el._held = false; return; }
-    const h = findHabit(id), c = count(h, viewDate);
-    changeCount(h, viewDate, c >= h.target ? stepDown(h, c) : stepUp(h, c));
+    const h = at(findHabit(id), viewDate), c = count(h, viewDate);
+    changeCount(h, viewDate, h.target > 1 ? stepUp(h, c) : c ? 0 : 1);
   };
   let holdTimer = null, holdShow = null;
   const endHold = () => { clearTimeout(holdTimer); clearTimeout(holdShow); check.classList.remove('holding'); };
   check.addEventListener('pointerdown', e => {
     el._held = false;
-    const h = findHabit(id);
+    const h = at(findHabit(id), viewDate);
     if (e.button !== 0 || h.target === 1 || count(h, viewDate) >= h.target) return;
     holdShow = setTimeout(() => check.classList.add('holding'), 200);
     holdTimer = setTimeout(() => { endHold(); el._held = true; changeCount(h, viewDate, h.target); }, 550);
@@ -112,7 +114,7 @@ export function buildCard(id) {
   check.addEventListener('contextmenu', e => e.preventDefault());
 
   el.querySelector('.step-minus').onclick = () => {
-    const h = findHabit(id);
+    const h = at(findHabit(id), viewDate);
     changeCount(h, viewDate, stepDown(h, count(h, viewDate)));
   };
   el.querySelector('.more').onclick = e => habitMenu(e.currentTarget, id);
@@ -127,7 +129,7 @@ export function buildCard(id) {
   info.onkeydown = e => { if (e.target === info && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openHistory(id); } };
   el.querySelectorAll('.dot').forEach((dot, i) => dot.onclick = () => {
     if (el._swiped) return;
-    const h = findHabit(id), d = addDays(viewDate, i - 6);
+    const d = addDays(viewDate, i - 6), h = at(findHabit(id), d);
     changeCount(h, d, count(h, d) >= h.target ? 0 : h.target);
   });
   return el;
@@ -176,6 +178,10 @@ export function flip(els, mutate) {
   }
 }
 
+export const LONG_PRESS = 450;
+let dragOn = false;
+document.addEventListener('touchmove', e => { if (dragOn) e.preventDefault(); }, { passive: false });
+
 export function addDrag(el) {
   const handle = el.querySelector('.drag-handle');
   let drag = null;
@@ -198,30 +204,60 @@ export function addDrag(el) {
     else drag.raf = null;
   };
 
-  handle.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || !reordering) return;
-    e.preventDefault();
-    handle.setPointerCapture(e.pointerId);
-    drag = { id: e.pointerId, y0: e.clientY, y: e.clientY, top0: el.offsetTop, scroll0: scrollY, raf: null };
+  const begin = (id, y, cap) => {
+    try { cap.setPointerCapture(id); } catch {}
+    drag = { id, y0: y, y, top0: el.offsetTop, scroll0: scrollY, raf: null };
+    dragOn = true;
     el.classList.add('dragging');
-  });
-  handle.addEventListener('pointermove', e => {
+  };
+  const move = e => {
     if (!drag || e.pointerId !== drag.id) return;
     drag.y = e.clientY;
     if (!drag.raf) step();
-  });
+  };
   const end = () => {
     if (!drag) return;
     cancelAnimationFrame(drag.raf);
     const off = parseFloat(el.style.transform.slice(11)) || 0;
     drag = null;
+    dragOn = false;
+    el._swiped = true;
+    setTimeout(() => el._swiped = false, 50);
     el.style.transform = '';
     el.classList.remove('dragging');
     if (off && !reducedMotion) el.animate([{ transform: `translateY(${off}px)` }, { transform: 'none' }], { duration: 200, easing: EASE });
     commitOrder(el.parentElement);
   };
+  handle.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || !reordering) return;
+    e.preventDefault();
+    begin(e.pointerId, e.clientY, handle);
+  });
+  handle.addEventListener('pointermove', move);
   handle.addEventListener('pointerup', end);
   handle.addEventListener('pointercancel', end);
+
+  let press = null;
+  const cancelPress = () => { if (press) { clearTimeout(press.t); press = null; } };
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || reordering || drag || e.target.closest('.check, .more, .ctl, .step-minus, .drag-handle, .dot, .m-warn.stale')) return;
+    if (liveCards(el.parentElement).length < 2) return;
+    cancelPress();
+    press = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    press.t = setTimeout(() => {
+      const p = press;
+      press = null;
+      if (!p || el.classList.contains('swiping')) return;
+      navigator.vibrate?.(15);
+      begin(p.id, p.y, el);
+    }, LONG_PRESS);
+  });
+  el.addEventListener('pointermove', e => {
+    if (press && e.pointerId === press.id && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) cancelPress();
+    if (!e.target.closest('.drag-handle')) move(e);
+  });
+  for (const t of ['pointerup', 'pointercancel']) el.addEventListener(t, e => { cancelPress(); if (!e.target.closest('.drag-handle')) end(); });
+  el.addEventListener('contextmenu', e => { if (drag || press) e.preventDefault(); });
   handle.addEventListener('keydown', e => {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
     e.preventDefault();
@@ -244,6 +280,7 @@ export function addSwipe(el, id) {
   });
   el.addEventListener('pointermove', e => {
     if (!start || e.pointerId !== start.id) return;
+    if (el.classList.contains('dragging')) { start = null; return; }
     const mx = e.clientX - start.x, my = e.clientY - start.y;
     if (!dragging) {
       if (Math.abs(mx) < 10 || Math.abs(mx) < Math.abs(my) * 1.3) {
@@ -251,7 +288,7 @@ export function addSwipe(el, id) {
         return;
       }
       dragging = true;
-      el.setPointerCapture(e.pointerId);
+      try { el.setPointerCapture(e.pointerId); } catch {}
       el.classList.add('swiping');
     }
     dx = Math.max(-140, Math.min(140, mx));
@@ -270,8 +307,8 @@ export function addSwipe(el, id) {
     el.style.removeProperty('--sw');
     el.animate([{ transform: `translateX(${dx * .85}px)` }, { transform: 'none' }], { duration: 300, easing: EASE });
     el.style.transform = '';
-    const h = findHabit(id);
-    if (dx >= LIMIT) changeCount(h, viewDate, h.target);
+    const h = at(findHabit(id), viewDate);
+    if (dx >= LIMIT) { if (count(h, viewDate) < h.target) changeCount(h, viewDate, h.target); }
     else if (dx <= -LIMIT && (count(h, viewDate) || isSkipped(h, viewDate))) changeCount(h, viewDate, 0, true);
   };
   el.addEventListener('pointerup', end);
@@ -279,16 +316,19 @@ export function addSwipe(el, id) {
 }
 
 export function changeCount(h, d, n, clearSkip = false) {
+  h = at(h, d);
   const prev = count(h, d), prevSkip = isSkipped(h, d);
-  n = Math.max(0, Math.min(h.target, n));
+  n = Math.max(0, Math.min(countCap(h.target), n));
   if (n === prev && !(clearSkip && prevSkip)) return;
   if (clearSkip && prevSkip) setMap(state.skip, key(d), h.id, 0);
   setCount(h, d, n);
-  navigator.vibrate?.(n > prev ? 12 : [6, 40, 6]);
   const wasDone = prev >= h.target, isDone = n >= h.target;
+  navigator.vibrate?.(wasDone && isDone && n > prev ? 6 : n > prev ? 12 : [6, 40, 6]);
   if (wasDone !== isDone || (n === 0 && prev > 1)) {
     const dayNote = isToday(d) ? '' : ` (${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })})`;
-    toast(`${h.name}${dayNote}: ${isDone ? 'выполнено' : n ? `${n} из ${h.target}` : 'отметка снята'}`, () => {
+    let text = `${h.name}${dayNote}: ${isDone ? 'выполнено' : n ? `${n} из ${h.target}` : 'отметка снята'}`;
+    if (isDone && h.target > 1 && getPref(OVER_HINT, '') !== '1') { setPref(OVER_HINT, '1'); text = 'Цель выполнена! Нажмите ещё раз, чтобы записать сверх плана'; }
+    toast(text, () => {
       if (!findHabit(h.id)) return;
       setMap(state.log, key(d), h.id, prev);
       if (prevSkip) setMap(state.skip, key(d), h.id, 1);
@@ -297,7 +337,11 @@ export function changeCount(h, d, n, clearSkip = false) {
   }
 }
 
+const IC_PLUS_SM = '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>';
+export const shortNum = n => n < 1000 ? String(n) : n < 10000 ? `${(Math.round(n / 100) / 10).toString().replace('.', ',')} тыс.` : `${Math.round(n / 1000)} тыс.`;
+
 export function updateCard(el, h) {
+  h = at(h, viewDate);
   const day = key(viewDate);
   const c = count(h, viewDate), done = c >= h.target, multi = h.target > 1;
   const skipped = isSkipped(h, viewDate), due = isDue(h, viewDate);
@@ -316,12 +360,28 @@ export function updateCard(el, h) {
     paintSegments(ringSvg, done ? u : Math.floor(c / stepOf(h)), sameDay);
   } else if (el._segN) { ringSvg.querySelectorAll('.seg').forEach(s => s.remove()); el._segN = 0; }
   ringSvg.classList.toggle('segmented', segmented);
-  el.querySelector('.prog').style.strokeDashoffset = RING_C * (1 - c / h.target);
-  const check = el.querySelector('.check');
-  check.title = done ? (multi ? 'Выполнено — нажмите, чтобы убрать последнее повторение' : 'Выполнено — нажмите, чтобы снять отметку')
-    : multi ? `Нажмите: +${stepOf(h)} · удерживайте: выполнить целиком` : 'Отметить выполненной';
-  check.setAttribute('aria-label', `${h.name}: ${multi ? `${c} из ${h.target}` : done ? 'выполнено' : 'не выполнено'}. ${check.title}`);
+  el.querySelector('.prog').style.strokeDashoffset = RING_C * (1 - Math.min(c / h.target, 1));
+  const check = el.querySelector('.check'), extra = c - h.target;
+  check.title = !multi ? (done ? 'Выполнено — нажмите, чтобы снять отметку' : 'Отметить выполненной')
+    : `Нажмите: +${stepOf(h)}, кнопка − убирает повторение` + (done ? '' : ' · удерживайте: выполнить целиком');
+  check.setAttribute('aria-label', `${h.name}: ` + (!multi ? `${done ? 'выполнено' : 'не выполнено'}. ${check.title}`
+    : extra > 0 ? `${c} из ${h.target}, перевыполнено на ${extra}. Нажмите, чтобы добавить ещё`
+    : extra === 0 ? `${c} из ${h.target}, выполнено. Нажмите, чтобы добавить сверх цели`
+    : `${c} из ${h.target}. ${check.title}`));
   check.setAttribute('aria-pressed', done);
+  const ob = check.querySelector('.over'), overState = multi && done ? (extra > 0 ? '+' + shortNum(extra) : '+') : '';
+  check.classList.toggle('overdone', multi && extra > 0);
+  if (ob._s !== overState) {
+    const was = ob._s || '';
+    ob._s = overState;
+    ob.classList.toggle('on', !!overState);
+    ob.classList.toggle('pill', overState.length > 3);
+    ob.innerHTML = overState === '+' ? IC_PLUS_SM : esc(overState);
+    ob.title = overState === '+' ? 'Цель выполнена — можно добавить сверх плана' : overState ? `Сверх цели: ${extra}` : '';
+    if (sameDay && overState && !reducedMotion) ob.animate(was
+      ? [{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }]
+      : [{ transform: 'scale(0)' }, { transform: 'scale(1)' }], { duration: was ? 220 : 250, easing: was ? 'ease-out' : 'cubic-bezier(.34, 1.56, .64, 1)' });
+  }
   const minusBtn = el.querySelector('.step-minus');
   minusBtn.hidden = !multi;
   minusBtn.classList.toggle('idle', c === 0);
@@ -367,7 +427,7 @@ export function updateCard(el, h) {
   const todayK = todayKey();
   el.querySelectorAll('.dcol').forEach((col, i) => {
     const d = addDays(viewDate, i - 6), k = key(d), v = count(h, d), dot = col.lastElementChild;
-    dot.className = 'dot ' + (v >= h.target ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : !isDue(h, d) ? 'off' : '');
+    dot.className = 'dot ' + (v >= targetOn(h, d) ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : !isDue(h, d) ? 'off' : '');
     col.classList.toggle('cur', i === 6);
     col.classList.toggle('today', k === todayK);
     dot.textContent = d.getDate();
@@ -382,16 +442,16 @@ export function updateCard(el, h) {
   const layoutKey = `${view.id}|${day}`;
   const L = stripLayout(view, layoutKey);
   if (mh.dataset.k !== layoutKey) { mh.dataset.k = layoutKey; mh.className = `mh ${L.cls}`; mh.innerHTML = L.html; mh._cells = [...mh.querySelectorAll('i')]; }
-  const { log, skip } = state, id = h.id, tgt = h.target, end = lifeEnd(h);
+  const { log, skip } = state, id = h.id, end = lifeEnd(h);
   let dueN = 0, fullN = 0;
   mh._cells.forEach((cell, i) => {
-    const k = L.keys[i], v = log[k]?.[id] || 0, sk = !!skip[k]?.[id], out = k > todayK || k < h.created;
+    const k = L.keys[i], tgt = targetOn(h, L.days[i]), v = log[k]?.[id] || 0, sk = !!skip[k]?.[id], out = k > todayK || k < h.created;
     const cls = (out ? 'x' : v >= tgt ? 'l3' : v * 2 >= tgt ? 'l2' : v > 0 ? 'l1' : sk ? 'sk' : '')
       + (k === day ? ' cur' : '');
     if (cell.className !== cls) cell.className = cls;
     if (!out && k <= end && !sk && (!h.days || h.days.includes(L.wd[i])) && !(k === todayK && v < tgt)) { dueN++; if (v >= tgt) fullN++; }
   });
-  mh.querySelector('.sh-r').textContent = dueN ? `${fullN} из ${days(dueN)} · ${Math.round(fullN / dueN * 100)}%` : 'пока нет данных';
+  mh.querySelector('.sh-r').textContent = dueN ? `${fullN} из ${ofDays(dueN)} · ${Math.round(fullN / dueN * 100)}%` : 'пока нет данных';
 }
 
 export const stripCache = new Map();
@@ -521,7 +581,7 @@ export function render() {
       updateCard(el, h);
     }
     sec.hidden = !hs.length;
-    const doneN = hs.filter(h => count(h, viewDate) >= h.target).length;
+    const doneN = hs.filter(h => count(h, viewDate) >= targetOn(h, viewDate)).length;
     sec.querySelector('.cnt').textContent = s.id === 'off' ? '' : `${doneN} / ${hs.length}`;
   }
   const live = new Set(defs.map(s => s.id));
@@ -621,7 +681,7 @@ export async function deleteForever(id) {
     `Привычка «${h.name}» и вся её история будут стёрты. Это нельзя отменить.`, 'Удалить');
   if (!ok || !findHabit(id)) return;
   state.habits = state.habits.filter(x => x.id !== id);
-  for (const map of [state.log, state.skip]) for (const k in map) setMap(map, k, id, 0);
+  for (const map of [state.log, state.skip, state.notes]) for (const k in map) setMap(map, k, id, 0);
   if (hist?.id === id) { closeOverlay($('histOv')); setHist(null); }
   save(); render();
 }
@@ -653,7 +713,7 @@ export function renderArchive() {
         <div class="info" tabindex="0" role="button" title="История и статистика"><div class="name"></div><div class="meta"></div></div>
         <div class="acts">
           <button class="restore">Вернуть</button>
-          <button class="danger del">Удалить</button>
+          <button class="danger del">${IC.trash}<span>Удалить</span></button>
         </div>`;
       const info = row.querySelector('.info');
       info.onclick = () => openHistory(h.id);
@@ -688,6 +748,48 @@ $('days').innerHTML = WEEKDAYS.map(wd => `
     <span class="wd">${wd}</span>
     <span class="dr"><svg viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15.5"/><circle class="prog" cx="18" cy="18" r="15.5" stroke-dasharray="${DAY_C}" stroke-dashoffset="${DAY_C}"/></svg><span class="dn"></span></span>
   </button>`).join('');
+
+{
+  const strip = $('days');
+  let start = null, dx = 0, dragging = false, swiped = false;
+  strip.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || reordering) return;
+    start = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    dx = 0; dragging = false;
+  });
+  strip.addEventListener('pointermove', e => {
+    if (!start || e.pointerId !== start.id) return;
+    const mx = e.clientX - start.x, my = e.clientY - start.y;
+    if (!dragging) {
+      if (Math.abs(mx) < 10 || Math.abs(mx) < Math.abs(my) * 1.3) {
+        if (Math.abs(my) > 12) start = null;
+        return;
+      }
+      dragging = true;
+      try { strip.setPointerCapture(e.pointerId); } catch {}
+    }
+    dx = mx;
+    const blocked = $(dx < 0 ? 'next' : 'prev').disabled;
+    strip.style.transform = `translateX(${blocked ? dx * .2 : dx * .6}px)`;
+  });
+  const end = () => {
+    if (!start) return;
+    start = null;
+    if (!dragging) return;
+    swiped = true;
+    setTimeout(() => swiped = false, 50);
+    const from = strip.style.transform;
+    strip.style.transform = '';
+    const btn = $(dx < 0 ? 'next' : 'prev');
+    if (Math.abs(dx) >= 50 && !btn.disabled) {
+      btn.click();
+      if (!reducedMotion) strip.animate([{ opacity: .3, transform: `translateX(${dx < 0 ? 40 : -40}px)` }, { opacity: 1, transform: 'none' }], { duration: 300, easing: EASE });
+    } else if (!reducedMotion) strip.animate([{ transform: from || 'none' }, { transform: 'none' }], { duration: 250, easing: EASE });
+  };
+  strip.addEventListener('pointerup', end);
+  strip.addEventListener('pointercancel', end);
+  strip.addEventListener('click', e => { if (swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
+}
 
 export function goTo(d) {
   const dir = key(d) > key(viewDate) ? 1 : -1;

@@ -67,7 +67,7 @@
       <div class="hero-msg" id="heroMsg"></div>
       <div class="chips" id="heroChips"></div>
     </div>
-    <div class="hero-ring">
+    <div class="hero-ring" role="button" tabindex="0" aria-label="Открыть сводку" title="Сводка">
       <svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="36"/><circle class="prog" id="heroProg" cx="42" cy="42" r="36"/></svg>
       <span id="heroPct">0%</span>
     </div>
@@ -83,7 +83,7 @@
   </div>
 
   <div id="sections"></div>
-  <p class="hint" id="hint" hidden>Нажмите на кружок — отметить, ещё раз — отменить. Свайп вправо — выполнить, влево — сбросить.</p>
+  <p class="hint" id="hint" hidden>Нажмите на кружок — отметить, ещё раз — отменить. У привычек с повторами нажатие добавляет шаг, кнопка − убирает повторение. Свайп вправо — выполнить, влево — сбросить. Удерживайте карточку, чтобы перетащить её.</p>
 
   <section class="archive" id="archive" hidden>
     <button class="arch-toggle" id="archToggle" aria-expanded="false">
@@ -116,7 +116,7 @@
     <section class="set-group">
       <h3>Группировка</h3>
       <div class="set-card" id="groupList" role="radiogroup" aria-label="Группировка"></div>
-      <button type="button" class="set-link" id="editCats">Настроить типы</button>
+      <button type="button" class="set-link" id="editCats">Настроить категории</button>
     </section>
     <section class="set-group">
       <h3>Порядок</h3>
@@ -139,6 +139,19 @@
     <section class="set-group">
       <h3>Тема</h3>
       <div class="pseg pseg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
+    </section>
+    <section class="set-group">
+      <h3>Цвета</h3>
+      <div class="set-card color-set">
+        <div class="sw-label" id="accentLbl">Интерфейс</div>
+        <div class="swatches" id="accentRow" role="radiogroup" aria-labelledby="accentLbl"></div>
+        <div class="sw-label" id="dataLbl">Статистика</div>
+        <div class="swatches" id="dataRow" role="radiogroup" aria-labelledby="dataLbl"></div>
+        <div class="color-prev" aria-hidden="true">
+          <span class="primary cp-btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Новая привычка</span>
+          <span class="heat-strip"><i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i></span>
+        </div>
+      </div>
     </section>
     <section class="set-group" id="setAcctGroup">
       <h3>Аккаунт</h3>
@@ -188,17 +201,22 @@
         </button>
       </div>
       <p class="set-hint">Время напоминания задаётся в каждой привычке. Напоминание придёт, только если привычка на сегодня ещё не выполнена.</p>
+      <div id="notifyBox">
+        <h4 class="set-sub" id="notifyTitle">Конфиденциальность уведомлений</h4>
+        <div class="set-card" id="notifyList" role="radiogroup" aria-labelledby="notifyTitle"></div>
+        <p class="set-hint">Настройка действует на этом устройстве. Скрытые уведомления не показывают названия привычек и цифры, в том числе на экране блокировки.</p>
+      </div>
     </section>
     <section class="set-group">
       <h3>Привычки</h3>
       <div class="set-card">
         <button type="button" class="set-row" id="setCats">
           <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><path d="M16.75 13.5v6.5M13.5 16.75H20"/></svg></span>
-          <span class="set-txt"><b>Типы привычек</b><small id="setCatsInfo"></small></span>
+          <span class="set-txt"><b>Категории привычек</b><small id="setCatsInfo"></small></span>
           <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
         </button>
       </div>
-      <p class="set-hint">Создавайте, переименовывайте, меняйте порядок и удаляйте типы. По ним можно группировать список.</p>
+      <p class="set-hint">Создавайте, переименовывайте, меняйте порядок и удаляйте категории. По ним можно группировать список.</p>
     </section>
     <section class="set-group">
       <h3>Иконки привычек</h3>
@@ -230,6 +248,91 @@
   </div>
 </div>
 
+<div class="overlay" id="sumOv" hidden>
+  <div class="card sheet" id="sSheet" role="dialog" aria-modal="true" aria-labelledby="sTitle">
+    <div class="sheet-head">
+      <div class="s-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20h16M7 16.5v-5M12 16.5V6M17 16.5v-8"/></svg></div>
+      <div class="h-title"><h2 id="sTitle">Сводка</h2></div>
+      <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="seg" id="sTabs">
+      <button data-r="week">Неделя</button>
+      <button data-r="month">Месяц</button>
+      <button data-r="year">Год</button>
+    </div>
+    <div class="pnav">
+      <button class="ghost icon-btn" id="sPrev" title="Раньше"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div class="plabel" id="sLabel"></div>
+      <button class="ghost icon-btn" id="sNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="tiles s-tiles" id="sTiles"></div>
+    <h3 class="heat-title">Общее выполнение по дням</h3>
+    <div class="chart" id="sHeat"></div>
+    <div class="legend"><span class="lg-fut" id="sFutLg"><i class="fut"></i>впереди</span> меньше <i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i> больше</div>
+    <h3 class="heat-title">Рейтинг привычек</h3>
+    <div class="rank" id="sRank"></div>
+    <h3 class="heat-title">Требует внимания</h3>
+    <div class="attn" id="sAttn"></div>
+    <h3 class="heat-title">По дням недели</h3>
+    <div class="chart" id="sWeek"></div>
+    <p class="s-note" id="sWeekNote"></p>
+  </div>
+</div>
+
+<div class="overlay" id="histOv" hidden>
+  <div class="card sheet" id="hSheet" role="dialog" aria-modal="true" aria-labelledby="hName">
+    <div class="sheet-head">
+      <div class="hicon h-ic" id="hIcon"></div>
+      <div class="h-title">
+        <h2 id="hName"></h2>
+      </div>
+      <button class="ghost icon-btn info-btn" id="hInfo" title="Сведения о привычке" aria-haspopup="dialog"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg></button>
+      <button class="ghost icon-btn" id="hEdit" title="Изменить привычку"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="h-tags" id="hTags"></div>
+    <div class="why" id="hWhy" hidden></div>
+    <div class="tiles" id="hTiles"></div>
+    <div class="seg" id="hTabs">
+      <button data-r="week">Неделя</button>
+      <button data-r="month">Месяц</button>
+      <button data-r="year">Год</button>
+    </div>
+    <div class="pnav">
+      <button class="ghost icon-btn" id="hPrev" title="Раньше"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div class="plabel" id="hLabel"></div>
+      <button class="ghost icon-btn" id="hNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="pstats" id="hStats"></div>
+    <div class="chart" id="hChart"></div>
+    <div id="hHeatWrap" hidden>
+      <div class="heat-title">Каждый день года</div>
+      <div class="chart" id="hHeat"></div>
+      <div class="legend">меньше <i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i> больше</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="dayOv" hidden>
+  <div class="card sheet day-sheet" id="dSheet" role="dialog" aria-modal="true" aria-labelledby="dName">
+    <div class="sheet-head">
+      <div class="hicon h-ic" id="dIcon"></div>
+      <div class="h-title">
+        <h2 id="dName"></h2>
+        <div class="d-date" id="dDate"></div>
+      </div>
+      <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="facts" id="dFacts"></div>
+    <label class="d-lbl" for="dNote">Заметка</label>
+    <textarea id="dNote" rows="4" maxlength="500" placeholder="Как прошёл день? Что помогло или помешало?"></textarea>
+    <div class="d-foot">
+      <span id="dNoteCount"></span>
+      <button type="button" class="link-btn danger" id="dNoteDel" hidden><svg class="ic del-ic" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg><span>Удалить заметку</span></button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="formOv" hidden>
   <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="formTitle">
     <div class="sheet-head">
@@ -238,19 +341,18 @@
     </div>
     <form class="form" id="form">
       <div class="prev-dock">
-        <div class="form-prev" id="formPrev" aria-hidden="true">
-          <div class="hicon" id="fpIcon"></div>
-          <div class="fp-text"><div class="fp-name" id="fpName"></div><div class="fp-meta" id="fpMeta"></div></div>
-          <div class="fp-check"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <div class="form-prev" id="formPrev">
+          <div class="hicon" id="fpIcon" aria-hidden="true"></div>
+          <div class="fp-text">
+            <input type="text" class="fp-name" id="name" maxlength="60" placeholder="Название привычки" aria-label="Название привычки" autocomplete="off" required>
+            <div class="fp-meta" id="fpMeta"></div>
+          </div>
+          <div class="fp-check" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
         </div>
       </div>
       <div class="field" id="tplField">
         <span class="lbl">Популярные</span>
         <div class="templates" id="templates"></div>
-      </div>
-      <div class="field">
-        <span class="lbl">Название</span>
-        <input type="text" id="name" maxlength="60" placeholder="Например: пить воду" required>
       </div>
       <div class="field">
         <span class="lbl">Иконка</span>
@@ -371,7 +473,7 @@
         <p class="field-hint" id="remindHint"></p>
       </div>
       <div class="field">
-        <span class="lbl lbl-row">Тип <button type="button" class="link-btn" id="formManageCats">Настроить типы</button></span>
+        <span class="lbl lbl-row">Категория <button type="button" class="link-btn" id="formManageCats">Настроить категории</button></span>
         <div class="cat-chips" id="catChips"></div>
         <div class="collapse" id="newCatWrap"><div>
           <div class="new-cat">
@@ -461,47 +563,14 @@
 <div class="overlay" id="catOv" hidden>
   <div class="card sheet cat-sheet" role="dialog" aria-modal="true" aria-labelledby="catTitle">
     <div class="sheet-head">
-      <h2 id="catTitle">Типы привычек</h2>
+      <h2 id="catTitle">Категории привычек</h2>
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <p class="cat-note">Свои группы для привычек, например «Физическая активность» или «Умственное развитие». Список группируется по ним в режиме «По типам».</p>
+    <p class="cat-note">Свои группы для привычек, например «Физическая активность» или «Умственное развитие». Список группируется по ним в режиме «По категориям».</p>
     <div class="cat-list" id="catList"></div>
     <div class="new-cat">
-      <input type="text" id="catNewName" maxlength="40" placeholder="Новый тип">
+      <input type="text" id="catNewName" maxlength="40" placeholder="Новая категория">
       <button class="primary" id="catNewAdd">Добавить</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="histOv" hidden>
-  <div class="card sheet" id="hSheet" role="dialog" aria-modal="true" aria-labelledby="hName">
-    <div class="sheet-head">
-      <div class="hicon h-ic" id="hIcon"></div>
-      <div class="h-title">
-        <h2 id="hName"></h2>
-      </div>
-      <button class="ghost icon-btn info-btn" id="hInfo" title="Сведения о привычке" aria-haspopup="dialog"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg></button>
-      <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    </div>
-    <div class="h-tags" id="hTags"></div>
-    <div class="why" id="hWhy" hidden></div>
-    <div class="tiles" id="hTiles"></div>
-    <div class="seg" id="hTabs">
-      <button data-r="week">Неделя</button>
-      <button data-r="month">Месяц</button>
-      <button data-r="year">Год</button>
-    </div>
-    <div class="pnav">
-      <button class="ghost icon-btn" id="hPrev" title="Раньше"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-      <div class="plabel" id="hLabel"></div>
-      <button class="ghost icon-btn" id="hNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-    </div>
-    <div class="pstats" id="hStats"></div>
-    <div class="chart" id="hChart"></div>
-    <div id="hHeatWrap" hidden>
-      <div class="heat-title">Каждый день года</div>
-      <div class="chart" id="hHeat"></div>
-      <div class="legend">меньше <i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i> больше</div>
     </div>
   </div>
 </div>

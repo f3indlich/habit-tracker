@@ -6,6 +6,10 @@ export const THEME_STORE = NS + '-theme';
 export const VIEW_STORE = NS + '-view';
 export const GROUP_STORE = NS + '-group';
 export const ICON_STORE = NS + '-icons';
+export const NOTIFY_STORE = NS + '-notify';
+export const OVER_HINT = NS + '-over-hint';
+export const ACCENT_STORE = NS + '-accent';
+export const DATA_STORE = NS + '-data';
 export const VIEWS = {
   '7d': { id: '7d', short: 'Неделя', label: 'За последние 7 дней' },
   '30d': { id: '30d', short: 'Месяц', label: 'За последний месяц', head: 'Последние 30 дней', cells: 'days', days: 30 },
@@ -21,7 +25,7 @@ export const HERO_C = 2 * Math.PI * 36;
 export const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 export const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 export const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-export const COLORS = ['#4f46e5', '#0ea5e9', '#14b8a6', '#22c55e', '#eab308', '#f97316', '#ef4444', '#ec4899', '#a855f7', '#64748b'];
+export const COLORS = ['#2563eb', '#0ea5e9', '#14b8a6', '#22c55e', '#eab308', '#f97316', '#ef4444', '#ec4899', '#a855f7', '#64748b'];
 export const TIMES = [
   { v: 'morning', label: 'Утро', icon: '🌅' },
   { v: 'day', label: 'День', icon: '☀️' },
@@ -32,7 +36,7 @@ export const TEMPLATES = [
   { name: 'Пить воду', icon: 'water', color: '#0ea5e9', target: 8, unit: 'стаканов', time: 'any' },
   { name: 'Зарядка', icon: 'dumbbell', color: '#f97316', target: 1, time: 'morning' },
   { name: 'Медитация', icon: 'meditate', color: '#a855f7', target: 1, time: 'morning' },
-  { name: 'Чтение', icon: 'book', color: '#4f46e5', target: 20, unit: 'страниц', time: 'evening' },
+  { name: 'Чтение', icon: 'book', color: '#2563eb', target: 20, unit: 'страниц', time: 'evening' },
   { name: '10 000 шагов', icon: 'walk', color: '#22c55e', target: 1, time: 'any' },
   { name: 'Лечь до 23:00', icon: 'sleep', color: '#64748b', target: 1, time: 'evening' },
   { name: 'Без соцсетей утром', icon: 'phoneoff', color: '#ef4444', target: 1, time: 'morning' },
@@ -63,9 +67,11 @@ export function plural(n, one, few, many) {
   return many;
 }
 export const days = n => `${n} ${plural(n, 'день', 'дня', 'дней')}`;
+export const ofDays = n => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'дня' : 'дней'}`;
 export const schedText = h => !h.days ? 'каждый день' : h.days.length === 5 && h.days.every(x => x < 5) ? 'по будням'
   : h.days.length === 2 && h.days.every(x => x >= 5) ? 'по выходным' : h.days.map(x => WEEKDAYS[x]).join(', ');
 
+export const redUi = () => document.documentElement.hasAttribute('data-ui-red');
 export const getPref = (k, def) => { try { return localStorage.getItem(k) || def; } catch { return def; } };
 export const setPref = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 

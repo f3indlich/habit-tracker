@@ -22,7 +22,7 @@ ok('normalize bad step', s.habits[5].step === undefined && s.habits[5].target ==
 ok('legacy emoji brain', s.habits[6].icon === 'brain', s.habits[6].icon);
 ok('legacy emoji books', s.habits[7].icon === 'books', s.habits[7].icon);
 const hs = { target: 60, step: 15 }, h100 = { target: 100, step: 15 };
-ok('stepUp', stepUp(hs, 0) === 15 && stepUp(hs, 45) === 60 && stepUp(hs, 60) === 60 && stepUp(h100, 90) === 100);
+ok('stepUp', stepUp(hs, 0) === 15 && stepUp(hs, 45) === 60 && stepUp(hs, 60) === 75 && stepUp(h100, 90) === 105 && stepUp({ target: 3 }, 60) === 60 && stepUp({ target: 1 }, 1) === 1);
 ok('stepDown', stepDown(h100, 100) === 90 && stepDown(h100, 90) === 75 && stepDown(hs, 15) === 0 && stepDown(hs, 0) === 0 && stepDown({ target: 8 }, 3) === 2);
 ok('units', units(h100) === 7 && units(hs) === 4 && units({ target: 8 }) === 8 && units({ target: 1 }) === 1);
 
@@ -38,9 +38,11 @@ ok('once uncheck', count(findHabit('o'), new Date()) === 0);
 for (let i = 0; i < 3; i++) { card('m').querySelector('.check').click(); await wait(40); }
 ok('multi to done', count(findHabit('m'), new Date()) === 3 && card('m').classList.contains('complete'));
 card('m').querySelector('.check').click(); await wait(40);
-ok('multi done click removes one', count(findHabit('m'), new Date()) === 2);
+ok('multi done click adds one', count(findHabit('m'), new Date()) === 4);
 card('m').querySelector('.step-minus').click(); await wait(40);
-ok('multi minus', count(findHabit('m'), new Date()) === 1);
+card('m').querySelector('.step-minus').click(); await wait(40);
+ok('multi minus', count(findHabit('m'), new Date()) === 2);
+card('m').querySelector('.step-minus').click(); await wait(40);
 for (let i = 0; i < 3; i++) { card('p').querySelector('.check').click(); await wait(40); }
 ok('step +5 x3', count(findHabit('p'), new Date()) === 15, count(findHabit('p'), new Date()));
 ok('step meta text', card('p').querySelector('.m-lead').textContent.trim() === '15 / 100 раз', card('p').querySelector('.m-lead').textContent);
@@ -52,11 +54,17 @@ for (let i = 0; i < 4; i++) { card('y').querySelector('.check').click(); await w
 ok('yoga 4 steps done', count(findHabit('y'), new Date()) === 60 && card('y').classList.contains('complete'));
 ok('yoga segmented ring 4', card('y').querySelectorAll('.seg-f').length === 4 && card('y').querySelectorAll('.seg-f.on').length === 4);
 card('y').querySelector('.check').click(); await wait(40);
-ok('yoga done click -> 45', count(findHabit('y'), new Date()) === 45 && card('y').querySelectorAll('.seg-f.on').length === 3);
+ok('yoga done click -> 75', count(findHabit('y'), new Date()) === 75 && card('y').querySelectorAll('.seg-f.on').length === 4);
+card('y').querySelector('.step-minus').click(); await wait(40);
+card('y').querySelector('.step-minus').click(); await wait(40);
+ok('yoga minus -> 45', count(findHabit('y'), new Date()) === 45 && card('y').querySelectorAll('.seg-f.on').length === 3);
 changeCount(findHabit('p'), new Date(), 100); await wait(40);
 ok('step complete via full', card('p').classList.contains('complete'));
 card('p').querySelector('.check').click(); await wait(40);
-ok('step done click -> 95', count(findHabit('p'), new Date()) === 95);
+ok('step done click -> 105', count(findHabit('p'), new Date()) === 105);
+card('p').querySelector('.step-minus').click(); await wait(40);
+card('p').querySelector('.step-minus').click(); await wait(40);
+ok('step minus -> 95', count(findHabit('p'), new Date()) === 95);
 const dcols = card('p').querySelectorAll('.dcol');
 ok('dots row 7 cols, last cur', dcols.length === 7 && dcols[6].classList.contains('cur') && !dcols[5].classList.contains('cur'));
 ok('dots in info', !!card('p').querySelector('.info .dots'));

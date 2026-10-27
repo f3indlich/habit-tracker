@@ -1,5 +1,5 @@
-import { $, isIOS, isStandalone, isToday, key } from './core.js?v=1.00a';
-import { findHabit } from './storage.js?v=1.00a';
+import { $, getPref, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=1.00a';
+import { count, findHabit, state, targetOn } from './storage.js?v=1.00a';
 import { closeOverlay, openOverlay, toast } from './ui.js?v=1.00a';
 import { changeCount, render, setViewDate, viewDate } from './render.js?v=1.00a';
 import { form } from './form.js?v=1.00a';
@@ -28,9 +28,34 @@ export const PUSH_TEXT = {
   ready: ['Выключены', 'Включите, чтобы получать напоминания в заданное время.'],
   on: ['Включены на этом устройстве', ''],
 };
+export const NOTIFY_MODES = {
+  show: { label: 'Показывать название привычки', hint: 'Например: «Бег» — пора выполнить, осталось 3 из 5 км' },
+  hide: { label: 'Скрывать содержимое', hint: 'Только «Пора отметить привычку», без названий и цифр' },
+};
+export const notifyMode = () => NOTIFY_MODES[getPref(NOTIFY_STORE, 'show')] ? getPref(NOTIFY_STORE, 'show') : 'show';
+export async function storeNotifyMode(mode) {
+  try { await (await caches.open('prefs')).put(new URL(TEST_MODE ? '__prefs/notify-test' : '__prefs/notify', document.baseURI).href, new Response(mode)); } catch {}
+}
+export function renderNotify() {
+  const cur = notifyMode();
+  $('notifyList').innerHTML = Object.entries(NOTIFY_MODES).map(([id, m]) =>
+    `<button type="button" class="set-row" role="radio" aria-checked="${id === cur}" data-n="${id}">
+      <span class="set-txt"><b>${m.label}</b><small>${m.hint}</small></span><span class="check"></span>
+    </button>`).join('');
+}
+$('notifyList').onclick = e => {
+  const b = e.target.closest('[data-n]');
+  if (!b) return;
+  setPref(NOTIFY_STORE, b.dataset.n);
+  storeNotifyMode(b.dataset.n);
+  renderNotify();
+};
+if ('caches' in window) storeNotifyMode(notifyMode());
+
 export function renderPush() {
   const st = pushState();
   $('pushGroup').hidden = st === 'off';
+  renderNotify();
   if (st === 'off') return renderRemindHint();
   const [title, text] = PUSH_TEXT[st];
   $('pushTitle').textContent = title;
@@ -40,6 +65,7 @@ export function renderPush() {
   $('pushOnLabel').textContent = st === 'login' ? 'Войти в аккаунт' : 'Включить напоминания';
   $('pushOn').disabled = push.busy;
   $('pushTest').hidden = $('pushOff').hidden = st !== 'on';
+  $('notifyBox').hidden = !['on', 'ready', 'login'].includes(st);
   renderRemindHint();
 }
 export function renderRemindHint() {
@@ -113,14 +139,15 @@ $('pushOff').onclick = () => pushDisable().then(() => toast('Напоминан�
 $('pushTest').onclick = async () => {
   try {
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('Трекер привычек', { body: 'Так будут выглядеть напоминания о привычках', icon: 'icons/icon-192.png', tag: 'test' });
+    const h = notifyMode() === 'show' && state.habits.find(x => !x.archived);
+    await reg.showNotification(h ? h.name : 'Трекер привычек', { body: h ? 'Пора выполнить привычку' : 'Пора отметить привычку', icon: 'icons/icon-192.png', tag: 'test' });
   } catch (err) { toast('Не удалось показать уведомление: ' + err.message, null, ''); }
 };
 export function markDoneFromPush(id) {
   const h = findHabit(id);
   if (!h || h.archived) return;
   if (!isToday(viewDate)) setViewDate(new Date());
-  changeCount(h, new Date(), h.target, true);
+  if (count(h, new Date()) < targetOn(h, new Date())) changeCount(h, new Date(), h.target, true);
   render();
 }
 navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.type === 'done') markDoneFromPush(e.data.id); });
