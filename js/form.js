@@ -1,10 +1,10 @@
-import { $, addDays, COLORS, days, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, WEEKDAYS } from './core.js?v=1.01a';
-import { ICON_KEYS, iconHTML, setIcon } from './icons.js?v=1.01a';
-import { findHabit, normRemind, noteGoalChange, save, state } from './storage.js?v=1.01a';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.01a';
-import { catName, render } from './render.js?v=1.01a';
-import { hist, renderHistory } from './history.js?v=1.01a';
-import { renderRemindHint } from './push.js?v=1.01a';
+import { $, addDays, COLORS, days, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, WEEKDAYS } from './core.js?v=1.02a';
+import { ICON_KEYS, iconHTML, setIcon } from './icons.js?v=1.02a';
+import { findHabit, normRemind, noteGoalChange, save, state } from './storage.js?v=1.02a';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.02a';
+import { catName, render } from './render.js?v=1.02a';
+import { hist, renderHistory } from './history.js?v=1.02a';
+import { renderRemindHint } from './push.js?v=1.02a';
 
 export let editingId = null;
 export const form = {

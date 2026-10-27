@@ -1,11 +1,11 @@
-import { $, ACCENT_STORE, DATA_STORE, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.01a';
-import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=1.01a';
-import { normalize, save, setState, state } from './storage.js?v=1.01a';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.01a';
-import { cards, render, setWasAllDone } from './render.js?v=1.01a';
-import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=1.01a';
-import { hist, renderHistory } from './history.js?v=1.01a';
-import { renderAccount } from './sync.js?v=1.01a';
+import { $, ACCENT_STORE, DATA_STORE, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.02a';
+import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=1.02a';
+import { normalize, save, setState, state } from './storage.js?v=1.02a';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.02a';
+import { cards, render, setWasAllDone } from './render.js?v=1.02a';
+import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=1.02a';
+import { hist, renderHistory } from './history.js?v=1.02a';
+import { renderAccount } from './sync.js?v=1.02a';
 
 export function applyIcons(style) {
   document.body.dataset.icons = style;

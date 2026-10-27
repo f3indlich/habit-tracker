@@ -1,8 +1,8 @@
-import { $, addDays, COLORS, days, HHMM, isDue, isToday, key, parseKey, plural, STORE, TIMES, todayKey, toMin } from './core.js?v=1.01a';
-import { EMOJI_TO_ICON, ICONS } from './icons.js?v=1.01a';
-import { toast } from './ui.js?v=1.01a';
-import { render } from './render.js?v=1.01a';
-import { cloud, cloudQueue } from './sync.js?v=1.01a';
+import { $, addDays, COLORS, days, HHMM, isDue, isToday, key, parseKey, plural, STORE, TIMES, todayKey, toMin } from './core.js?v=1.02a';
+import { EMOJI_TO_ICON, ICONS } from './icons.js?v=1.02a';
+import { toast } from './ui.js?v=1.02a';
+import { render } from './render.js?v=1.02a';
+import { cloud, cloudQueue } from './sync.js?v=1.02a';
 
 export let state;
 export function load() {

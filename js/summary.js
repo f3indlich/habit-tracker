@@ -1,8 +1,8 @@
-import { $, addDays, esc, key, parseKey, plural, todayKey, weekday } from './core.js?v=1.01a';
-import { iconHTML } from './icons.js?v=1.01a';
-import { count, counts, inLife, state, targetOn } from './storage.js?v=1.01a';
-import { addPeriodSwipe, closeMenu, menuEl, openOverlay, openPopover } from './ui.js?v=1.01a';
-import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=1.01a';
+import { $, addDays, esc, key, parseKey, plural, todayKey, weekday } from './core.js?v=1.02a';
+import { iconHTML } from './icons.js?v=1.02a';
+import { count, counts, inLife, state, targetOn } from './storage.js?v=1.02a';
+import { addPeriodSwipe, closeMenu, menuEl, openOverlay, openPopover } from './ui.js?v=1.02a';
+import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=1.02a';
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
 export const MONTHS_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
