@@ -1,7 +1,7 @@
 import { $, addDays, days, ofDays, esc, fmtLong, isDue, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, redUi, schedText, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.01a';
 import { setIcon } from './icons.js?v=1.01a';
 import { at, count, counts, findHabit, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, streak, targetOn } from './storage.js?v=1.01a';
-import { askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast } from './ui.js?v=1.01a';
+import { addPeriodSwipe, askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast } from './ui.js?v=1.01a';
 import { catName } from './render.js?v=1.01a';
 import { openForm } from './form.js?v=1.01a';
 
@@ -66,6 +66,7 @@ export function shiftPeriod(dir) {
 }
 $('hPrev').onclick = () => shiftPeriod(-1);
 $('hNext').onclick = () => shiftPeriod(1);
+addPeriodSwipe($('hSheet'), '#hSheet .pnav, #hStats, #hChart', $('hPrev'), $('hNext'));
 
 export const periodDays = () => rangeDays(hist.range, hist.anchor);
 export function rangeDays(range, a) {
@@ -352,7 +353,7 @@ export function barChart(box, items, { yMax, ticks, fmt }) {
   box.innerHTML = svgEl(W, H, s) + '<div class="tip"></div>';
 }
 
-export const heatLv = (live, f) => !live ? 'lvx' : f >= 1 ? 'lv4' : f >= 2 / 3 ? 'lv3' : f >= 1 / 3 ? 'lv2' : f > 0 ? 'lv1' : 'lv0';
+export const heatLv = (live, f) => !live ? 'lvx' : f >= 1 ? 'lv4' : f >= .75 ? 'lv3' : f >= .5 ? 'lv2' : f > 0 ? 'lv1' : 'lv0';
 export function heatmap(box, ds, cell) {
   const LW = 24, L = 0, T = 18, W = (box.clientWidth || 540) - LW;
   const offset = weekday(ds[0]), cols = Math.ceil((ds.length + offset) / 7);
@@ -398,9 +399,9 @@ export function calendarHeat(box, ds, cell) {
 
 export function bindTips(box) {
   let on = null;
-  box.addEventListener('pointermove', e => {
+  const show = e => {
     const t = e.target.closest('[data-tip]'), tip = box.querySelector('.tip');
-    if (t === on) return;
+    if (!tip || (t === on && e.type !== 'click')) return;
     on?.classList.remove('on');
     on = t;
     if (!t) return tip.classList.remove('show');
@@ -411,7 +412,9 @@ export function bindTips(box) {
     tip.style.left = Math.max(half, Math.min(b.width - half, r.left - b.left + r.width / 2)) + 'px';
     tip.style.top = (t.classList.contains('hit') ? 10 : r.top - b.top) + 'px';
     tip.classList.add('show');
-  });
+  };
+  box.addEventListener('pointermove', show);
+  box.addEventListener('click', show);
   box.addEventListener('pointerleave', () => {
     on?.classList.remove('on'); on = null;
     box.querySelector('.tip')?.classList.remove('show');

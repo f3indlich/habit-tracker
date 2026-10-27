@@ -140,19 +140,6 @@
       <h3>Тема</h3>
       <div class="pseg pseg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
     </section>
-    <section class="set-group">
-      <h3>Цвета</h3>
-      <div class="set-card color-set">
-        <div class="sw-label" id="accentLbl">Интерфейс</div>
-        <div class="swatches" id="accentRow" role="radiogroup" aria-labelledby="accentLbl"></div>
-        <div class="sw-label" id="dataLbl">Статистика</div>
-        <div class="swatches" id="dataRow" role="radiogroup" aria-labelledby="dataLbl"></div>
-        <div class="color-prev" aria-hidden="true">
-          <span class="primary cp-btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Новая привычка</span>
-          <span class="heat-strip"><i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i></span>
-        </div>
-      </div>
-    </section>
     <section class="set-group" id="setAcctGroup">
       <h3>Аккаунт</h3>
       <div class="set-card">
@@ -219,6 +206,17 @@
       <p class="set-hint">Создавайте, переименовывайте, меняйте порядок и удаляйте категории. По ним можно группировать список.</p>
     </section>
     <section class="set-group">
+      <h3>Цвета</h3>
+      <div class="set-card color-set">
+        <div class="color-prev" aria-hidden="true">
+          <span class="primary cp-btn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Новая привычка</span>
+          <span class="heat-strip"><i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i></span>
+        </div>
+        <div class="pseg color-seg" id="colorSeg" role="radiogroup" aria-label="Что перекрасить"></div>
+        <div class="swatches" id="swRow" role="radiogroup"></div>
+      </div>
+    </section>
+    <section class="set-group">
       <h3>Иконки привычек</h3>
       <div class="icon-styles" id="iconStyles" role="radiogroup" aria-label="Иконки привычек"></div>
     </section>
@@ -265,17 +263,27 @@
       <div class="plabel" id="sLabel"></div>
       <button class="ghost icon-btn" id="sNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
-    <div class="tiles s-tiles" id="sTiles"></div>
-    <h3 class="heat-title">Общее выполнение по дням</h3>
-    <div class="chart" id="sHeat"></div>
-    <div class="legend"><span class="lg-fut" id="sFutLg"><i class="fut"></i>впереди</span> меньше <i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i> больше</div>
-    <h3 class="heat-title">Рейтинг привычек</h3>
-    <div class="rank" id="sRank"></div>
-    <h3 class="heat-title">Требует внимания</h3>
-    <div class="attn" id="sAttn"></div>
-    <h3 class="heat-title">По дням недели</h3>
-    <div class="chart" id="sWeek"></div>
-    <p class="s-note" id="sWeekNote"></p>
+    <p class="s-sum" id="sSum" aria-live="polite"></p>
+    <div id="sBody">
+      <div class="tiles s-tiles" id="sTiles"></div>
+      <h3 class="heat-title">Выполнение по дням</h3>
+      <div class="chart" id="sHeat"></div>
+      <div class="legend legend-num"><span class="lg-fut" id="sFutLg"><i class="fut"></i>впереди</span><span><i class="lv0"></i>0%</span><span><i class="lv1"></i>до 50%</span><span><i class="lv2"></i>50–75%</span><span><i class="lv3"></i>75–99%</span><span><i class="lv4"></i>100%</span></div>
+      <div id="sObsWrap" hidden>
+        <h3 class="heat-title">Наблюдения</h3>
+        <ul class="s-obs" id="sObs"></ul>
+      </div>
+      <div class="s-hab-head">
+        <h3 class="heat-title">Привычки</h3>
+        <div class="seg seg-sm" id="sFilter">
+          <button data-f="best">Лучшие</button>
+          <button data-f="attn">Нужно внимание</button>
+        </div>
+      </div>
+      <div class="hab-list" id="sHabits"></div>
+      <button type="button" class="link-btn s-more" id="sMore" hidden></button>
+    </div>
+    <button type="button" class="link-btn s-how" id="sHow" aria-haspopup="dialog">Как считается</button>
   </div>
 </div>
 
@@ -308,7 +316,7 @@
     <div id="hHeatWrap" hidden>
       <div class="heat-title">Каждый день года</div>
       <div class="chart" id="hHeat"></div>
-      <div class="legend">меньше <i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><i class="lv4"></i> больше</div>
+      <div class="legend legend-num"><span><i class="lv0"></i>0%</span><span><i class="lv1"></i>до 50%</span><span><i class="lv2"></i>50–75%</span><span><i class="lv3"></i>75–99%</span><span><i class="lv4"></i>100%</span></div>
     </div>
   </div>
 </div>
@@ -566,7 +574,7 @@
       <h2 id="catTitle">Категории привычек</h2>
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <p class="cat-note">Свои группы для привычек, например «Физическая активность» или «Умственное развитие». Список группируется по ним в режиме «По категориям».</p>
+    <p class="cat-note">Категории помогают разложить привычки по темам. Например: «Здоровье» — вода, сон, витамины; «Спорт» — зарядка, бег, подтягивания; «Учёба» — английский, чтение. Чтобы главный экран делился на такие разделы, выберите вид списка «По категориям».</p>
     <div class="cat-list" id="catList"></div>
     <div class="new-cat">
       <input type="text" id="catNewName" maxlength="40" placeholder="Новая категория">
