@@ -17,6 +17,9 @@ while ($l.IsListening) {
   if ($file.StartsWith($rootFull) -and (Test-Path $file -PathType Leaf)) {
     $bytes = [IO.File]::ReadAllBytes($file)
     $ext = [IO.Path]::GetExtension($file).ToLower()
+    if ($ext -eq '.js' -and $ctx.Request.QueryString['wrap'] -ne $null) {
+      $bytes = [Text.Encoding]::UTF8.GetBytes("window.__suite = async () => {`n" + [Text.Encoding]::UTF8.GetString($bytes).TrimStart([char]0xFEFF) + "`n};")
+    }
     $ctx.Response.ContentType = $(if ($types[$ext]) { $types[$ext] } else { 'application/octet-stream' })
     $ctx.Response.Headers.Add('Cache-Control', 'no-cache')
     $ctx.Response.Headers.Add('Last-Modified', (Get-Item $file).LastWriteTimeUtc.ToString('R'))

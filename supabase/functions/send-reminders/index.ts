@@ -92,13 +92,21 @@ function payloadFor(habits) {
   };
 }
 
+function safeEqual(a, b) {
+  const x = new TextEncoder().encode(String(a)), y = new TextEncoder().encode(String(b));
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
 if (typeof Deno !== 'undefined') {
   const env = k => Deno.env.get(k) ?? '';
   webpush.setVapidDetails(env('VAPID_SUBJECT') || 'https://f3indlich.github.io/habit-tracker/', env('VAPID_PUBLIC_KEY'), env('VAPID_PRIVATE_KEY'));
   const db = createClient(env('SUPABASE_URL'), env('SERVICE_KEY') || env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
 
   Deno.serve(async req => {
-    if (!env('CRON_SECRET') || req.headers.get('x-cron-secret') !== env('CRON_SECRET')) {
+    if (!env('CRON_SECRET') || !safeEqual(req.headers.get('x-cron-secret') ?? '', env('CRON_SECRET'))) {
       return new Response('forbidden', { status: 403 });
     }
     const now = new Date();

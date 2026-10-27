@@ -21,7 +21,7 @@ const cdn = (syncSrc.match(/s\.src = '([^']+)'/) || [])[1];
 ok('supabase script has integrity and crossorigin', !!sri && syncSrc.includes("s.crossOrigin = 'anonymous'") && /@\d+\.\d+\.\d+\//.test(cdn), { sri, cdn });
 let sriOk = false;
 try {
-  const buf = await (await fetch(cdn, { cache: 'no-store' })).arrayBuffer();
+  const buf = await (await parent.fetch(cdn, { cache: 'no-store' })).arrayBuffer();
   const dig = new Uint8Array(await crypto.subtle.digest('SHA-384', buf));
   sriOk = 'sha384-' + btoa(String.fromCharCode(...dig)) === sri;
 } catch (e) { sriOk = String(e); }

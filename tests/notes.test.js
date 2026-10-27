@@ -228,7 +228,7 @@ ok('switch back to showing names', notifyMode() === 'show');
 localStorage.removeItem(NOTIFY_STORE);
 
 const swSrc = await (await fetch('sw.js?x=' + Date.now())).text();
-const notifyView = new Function(swSrc.match(/function notifyView[\s\S]*?\n\}/)[0] + '\nreturn notifyView;')();
+const notifyView = new parent.Function(swSrc.match(/function notifyView[\s\S]*?\n\}/)[0] + '\nreturn notifyView;')();
 const one = { title: 'Бег', body: 'Пора выполнить привычку — осталось 3 из 5 км', ids: ['r'] };
 const many = { title: 'Ждут привычки: 2', body: 'Бег, Вода', ids: ['r', 'w'] };
 const s1 = notifyView(one, 'show'), h1 = notifyView(one, 'hide'), h2 = notifyView(many, 'hide');
