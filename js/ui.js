@@ -1,7 +1,7 @@
-import { $, reducedMotion, RING_C } from './core.js?v=1.01a';
-import { IC } from './icons.js?v=1.01a';
-import { reordering, setReorder } from './render.js?v=1.01a';
-import { setHist } from './history.js?v=1.01a';
+import { $, reducedMotion, RING_C } from './core.js?v=1.02a';
+import { IC } from './icons.js?v=1.02a';
+import { reordering, setReorder } from './render.js?v=1.02a';
+import { setHist } from './history.js?v=1.02a';
 
 export function rollNumber(slot, text, dir, animate) {
   if (slot._val === text) return;
