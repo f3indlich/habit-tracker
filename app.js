@@ -4,7 +4,7 @@ import { load, setState } from './js/storage.js?v=1.00a';
 import { shownOverlays, toast } from './js/ui.js?v=1.00a';
 import { applyView, GROUPS, render, setGroupMode } from './js/render.js?v=1.00a';
 import { openForm } from './js/form.js?v=1.00a';
-import { applyTheme, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=1.00a';
+import { applyColors, applyTheme, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=1.00a';
 import { cloud, initCloud } from './js/sync.js?v=1.00a';
 import { markDoneFromPush } from './js/push.js?v=1.00a';
 import * as core from './js/core.js?v=1.00a';
@@ -17,9 +17,10 @@ import * as historyMod from './js/history.js?v=1.00a';
 import * as settings from './js/settings.js?v=1.00a';
 import * as sync from './js/sync.js?v=1.00a';
 import * as pushMod from './js/push.js?v=1.00a';
+import * as summaryMod from './js/summary.js?v=1.00a';
 
 if (TEST_MODE) {
-  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod]) {
+  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod]) {
     for (const k of Object.keys(m)) {
       const set = typeof m[k] !== 'function' && m['set' + k[0].toUpperCase() + k.slice(1)];
       try { Object.defineProperty(window, k, { configurable: true, get: () => m[k], set: set || undefined }); } catch {}
@@ -30,12 +31,17 @@ if (TEST_MODE) {
 setState(load());
 
 applyTheme(getPref(THEME_STORE, 'auto'));
+applyColors();
 applyView(getPref(VIEW_STORE, 'list'));
 document.body.dataset.icons = ICON_STYLES[getPref(ICON_STORE, 'color')] ? getPref(ICON_STORE, 'color') : 'color';
 setGroupMode(GROUPS[getPref(GROUP_STORE, 'time')] ? getPref(GROUP_STORE, 'time') : 'time');
 render();
 
-if (!TEST_MODE && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+if (LOCAL && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+  caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(() => {});
+} else if (!TEST_MODE && 'serviceWorker' in navigator && location.protocol === 'https:') {
   addEventListener('load', async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;

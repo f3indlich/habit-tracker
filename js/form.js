@@ -1,6 +1,6 @@
-import { $, addDays, COLORS, days, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, schedText, TEMPLATES, TIMES, todayKey, toMin, WEEKDAYS } from './core.js?v=1.00a';
+import { $, addDays, COLORS, days, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, WEEKDAYS } from './core.js?v=1.00a';
 import { ICON_KEYS, iconHTML, setIcon } from './icons.js?v=1.00a';
-import { findHabit, normRemind, save, state } from './storage.js?v=1.00a';
+import { findHabit, normRemind, noteGoalChange, save, state } from './storage.js?v=1.00a';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.00a';
 import { catName, render } from './render.js?v=1.00a';
 import { hist, renderHistory } from './history.js?v=1.00a';
@@ -27,9 +27,6 @@ export function syncPreview() {
   $('form').style.setProperty('--fc', form.color);
   $('emojis').style.setProperty('--c', form.color);
   setIcon($('fpIcon'), form.icon);
-  const name = $('name').value.trim();
-  $('fpName').textContent = name || 'Название привычки';
-  $('fpName').classList.toggle('ph', !name);
   const n = formTarget(), unit = $('unit').value.trim();
   const goal = form.goal === 'once' ? 'Один раз в день'
     : `${n} ${unit || plural(n, 'раз', 'раза', 'раз')} в день` + (form.goal === 'step' ? ` · шаг ${formStep()}` : '');
@@ -146,7 +143,7 @@ export function renderRem() {
   $('remSpreadNote').textContent = span <= 0
     ? 'Конец промежутка должен быть позже начала.'
     : `${n} ${plural(n, 'напоминание', 'напоминания', 'напоминаний')}, примерно каждые ${fmtDur(span / Math.max(1, n - 1))}. Придут, только если Вы отстаёте от плана.`;
-  $('remSpreadNote').style.color = span <= 0 ? 'var(--danger)' : '';
+  $('remSpreadNote').classList.toggle('bad', span <= 0);
   $('remRepeat').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === r.repeat));
   setCollapse($('remRepeatWrap'), !remIsSpread());
   const rOn = r.repeat > 0, row = $('remRepeatNRow');
@@ -305,9 +302,9 @@ export function syncForm() {
   renderStep();
   setCollapse($('daysWrap'), form.sched === 'days');
   if (form.cat && !catName(form.cat)) form.cat = null;
-  $('catChips').innerHTML = [{ id: '', name: 'Без типа' }, ...state.categories]
+  $('catChips').innerHTML = [{ id: '', name: 'Без категории' }, ...state.categories]
     .map(c => `<button type="button" data-v="${esc(c.id)}" aria-pressed="${(form.cat || '') === c.id}">${esc(c.name)}</button>`).join('')
-    + `<button type="button" class="add-chip" data-v="__new" aria-pressed="${form.newCat}">+ Новый тип</button>`;
+    + `<button type="button" class="add-chip" data-v="__new" aria-pressed="${form.newCat}">+ Новая категория</button>`;
   setCollapse($('newCatWrap'), form.newCat);
   renderRem();
   syncPreview();
@@ -439,7 +436,7 @@ export function openCats() {
 export function renderCatsInfo() {
   const cats = state.categories, n = cats.length;
   $('setCatsInfo').textContent = n
-    ? `${n} ${plural(n, 'тип', 'типа', 'типов')}: ${cats.map(c => c.name).join(', ')}`
+    ? `${n} ${plural(n, 'категория', 'категории', 'категорий')}: ${cats.map(c => c.name).join(', ')}`
     : 'Пока нет — создайте свои группы';
 }
 export function catsChanged() {
@@ -450,7 +447,7 @@ export function catsChanged() {
 export function renderCats() {
   const list = $('catList');
   if (!state.categories.length) {
-    list.innerHTML = '<div class="cat-empty">Пока нет ни одного типа. Добавьте первый ниже.</div>';
+    list.innerHTML = '<div class="cat-empty">Пока нет ни одной категории. Добавьте первую ниже.</div>';
     return;
   }
   const IC_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>';
@@ -459,11 +456,11 @@ export function renderCats() {
   list.innerHTML = state.categories.map((c, i) => {
     const n = state.habits.filter(h => h.cat === c.id).length;
     return `<div class="cat-row" data-id="${esc(c.id)}">
-      <input type="text" class="cat-name" maxlength="40" value="${esc(c.name)}" aria-label="Название типа">
-      <span class="cat-cnt" title="Привычек этого типа">${n}</span>
+      <input type="text" class="cat-name" maxlength="40" value="${esc(c.name)}" aria-label="Название категории">
+      <span class="cat-cnt" title="Привычек этой категории">${n}</span>
       <button class="ghost icon-btn" data-act="up" title="Выше" ${i ? '' : 'disabled'}>${IC_UP}</button>
       <button class="ghost icon-btn" data-act="down" title="Ниже" ${i < state.categories.length - 1 ? '' : 'disabled'}>${IC_DOWN}</button>
-      <button class="ghost icon-btn danger" data-act="del" title="Удалить тип">${IC_DEL}</button>
+      <button class="ghost icon-btn danger" data-act="del" title="Удалить категорию">${IC_DEL}</button>
     </div>`;
   }).join('');
 }
@@ -477,7 +474,7 @@ $('catList').addEventListener('click', async e => {
   else if (b.dataset.act === 'down' && i < cats.length - 1) [cats[i + 1], cats[i]] = [cats[i], cats[i + 1]];
   else if (b.dataset.act === 'del') {
     const n = state.habits.filter(h => h.cat === id).length;
-    if (n && !await askConfirm('Удалить тип?', `«${cats[i].name}» будет удалён. ${n} ${plural(n, 'привычка останется', 'привычки останутся', 'привычек останутся')} без типа — сами привычки и их история не пострадают.`, 'Удалить')) return;
+    if ((n || redUi()) && !await askConfirm('Удалить категорию?', `«${cats[i].name}» будет удалена.` + (n ? ` ${n} ${plural(n, 'привычка останется', 'привычки останутся', 'привычек останутся')} без категории — сами привычки и их история не пострадают.` : ''), 'Удалить')) return;
     state.categories = state.categories.filter(c => c.id !== id);
     state.habits.forEach(h => { if (h.cat === id) h.cat = null; });
   }
@@ -526,9 +523,9 @@ $('form').onsubmit = e => {
   if (step) data.step = step;
   const h = editingId && findHabit(editingId);
   if (h) {
+    noteGoalChange(h, data);
     Object.assign(h, data, { updated: todayKey() });
     if (!step) delete h.step;
-    for (const k in state.log) if (state.log[k][h.id] > target) state.log[k][h.id] = target;
   } else {
     state.habits.push({ id: crypto.randomUUID?.() || String(Date.now()), created: todayKey(), ...data });
   }

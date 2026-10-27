@@ -20,7 +20,7 @@ export const cloud = {
 export const BASE_STORE = NS + '-sync-base';
 export const OWNER_STORE = NS + '-owner';
 
-export const emptyState = () => ({ habits: [], categories: [], log: {}, skip: {} });
+export const emptyState = () => ({ habits: [], categories: [], log: {}, skip: {}, notes: {} });
 export const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(n => [n, x[n]])) : x);
 export const same = (a, b) => canon(a) === canon(b);
 export function loadBase() {
@@ -57,6 +57,7 @@ export function mergeStates(base, local, remote) {
     categories: mergeList(base.categories || [], local.categories || [], remote.categories || []),
     log: mergeDays(base.log || {}, local.log || {}, remote.log || {}),
     skip: mergeDays(base.skip || {}, local.skip || {}, remote.skip || {}),
+    notes: mergeDays(base.notes || {}, local.notes || {}, remote.notes || {}),
     profile: same(local.profile, base.profile) ? remote.profile : local.profile,
   };
 }

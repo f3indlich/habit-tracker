@@ -1,4 +1,5 @@
 import { $, reducedMotion, RING_C } from './core.js?v=1.00a';
+import { IC } from './icons.js?v=1.00a';
 import { reordering, setReorder } from './render.js?v=1.00a';
 import { setHist } from './history.js?v=1.00a';
 
@@ -100,7 +101,7 @@ addEventListener('keydown', e => {
   if (e.key !== 'Tab') return;
   const ov = shownOverlays().pop();
   if (!ov) return;
-  const items = [...ov.querySelectorAll('button, input, [tabindex="0"]')].filter(x => !x.disabled && x.offsetParent && !x.closest('[inert]'));
+  const items = [...ov.querySelectorAll('button, input, textarea, [tabindex="0"]')].filter(x => !x.disabled && x.offsetParent && !x.closest('[inert]'));
   if (!items.length) return;
   const first = items[0], last = items[items.length - 1];
   if (e.shiftKey && (document.activeElement === first || !ov.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
@@ -124,7 +125,8 @@ export let confirmResolve = null;
 export function askConfirm(title, text, yesLabel) {
   $('cTitle').textContent = title;
   $('cText').textContent = text;
-  $('cYes').textContent = yesLabel;
+  $('cYes').innerHTML = (/^Удалить/.test(yesLabel) ? IC.trash : '') + '<span></span>';
+  $('cYes').lastChild.textContent = yesLabel;
   openOverlay($('confirm'));
   $('cNo').focus({ preventScroll: true });
   return new Promise(res => confirmResolve = res);

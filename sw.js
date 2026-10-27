@@ -1,12 +1,14 @@
 const VERSION = '1.00a';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
+const PREFS = 'prefs';
+const LOCAL = ['localhost', '127.0.0.1'].includes(self.location.hostname);
 const SHELL_FILES = [
   './',
   './index.html',
   `./styles.css?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
-  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push'].map(m => `./js/${m}.js?v=${VERSION}`),
+  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary'].map(m => `./js/${m}.js?v=${VERSION}`),
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/apple-touch-icon.png',
@@ -26,19 +28,26 @@ const SHELL_FILES = [
 ];
 
 self.addEventListener('install', e => {
+  if (LOCAL) return self.skipWaiting();
   e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k !== SHELL && k !== RUNTIME) await caches.delete(k);
+    if (LOCAL) {
+      for (const k of await caches.keys()) await caches.delete(k);
+      await self.registration.unregister();
+      for (const c of await self.clients.matchAll({ type: 'window' })) c.navigate(c.url).catch(() => {});
+      return;
+    }
+    for (const k of await caches.keys()) if (k !== SHELL && k !== RUNTIME && k !== PREFS) await caches.delete(k);
     await self.clients.claim();
   })());
 });
 
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET') return;
+  if (LOCAL || req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.pathname.includes('/tests/') || url.pathname.endsWith('.ts')) return;
 
@@ -86,18 +95,33 @@ self.addEventListener('fetch', e => {
   }
 });
 
+async function notifyMode() {
+  try {
+    const r = await (await caches.open(PREFS)).match(new URL('__prefs/notify', self.registration.scope).href);
+    return r ? await r.text() : 'show';
+  } catch { return 'show'; }
+}
+
+function notifyView(d, mode) {
+  const ids = Array.isArray(d.ids) ? d.ids : [];
+  if (mode === 'hide') return { title: 'Трекер привычек', body: ids.length > 1 ? `Пора отметить привычки: ${ids.length}` : 'Пора отметить привычку', ids, done: false };
+  return { title: d.title || 'Трекер привычек', body: d.body || '', ids, done: ids.length === 1 };
+}
+
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data?.text() || '' }; }
-  const ids = Array.isArray(d.ids) ? d.ids : [];
-  e.waitUntil(self.registration.showNotification(d.title || 'Трекер привычек', {
-    body: d.body || '',
-    icon: './icons/icon-192.png',
-    tag: d.tag || 'habit-reminder',
-    renotify: true,
-    data: { ids },
-    actions: ids.length === 1 ? [{ action: 'done', title: 'Выполнено' }] : [],
-  }));
+  e.waitUntil((async () => {
+    const v = notifyView(d, await notifyMode());
+    await self.registration.showNotification(v.title, {
+      body: v.body,
+      icon: './icons/icon-192.png',
+      tag: d.tag || 'habit-reminder',
+      renotify: true,
+      data: { ids: v.ids },
+      actions: v.done ? [{ action: 'done', title: 'Выполнено' }] : [],
+    });
+  })());
 });
 
 self.addEventListener('notificationclick', e => {

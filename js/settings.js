@@ -1,4 +1,4 @@
-import { $, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.00a';
+import { $, ACCENT_STORE, DATA_STORE, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.00a';
 import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=1.00a';
 import { normalize, save, setState, state } from './storage.js?v=1.00a';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.00a';
@@ -70,6 +70,51 @@ $('themeSeg').onclick = e => {
   if (!b) return;
   setPref(THEME_STORE, b.dataset.t); applyTheme(b.dataset.t);
 };
+
+export const PALETTES = {
+  graphite: ['Графит', '#1f2328', '#e8e9ec', '#ffffff', '#111111'],
+  red: ['Красный', '#dc2626', '#f87171', '#ffffff', '#2a0707'],
+  cherry: ['Вишнёвый', '#be123c', '#fb7185', '#ffffff', '#2b0612'],
+  coral: ['Коралловый', '#c8461f', '#ff8a65', '#ffffff', '#3a1206'],
+  amber: ['Янтарный', '#b45309', '#fbbf24', '#ffffff', '#2a1a02'],
+  coffee: ['Кофейный', '#8b5e3c', '#d4a373', '#ffffff', '#2a1a0e'],
+  sage: ['Шалфей', '#5f7a3a', '#a9c47f', '#ffffff', '#1a2410'],
+  emerald: ['Изумрудный', '#047857', '#34d399', '#ffffff', '#032b1e'],
+  teal: ['Бирюзовый', '#0f766e', '#2dd4bf', '#ffffff', '#04342c'],
+  sea: ['Морской', '#0e7490', '#22d3ee', '#ffffff', '#042a33'],
+  cobalt: ['Кобальт', '#2563eb', '#60a5fa', '#ffffff', '#071a3a'],
+  fuchsia: ['Фуксия', '#be185d', '#f472b6', '#ffffff', '#3a0a1e'],
+};
+export const RED_UI = ['red', 'cherry', 'coral'];
+export const colorPrefs = () => {
+  const a = getPref(ACCENT_STORE, 'cobalt'), d = getPref(DATA_STORE, 'red');
+  return { accent: PALETTES[a] ? a : 'cobalt', data: PALETTES[d] ? d : 'red' };
+};
+export function applyColors({ accent, data } = colorPrefs()) {
+  const st = document.documentElement.style, [, al, ad, ail, aid] = PALETTES[accent], [, dl, dd, dil, did] = PALETTES[data];
+  for (const [k, v] of Object.entries({ 'accent-l': al, 'accent-d': ad, 'accent-ink-l': ail, 'accent-ink-d': aid, 'data-l': dl, 'data-d': dd, 'data-ink-l': dil, 'data-ink-d': did })) st.setProperty('--' + k, v);
+  document.documentElement.toggleAttribute('data-ui-red', RED_UI.includes(accent));
+  document.documentElement.dataset.accent = accent;
+  document.documentElement.dataset.data = data;
+  renderColors();
+}
+export function renderColors() {
+  const cur = colorPrefs(), row = kind => Object.entries(PALETTES).map(([id, [name, l, d]]) =>
+    `<button type="button" class="swatch" role="radio" aria-checked="${id === cur[kind]}" aria-label="${name}" title="${name}" data-c="${id}" style="--sw-l:${l};--sw-d:${d}"></button>`).join('');
+  for (const kind of ['accent', 'data']) {
+    const box = $(kind === 'accent' ? 'accentRow' : 'dataRow'), html = row(kind);
+    if (box._html !== html) { box.innerHTML = html; box._html = html; }
+  }
+}
+for (const [id, store, kind] of [['accentRow', ACCENT_STORE, 'accent'], ['dataRow', DATA_STORE, 'data']]) {
+  $(id).onclick = e => {
+    const b = e.target.closest('[data-c]');
+    if (!b) return;
+    setPref(store, b.dataset.c);
+    applyColors();
+    $(id).querySelector(`[data-c="${b.dataset.c}"]`)?.focus({ preventScroll: true });
+  };
+}
 
 $('exportBtn').onclick = async () => {
   const name = `habits-${todayKey()}.json`;
