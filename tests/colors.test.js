@@ -19,16 +19,23 @@ const bad = Object.values(PALETTES).flatMap(([n, l, d, il, id]) => [[n, 'light',
 ok('text on accent at least 4.5:1 in both themes', bad.length === 0, bad);
 
 renderSettings(); openOverlay($('setOv')); await wait(400);
-ok('colors section next to theme', $('themeSeg').closest('.set-group').nextElementSibling.querySelector('h3').textContent === 'Цвета');
-ok('two rows of swatches', $('accentRow').querySelectorAll('.swatch').length === 12 && $('dataRow').querySelectorAll('.swatch').length === 12);
-ok('checked swatch matches prefs', $('accentRow').querySelector('[aria-checked=true]').dataset.c === 'cobalt' && $('dataRow').querySelector('[aria-checked=true]').dataset.c === 'red');
+ok('colors section right above habit icons', $('iconStyles').closest('.set-group').previousElementSibling.querySelector('h3').textContent === 'Цвета');
+const seg = () => [...$('colorSeg').children], pick = k => $('colorSeg').querySelector(`[data-k=${k}]`);
+ok('switch shows both choices with names', seg().length === 2 && pick('accent').textContent === 'ИнтерфейсКобальт' && pick('data').textContent === 'СтатистикаКрасный' && pick('accent').getAttribute('aria-checked') === 'true', seg().map(b => b.textContent));
+ok('one row of 12 swatches for interface', $('swRow').querySelectorAll('.swatch').length === 12 && $('swRow').querySelector('[aria-checked=true]').dataset.c === 'cobalt');
+const colorCard = document.querySelector('.color-set');
+ok('color block is compact', colorCard.getBoundingClientRect().height <= 190 && $('swRow').scrollHeight <= 44 && getComputedStyle($('swRow')).overflowX === 'auto', [colorCard.getBoundingClientRect().height, $('swRow').scrollHeight]);
+pick('data').click(); await wait(50);
+ok('switch to statistics shows its choice', pick('data').getAttribute('aria-checked') === 'true' && $('swRow').querySelector('[aria-checked=true]').dataset.c === 'red' && /статистика/.test($('swRow').getAttribute('aria-label')));
 ok('live preview has button and 5 levels', !!document.querySelector('.color-prev .cp-btn') && document.querySelectorAll('.color-prev .heat-strip i').length === 5);
 const strip = [...document.querySelectorAll('.color-prev .heat-strip i')].map(rgb);
 ok('preview levels all different', new Set(strip).size === 5, strip);
 
-$('dataRow').querySelector('[data-c=emerald]').click(); await wait(50);
+$('swRow').querySelector('[data-c=emerald]').click(); await wait(400);
+ok('switch caption follows choice', pick('data').querySelector('small').textContent === 'Изумрудный' && pick('accent').querySelector('small').textContent === 'Кобальт');
 ok('data color applies at once', probe('var(--data)') === probe('#047857') && rgb(document.querySelector('.heat-strip .lv4')) === probe('color-mix(in srgb, #047857 100%, var(--card))'));
-$('accentRow').querySelector('[data-c=red]').click(); await wait(50);
+pick('accent').click(); await wait(50);
+$('swRow').querySelector('[data-c=red]').click(); await wait(400);
 ok('interface color applies at once', probe('var(--accent)') === probe('#dc2626') && rgb(document.querySelector('.color-prev .cp-btn')) === probe('#dc2626'));
 ok('choice saved to storage', localStorage.getItem(ACCENT_STORE) === 'red' && localStorage.getItem(DATA_STORE) === 'emerald');
 root.style.cssText = ''; root.removeAttribute('data-ui-red');

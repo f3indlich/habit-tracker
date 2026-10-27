@@ -1,4 +1,4 @@
-import { $, ACCENT_STORE, DATA_STORE, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.01a';
+import { $, ACCENT_STORE, DATA_STORE, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.01a';
 import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=1.01a';
 import { normalize, save, setState, state } from './storage.js?v=1.01a';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.01a';
@@ -46,7 +46,7 @@ export async function renderAbout() {
     $('appUpdated').hidden = false;
   } catch {}
 }
-$('setBtn').onclick = () => { renderSettings(); openOverlay($('setOv')); };
+$('setBtn').onclick = () => { renderSettings(); openOverlay($('setOv')); showChosenSwatch(); };
 $('setCats').onclick = openCats;
 $('iconStyles').onclick = e => {
   const b = e.target.closest('[data-s]');
@@ -98,23 +98,39 @@ export function applyColors({ accent, data } = colorPrefs()) {
   document.documentElement.dataset.data = data;
   renderColors();
 }
+export const COLOR_KINDS = { accent: ['Интерфейс', ACCENT_STORE], data: ['Статистика', DATA_STORE] };
+export let colorKind = 'accent';
+const putHTML = (el, html) => { if (el._html !== html) { el.innerHTML = html; el._html = html; } };
 export function renderColors() {
-  const cur = colorPrefs(), row = kind => Object.entries(PALETTES).map(([id, [name, l, d]]) =>
-    `<button type="button" class="swatch" role="radio" aria-checked="${id === cur[kind]}" aria-label="${name}" title="${name}" data-c="${id}" style="--sw-l:${l};--sw-d:${d}"></button>`).join('');
-  for (const kind of ['accent', 'data']) {
-    const box = $(kind === 'accent' ? 'accentRow' : 'dataRow'), html = row(kind);
-    if (box._html !== html) { box.innerHTML = html; box._html = html; }
-  }
+  const cur = colorPrefs();
+  putHTML($('colorSeg'), Object.entries(COLOR_KINDS).map(([k, [label]]) => {
+    const [name, l, d] = PALETTES[cur[k]];
+    return `<button type="button" role="radio" aria-checked="${k === colorKind}" data-k="${k}" style="--sw-l:${l};--sw-d:${d}"><i class="sw-dot"></i><span><b>${label}</b><small>${name}</small></span></button>`;
+  }).join(''));
+  putHTML($('swRow'), Object.entries(PALETTES).map(([id, [name, l, d]]) =>
+    `<button type="button" class="swatch" role="radio" aria-checked="${id === cur[colorKind]}" aria-label="${name}" title="${name}" data-c="${id}" style="--sw-l:${l};--sw-d:${d}"></button>`).join(''));
+  $('swRow').setAttribute('aria-label', `Цвет: ${COLOR_KINDS[colorKind][0].toLowerCase()}`);
 }
-for (const [id, store, kind] of [['accentRow', ACCENT_STORE, 'accent'], ['dataRow', DATA_STORE, 'data']]) {
-  $(id).onclick = e => {
-    const b = e.target.closest('[data-c]');
-    if (!b) return;
-    setPref(store, b.dataset.c);
-    applyColors();
-    $(id).querySelector(`[data-c="${b.dataset.c}"]`)?.focus({ preventScroll: true });
-  };
+export function showChosenSwatch(smooth) {
+  const row = $('swRow'), b = row.querySelector('[aria-checked=true]');
+  if (!b || !row.clientWidth) return;
+  const left = b.offsetLeft - (row.clientWidth - b.offsetWidth) / 2;
+  row.scrollTo({ left: Math.max(0, left), behavior: smooth && !reducedMotion ? 'smooth' : 'auto' });
 }
+$('colorSeg').onclick = e => {
+  const b = e.target.closest('[data-k]');
+  if (!b || b.dataset.k === colorKind) return;
+  colorKind = b.dataset.k;
+  renderColors();
+  showChosenSwatch(true);
+};
+$('swRow').onclick = e => {
+  const b = e.target.closest('[data-c]');
+  if (!b) return;
+  setPref(COLOR_KINDS[colorKind][1], b.dataset.c);
+  applyColors();
+  $('swRow').querySelector(`[data-c="${b.dataset.c}"]`)?.focus({ preventScroll: true });
+};
 
 $('exportBtn').onclick = async () => {
   const name = `habits-${todayKey()}.json`;

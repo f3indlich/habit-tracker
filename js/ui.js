@@ -112,6 +112,100 @@ for (const ov of document.querySelectorAll('.overlay')) {
     if (e.target === ov || e.target.closest('[data-close]')) ov === $('confirm') ? closeConfirm(false) : closeOverlay(ov);
   });
 }
+
+export function trackTouch(el, { start, move, end }) {
+  let t = null;
+  el.addEventListener('touchstart', e => {
+    t = null;
+    if (e.touches.length !== 1) return;
+    const p = e.touches[0];
+    const g = { x0: p.clientX, y0: p.clientY, t0: e.timeStamp, dx: 0, dy: 0, lock: null, target: e.target };
+    if (start(g) !== false) t = g;
+  }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    if (!t) return;
+    const p = e.touches[0];
+    t.dx = p.clientX - t.x0; t.dy = p.clientY - t.y0;
+    if (move(t) === false) t = null;
+    else if (t.lock && e.cancelable) e.preventDefault();
+  }, { passive: false });
+  const fin = e => {
+    const g = t;
+    t = null;
+    if (g?.lock) end(g, Math.max(1, e.timeStamp - g.t0), e.type === 'touchcancel');
+  };
+  el.addEventListener('touchend', fin);
+  el.addEventListener('touchcancel', fin);
+}
+const isTop = ov => ov._shown && shownOverlays().pop() === ov && !menuEl;
+export const closeVia = ov => { const b = ov.querySelector('[data-close]'); b ? b.click() : closeOverlay(ov); };
+export const EDGE = 24;
+
+export function addEdgeBack(ov) {
+  trackTouch(ov, {
+    start: g => isTop(ov) && g.x0 <= EDGE,
+    move: g => {
+      if (!g.lock) {
+        if (Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy)) { g.lock = 'x'; ov.classList.add('edging'); }
+        else if (Math.abs(g.dy) > 10) return false;
+        else return;
+      }
+      ov.style.transform = `translateX(${Math.max(0, g.dx)}px)`;
+    },
+    end: (g, dt, cancel) => {
+      ov.classList.remove('edging');
+      ov.style.transform = '';
+      if (!cancel && (g.dx > innerWidth / 3 || (g.dx > 40 && g.dx / dt > .5))) closeVia(ov);
+    },
+  });
+}
+
+export function addPullDown(ov) {
+  const sheet = ov.querySelector('.sheet');
+  sheet.classList.add('pull');
+  let top = 0;
+  trackTouch(sheet, {
+    start: g => { top = sheet.scrollTop; return isTop(ov) && !g.target.closest('input, textarea'); },
+    move: g => {
+      if (!g.lock) {
+        if (Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy)) return false;
+        if (g.dy < -10 || (g.dy > 10 && (top > 0 || sheet.scrollTop > 0))) return false;
+        if (g.dy <= 10) return;
+        g.lock = 'y';
+        sheet.classList.add('pulling');
+      }
+      const d = Math.max(0, g.dy - 10);
+      sheet.style.transform = `translateY(${d}px)`;
+      ov.style.setProperty('--fade', Math.max(0, 1 - d / sheet.offsetHeight).toFixed(3));
+    },
+    end: (g, dt, cancel) => {
+      const d = g.dy - 10;
+      sheet.classList.remove('pulling');
+      sheet.style.transform = '';
+      ov.style.removeProperty('--fade');
+      if (!cancel && (d > Math.min(140, sheet.offsetHeight / 3) || (d > 30 && g.dy / dt > .5))) closeVia(ov);
+    },
+  });
+}
+
+export function addPeriodSwipe(sheet, zone, prev, next) {
+  trackTouch(sheet, {
+    start: g => !!g.target.closest(zone) && !g.target.closest('.hscroll'),
+    move: g => {
+      if (g.lock) return;
+      if (Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) g.lock = 'x';
+      else if (Math.abs(g.dy) > 12) return false;
+    },
+    end: (g, dt, cancel) => {
+      if (cancel || Math.abs(g.dx) < 50) return;
+      const b = g.dx > 0 ? prev : next;
+      if (!b.disabled) b.click();
+    },
+  });
+}
+
+for (const ov of document.querySelectorAll('.overlay.page')) addEdgeBack(ov);
+for (const id of ['histOv', 'sumOv', 'dayOv']) addPullDown($(id));
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (menuEl) return closeMenu();
