@@ -1,8 +1,8 @@
-import { $, addDays, esc, ofDays, key, parseKey, plural, todayKey, weekday, WEEKDAYS } from './core.js?v=1.00a';
-import { iconHTML } from './icons.js?v=1.00a';
-import { count, counts, inLife, state, targetOn } from './storage.js?v=1.00a';
-import { openOverlay } from './ui.js?v=1.00a';
-import { barChart, bindTips, calendarHeat, heatmap, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=1.00a';
+import { $, addDays, esc, ofDays, key, parseKey, plural, todayKey, weekday, WEEKDAYS } from './core.js?v=1.01a';
+import { iconHTML } from './icons.js?v=1.01a';
+import { count, counts, inLife, state, targetOn } from './storage.js?v=1.01a';
+import { openOverlay } from './ui.js?v=1.01a';
+import { barChart, bindTips, calendarHeat, heatmap, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=1.01a';
 
 export const WD_FULL = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
 export const PERIOD = {

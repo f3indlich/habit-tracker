@@ -1,23 +1,23 @@
-import { getPref, GROUP_STORE, ICON_STORE, setPref, TEST_MODE, THEME_STORE, VIEW_STORE } from './js/core.js?v=1.00a';
-import { ICON_STYLES } from './js/icons.js?v=1.00a';
-import { load, setState } from './js/storage.js?v=1.00a';
-import { shownOverlays, toast } from './js/ui.js?v=1.00a';
-import { applyView, GROUPS, render, setGroupMode } from './js/render.js?v=1.00a';
-import { openForm } from './js/form.js?v=1.00a';
-import { applyColors, applyTheme, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=1.00a';
-import { cloud, initCloud } from './js/sync.js?v=1.00a';
-import { markDoneFromPush } from './js/push.js?v=1.00a';
-import * as core from './js/core.js?v=1.00a';
-import * as icons from './js/icons.js?v=1.00a';
-import * as storage from './js/storage.js?v=1.00a';
-import * as ui from './js/ui.js?v=1.00a';
-import * as renderMod from './js/render.js?v=1.00a';
-import * as formMod from './js/form.js?v=1.00a';
-import * as historyMod from './js/history.js?v=1.00a';
-import * as settings from './js/settings.js?v=1.00a';
-import * as sync from './js/sync.js?v=1.00a';
-import * as pushMod from './js/push.js?v=1.00a';
-import * as summaryMod from './js/summary.js?v=1.00a';
+import { getPref, GROUP_STORE, ICON_STORE, setPref, TEST_MODE, THEME_STORE, VIEW_STORE } from './js/core.js?v=1.01a';
+import { ICON_STYLES } from './js/icons.js?v=1.01a';
+import { load, setState } from './js/storage.js?v=1.01a';
+import { shownOverlays, toast } from './js/ui.js?v=1.01a';
+import { applyView, GROUPS, render, setGroupMode } from './js/render.js?v=1.01a';
+import { openForm } from './js/form.js?v=1.01a';
+import { applyColors, applyTheme, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=1.01a';
+import { cloud, initCloud } from './js/sync.js?v=1.01a';
+import { markDoneFromPush } from './js/push.js?v=1.01a';
+import * as core from './js/core.js?v=1.01a';
+import * as icons from './js/icons.js?v=1.01a';
+import * as storage from './js/storage.js?v=1.01a';
+import * as ui from './js/ui.js?v=1.01a';
+import * as renderMod from './js/render.js?v=1.01a';
+import * as formMod from './js/form.js?v=1.01a';
+import * as historyMod from './js/history.js?v=1.01a';
+import * as settings from './js/settings.js?v=1.01a';
+import * as sync from './js/sync.js?v=1.01a';
+import * as pushMod from './js/push.js?v=1.01a';
+import * as summaryMod from './js/summary.js?v=1.01a';
 
 if (TEST_MODE) {
   for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod]) {
