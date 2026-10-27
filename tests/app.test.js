@@ -171,8 +171,15 @@ const mg = mergeStates(base, loc, rem);
 ok('merge keeps local step & remote log', mg.habits.find(h => h.id === 'p').step === 10 && mg.log[T].y === 30);
 
 const src = await (await fetch((window.__serverSrc || 'supabase/functions/send-reminders/index.ts') + '?x=' + Date.now())).text();
-const code = src.replace(/^import .*$/mg, '').replace(/if \(typeof Deno[\s\S]*$/, '') + '\nreturn { slotsFor, dueReminders, payloadFor, localNow };';
-const S = new Function(code)();
+const code = src.replace(/^import .*$/mg, '').replace(/if \(typeof Deno[\s\S]*$/, '') + '\nreturn { slotsFor, dueReminders, payloadFor, localNow, safeEqual };';
+const S = new parent.Function(code)();
+ok('safeEqual same strings', S.safeEqual('s3cr3t-Ключ', 's3cr3t-Ключ') === true);
+ok('safeEqual different length', S.safeEqual('secret', 'secret1') === false && S.safeEqual('secret1', 'secret') === false);
+ok('safeEqual last char differs', S.safeEqual('secretA', 'secretB') === false);
+ok('safeEqual empty vs non-empty', S.safeEqual('', 'secret') === false && S.safeEqual('secret', '') === false);
+ok('safeEqual compares bytes, not chars', S.safeEqual('é', 'é') === false && S.safeEqual('ab', 'ж') === false);
+ok('server rejects missing or empty secret', /!env\('CRON_SECRET'\) \|\| !safeEqual\(req\.headers\.get\('x-cron-secret'\) \?\? '', env\('CRON_SECRET'\)\)/.test(src) && !/!==\s*env\('CRON_SECRET'\)/.test(src));
+ok('server never logs or returns the secret', !/console\.[a-z]+\([^)]*(CRON_SECRET|x-cron-secret)/.test(src) && !/Response[^;]*(CRON_SECRET|x-cron-secret)/.test(src));
 const loc9 = { day: '2026-10-25', minutes: 9 * 60, weekday: 6 };
 const sl = S.slotsFor({ target: 60, step: 15, remind: { spread: { from: '09:00', to: '21:00' } } }, loc9);
 ok('server step spread slots', sl.length === 4 && sl.map(x => x.need).join() === '15,30,45,60' && sl.map(x => x.at).join() === '540,780,1020,1260', sl);

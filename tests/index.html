@@ -33,7 +33,7 @@
   <iframe id="app" title="Приложение в тестовом режиме"></iframe>
 </main>
 <script>
-const SUITES = [['Основные функции', 'app.test.js'], ['Старые функции', 'regress.test.js'], ['Интерфейс', 'ui.test.js'], ['Модули, бейджи и даты', 'v1.test.js'], ['Заметки и свайп', 'notes.test.js'], ['Сводка', 'summary.test.js'], ['Перевыполнение', 'overflow.test.js'], ['Цвета', 'colors.test.js'], ['Жесты', 'gestures.test.js']];
+const SUITES = [['Основные функции', 'app.test.js'], ['Старые функции', 'regress.test.js'], ['Интерфейс', 'ui.test.js'], ['Модули, бейджи и даты', 'v1.test.js'], ['Заметки и свайп', 'notes.test.js'], ['Сводка', 'summary.test.js'], ['Перевыполнение', 'overflow.test.js'], ['Цвета', 'colors.test.js'], ['Жесты', 'gestures.test.js'], ['Синхронизация и защита', 'sync.test.js']];
 const frame = document.getElementById('app'), out = document.getElementById('out'), sum = document.getElementById('sum'), btn = document.getElementById('run');
 const line = (text, cls) => { const d = document.createElement('div'); d.textContent = text; if (cls) d.className = cls; out.append(d); };
 const APP = new URLSearchParams(location.search).get('app') || '../index.html';
@@ -46,6 +46,14 @@ const loadApp = async () => {
   await new Promise(r => setTimeout(r, 900));
   frame.contentWindow.__serverSrc = SERVER_SRC;
 };
+const runSuite = file => new Promise((res, rej) => {
+  const doc = frame.contentDocument, s = doc.createElement('script');
+  frame.contentWindow.__suite = null;
+  s.src = new URL(file + '?wrap=1&t=' + Date.now(), location.href).href;
+  s.onload = () => typeof frame.contentWindow.__suite === 'function' ? res(frame.contentWindow.__suite()) : rej(new Error('Не удалось разобрать ' + file));
+  s.onerror = () => rej(new Error('Не удалось загрузить ' + file));
+  doc.head.append(s);
+});
 async function run() {
   btn.disabled = true; out.textContent = ''; sum.textContent = 'Идёт проверка…'; sum.className = '';
   let pass = 0, fail = 0;
@@ -54,8 +62,9 @@ async function run() {
     line(title, 'h');
     try {
       await loadApp();
-      const code = await (await fetch(file + '?' + Date.now(), { cache: 'no-store' })).text();
-      const res = String(await frame.contentWindow.eval(`(async () => {\n${code}\n})()`));
+      const hits = [];
+      frame.contentDocument.addEventListener('securitypolicyviolation', e => hits.push(e.violatedDirective + ' ' + e.blockedURI));
+      const res = String(await runSuite(file)) + (hits.length > (frame.contentWindow.__cspExpected || 0) ? `\nFAIL no CSP violations :: ${JSON.stringify(hits)}` : '\nPASS no CSP violations');
       for (const l of res.split('\n')) {
         if (l.startsWith('PASS')) pass++; else if (l.startsWith('FAIL')) fail++;
         lines.push(l); line(l, l.startsWith('FAIL') ? 'f' : '');

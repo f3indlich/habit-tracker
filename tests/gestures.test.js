@@ -102,5 +102,44 @@ ok('dragging inside note field does not close day window', $('dayOv')._shown);
 await swipe($('dSheet'), [W / 2, H - 300], [W / 2, H - 20], 4, 10);
 ok('fast flick closes day window', !$('dayOv')._shown);
 
+openForm(); await wait(500);
+const fs = $('formOv').querySelector('.sheet');
+ok('new habit sheet has a pull handle', fs.classList.contains('pull'));
+await swipe($('name'), [W / 2, 200], [W / 2, 650]);
+ok('dragging on name field does not close form', $('formOv')._shown);
+fs.scrollTop = 0;
+await swipe(fs.querySelector('.sheet-head'), [W / 2, 160], [W / 2, 650]);
+ok('pull down closes new habit form', !$('formOv')._shown);
+await wait(350);
+
+openForm(); await wait(500);
+$('name').value = 'Бег'; $('name').dispatchEvent(new Event('input'));
+await swipe(fs.querySelector('.sheet-head'), [W / 2, 160], [W / 2, 650]);
+ok('pull with unsaved text asks before closing', $('formOv')._shown && $('confirm')._shown);
+$('cNo').click(); await wait(350);
+ok('keep editing leaves text in place', $('formOv')._shown && $('name').value === 'Бег');
+$('formOv').click(); await wait(350);
+ok('backdrop tap also asks', $('confirm')._shown && $('formOv')._shown);
+$('cYes').click(); await wait(400);
+ok('confirm closes form without adding habit', !$('formOv')._shown && !state.habits.some(h => h.name === 'Бег'));
+openForm('g'); await wait(500);
+dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await wait(350);
+ok('untouched edit form closes without asking', !$('formOv')._shown && !$('confirm')._shown);
+openForm('g'); await wait(500);
+document.querySelector('#colors button:not(.on)')?.click(); await wait(50);
+dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await wait(350);
+ok('changed color asks on Escape', $('confirm')._shown);
+$('cYes').click(); await wait(400);
+ok('habit keeps old color after discard', findHabit('g').color === '#22c55e' && !$('formOv')._shown);
+
+for (const [id, open] of [['catOv', openCats], ['nameOv', () => openName(false)], ['installOv', () => openOverlay($('installOv'))]]) {
+  open(); await wait(500);
+  const sh = $(id).querySelector('.sheet');
+  sh.scrollTop = 0;
+  await swipe(sh.querySelector('.sheet-head'), [W / 2, H - 300], [W / 2, H - 10]);
+  ok(id + ' closes by pull down', !$(id)._shown && sh.classList.contains('pull'));
+  await wait(350);
+}
+
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

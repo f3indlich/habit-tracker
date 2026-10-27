@@ -426,8 +426,14 @@ export function openForm(id = null) {
   drawIconPickers();
   syncForm();
   openOverlay($('formOv'));
+  formBase = formSnap();
   setTimeout(() => $('name').focus({ preventScroll: true }), 60);
 }
+let formBase = '';
+export const formSnap = () => JSON.stringify([form.icon, form.color, form.goal, form.sched, form.days, form.time, form.cat,
+  form.newCat && $('newCatName').value.trim(), { ...form.rem, touched: undefined }, ...['name', 'target', 'step', 'unit', 'why'].map(id => $(id).value)]);
+$('formOv')._guard = () => formSnap() === formBase || askConfirm('Закрыть без сохранения?',
+  editingId ? 'Изменения в привычке не сохранятся.' : 'Новая привычка не будет добавлена.', 'Закрыть');
 
 export function openCats() {
   renderCats();

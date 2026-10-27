@@ -109,8 +109,12 @@ addEventListener('keydown', e => {
 });
 for (const ov of document.querySelectorAll('.overlay')) {
   ov.addEventListener('click', e => {
-    if (e.target === ov || e.target.closest('[data-close]')) ov === $('confirm') ? closeConfirm(false) : closeOverlay(ov);
+    if (e.target === ov || e.target.closest('[data-close]')) ov === $('confirm') ? closeConfirm(false) : requestClose(ov);
   });
+}
+export async function requestClose(ov) {
+  if (ov._guard && !(await ov._guard())) return;
+  closeOverlay(ov);
 }
 
 export function trackTouch(el, { start, move, end }) {
@@ -205,13 +209,13 @@ export function addPeriodSwipe(sheet, zone, prev, next) {
 }
 
 for (const ov of document.querySelectorAll('.overlay.page')) addEdgeBack(ov);
-for (const id of ['histOv', 'sumOv', 'dayOv']) addPullDown($(id));
+for (const id of ['histOv', 'sumOv', 'dayOv', 'formOv', 'catOv', 'nameOv', 'acctOv', 'installOv']) addPullDown($(id));
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (menuEl) return closeMenu();
   if (confirmResolve) return closeConfirm(false);
   const open = shownOverlays().pop();
-  if (open) { closeOverlay(open); if (open === $('histOv')) setHist(null); }
+  if (open) { requestClose(open); if (open === $('histOv')) setHist(null); }
   else if (reordering) setReorder(false);
 });
 
