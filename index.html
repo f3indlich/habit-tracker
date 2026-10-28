@@ -55,7 +55,7 @@
 
   <div class="weeknav">
     <button class="ghost icon-btn" id="prev" title="Предыдущая неделя"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-    <div class="days" id="days"></div>
+    <div class="days-vp"><div class="days-track" id="daysTrack"><div class="days" id="days"></div></div></div>
     <button class="ghost icon-btn" id="next" title="Следующая неделя"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
   </div>
 
@@ -81,7 +81,6 @@
   </div>
 
   <div id="sections"></div>
-  <p class="hint" id="hint" hidden>Нажмите на кружок — отметить, ещё раз — отменить. У привычек с повторами нажатие добавляет шаг, кнопка − убирает повторение. Свайп вправо — выполнить, влево — сбросить. Удерживайте карточку, чтобы перетащить её.</p>
 
   <section class="archive" id="archive" hidden>
     <button class="arch-toggle" id="archToggle" aria-expanded="false">
@@ -219,6 +218,16 @@
       <div class="icon-styles" id="iconStyles" role="radiogroup" aria-label="Иконки привычек"></div>
     </section>
     <section class="set-group">
+      <h3>Помощь</h3>
+      <div class="set-card">
+        <button type="button" class="set-row" id="helpBtn">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.3-2.5 3.8M12 17.2h.01"/></svg></span>
+          <span class="set-txt"><b>Как пользоваться</b><small>Отметки, жесты, сводка и синхронизация</small></span>
+          <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </section>
+    <section class="set-group">
       <h3>Данные</h3>
       <div class="set-card">
         <button type="button" class="set-row" id="exportBtn">
@@ -241,6 +250,59 @@
         </div>
       </div>
     </section>
+  </div>
+</div>
+
+<div class="overlay page" id="helpOv" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="page-head">
+      <button class="ghost icon-btn" data-close title="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <h2 id="helpTitle">Как пользоваться</h2>
+    </div>
+    <div class="help-search">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input type="search" id="helpQ" placeholder="Поиск по справке" aria-label="Поиск по справке" autocomplete="off">
+    </div>
+    <div id="helpList"></div>
+    <p class="help-empty" id="helpEmpty" hidden>Ничего не нашлось. Попробуйте другое слово.</p>
+  </div>
+</div>
+
+<div class="overlay page" id="obOv" hidden>
+  <div class="sheet ob-sheet" role="dialog" aria-modal="true" aria-labelledby="obTitle0" aria-roledescription="Знакомство с приложением">
+    <div class="ob-top">
+      <button class="ghost icon-btn" id="obBack" title="Назад" aria-label="Назад" style="visibility:hidden"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button class="ghost" id="obSkip" data-close>Пропустить</button>
+    </div>
+    <div class="ob-view" id="obView">
+      <div class="ob-track" id="obTrack">
+        <section class="ob-slide" aria-label="Экран 1 из 3">
+          <div class="ob-art" id="obArt0" inert></div>
+          <div class="ob-head"><h2 id="obTitle0">Маленькие шаги каждый день</h2><p>Добавьте привычки, отмечайте их одним нажатием и смотрите, как растут серии.</p></div>
+        </section>
+        <section class="ob-slide" aria-label="Экран 2 из 3">
+          <div class="ob-art" id="obArt1" inert></div>
+          <div class="ob-head"><h2>Отмечайте одним нажатием</h2><p>Прошлые дни тоже можно отметить: выберите день в полоске недели сверху.</p></div>
+        </section>
+        <section class="ob-slide" aria-label="Экран 3 из 3">
+          <div class="ob-head">
+            <div class="ob-shield" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
+            <h2>Всё хранится у Вас</h2>
+          </div>
+          <div class="set-card">
+            <div class="set-row static"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span><span class="set-txt"><b>Работает без интернета</b><small>Привычки сразу сохраняются на этом устройстве</small></span></div>
+            <div class="set-row static"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg></span><span class="set-txt"><b>Синхронизация — по желанию</b><small>Вход по почте без пароля, когда понадобится</small></span></div>
+            <div class="set-row static"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></span><span class="set-txt"><b>Напоминания — когда будете готовы</b><small>Включаются у каждой привычки отдельно</small></span></div>
+          </div>
+          <div class="ob-name"><label for="obName">Как Вас зовут? Необязательно</label><input type="text" id="obName" maxlength="40" autocomplete="given-name" autocapitalize="words" placeholder="Ваше имя"></div>
+        </section>
+      </div>
+    </div>
+    <div class="ob-dots" id="obDots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+    <div class="ob-cta">
+      <button class="primary" id="obNext">Далее</button>
+      <button id="obTpl" hidden>Выбрать из шаблонов</button>
+    </div>
   </div>
 </div>
 

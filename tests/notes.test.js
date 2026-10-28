@@ -158,6 +158,29 @@ await swipe(sb.left + 240, sb.left + 40);
 ok('cannot swipe past current week', key(viewDate) === before && !strip.style.transform, key(viewDate));
 await swipe(sb.left + 100, sb.left + 130);
 ok('short swipe does nothing', key(viewDate) === before);
+{
+  const tr = $('daysTrack'), peeks = () => [...tr.querySelectorAll('.days.peek')];
+  const o = { bubbles: true, pointerId: 7, isPrimary: true, button: 0, clientY: y };
+  strip.dispatchEvent(new PointerEvent('pointerdown', { ...o, clientX: sb.left + 40 }));
+  strip.dispatchEvent(new PointerEvent('pointermove', { ...o, clientX: sb.left + 60 }));
+  strip.dispatchEvent(new PointerEvent('pointermove', { ...o, clientX: sb.left + 130 }));
+  const pv = peeks()[0], wkPrev = addDays(parseKey(before), -7 - weekday(parseKey(before)));
+  ok('drag shows previous week beside the strip', peeks().length === 1 && pv.querySelector('.dn').textContent == wkPrev.getDate() && pv.getBoundingClientRect().right <= strip.getBoundingClientRect().left + 1, peeks().length);
+  ok('strip follows the finger', tr.style.transform === 'translateX(90px)', tr.style.transform);
+  ok('peek is not interactive', pv.inert && !pv.id && pv.querySelector('.sel').textContent.includes(addDays(parseKey(before), -7).getDate()));
+  strip.dispatchEvent(new PointerEvent('pointercancel', { ...o, clientX: sb.left + 130 }));
+  await wait(400);
+  ok('cancelled drag returns', key(viewDate) === before && !peeks().length && !tr.style.transform);
+  $('prev').click();
+  ok('arrow slides before switching', key(viewDate) === before && peeks().length === 1);
+  await wait(450);
+  ok('arrow lands on previous week', key(viewDate) === key(addDays(parseKey(before), -7)) && !peeks().length && !tr.style.transform, key(viewDate));
+  $('next').click(); $('prev').click();
+  ok('second click finishes the first slide', key(viewDate) === before && peeks().length === 1);
+  await wait(450);
+  $('todayBtn').click(); await wait(450);
+  ok('today button slides back', key(viewDate) === before && !peeks().length);
+}
 state = normalize({ categories: [{ id: 'a', name: 'Спорт' }, { id: 'b', name: 'Дом' }], habits: [
   { id: 'h1', name: 'Первая', cat: 'a', created: ago(5) }, { id: 'h2', name: 'Вторая', cat: 'a', created: ago(5) },
   { id: 'h3', name: 'Третья', cat: 'a', created: ago(5) }, { id: 'h4', name: 'Дома', cat: 'b', created: ago(5) },

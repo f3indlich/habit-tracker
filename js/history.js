@@ -4,6 +4,7 @@ import { at, count, counts, findHabit, frac, goalOn, inLife, isSkipped, lifeEnd,
 import { addPeriodSwipe, askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast } from './ui.js?v=1.04a';
 import { catName } from './render.js?v=1.04a';
 import { openForm } from './form.js?v=1.04a';
+import { queueTips } from './tips.js?v=1.04a';
 
 export let hist = null;
 export const IC_I = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg>';
@@ -47,6 +48,7 @@ export function openHistory(id) {
   $('hTiles')._html = null;
   renderHistory();
   openOverlay($('histOv'));
+  queueTips(1000);
 }
 $('histOv').addEventListener('click', e => { if (e.target === $('histOv') || e.target.closest('[data-close]')) hist = null; });
 $('hEdit').onclick = () => openForm(hist.id);

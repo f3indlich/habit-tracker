@@ -2,6 +2,7 @@ import { $, reducedMotion, RING_C } from './core.js?v=1.04a';
 import { IC } from './icons.js?v=1.04a';
 import { reordering, setReorder } from './render.js?v=1.04a';
 import { setHist } from './history.js?v=1.04a';
+import { hintPull } from './tips.js?v=1.04a';
 
 export function rollNumber(slot, text, dir, animate) {
   if (slot._val === text) return;
@@ -83,7 +84,7 @@ export function openOverlay(ov) {
   document.body.classList.add('locked');
   requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); }));
   const sheet = ov.querySelector('.sheet');
-  if (fresh) sheet.scrollTop = 0;
+  if (fresh) { sheet.scrollTop = 0; hintPull(sheet); }
   sheet.tabIndex = -1;
   sheet.focus({ preventScroll: true });
 }
