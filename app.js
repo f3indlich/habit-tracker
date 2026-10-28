@@ -18,9 +18,11 @@ import * as settings from './js/settings.js?v=1.04a';
 import * as sync from './js/sync.js?v=1.04a';
 import * as pushMod from './js/push.js?v=1.04a';
 import * as summaryMod from './js/summary.js?v=1.04a';
+import * as tipsMod from './js/tips.js?v=1.04a';
+import * as guideMod from './js/guide.js?v=1.04a';
 
 if (TEST_MODE) {
-  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod]) {
+  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod]) {
     for (const k of Object.keys(m)) {
       const set = typeof m[k] !== 'function' && m['set' + k[0].toUpperCase() + k.slice(1)];
       try { Object.defineProperty(window, k, { configurable: true, get: () => m[k], set: set || undefined }); } catch {}
@@ -69,11 +71,11 @@ navigator.storage?.persist?.().catch(() => {});
   if (doneId) { history.replaceState(null, '', location.pathname); setTimeout(() => markDoneFromPush(doneId), 300); }
 }
 
-initCloud();
+initCloud().finally(() => guideMod.maybeOnboard());
 
 if (!TEST_MODE && !getPref(NAME_ASKED, '') && !/access_token|refresh_token|error/.test(location.hash) && !new URLSearchParams(location.search).has('action')) {
   setTimeout(() => {
-    if (userName() || shownOverlays().length || cloud.status === 'syncing') return;
+    if (getPref(NAME_ASKED, '') || userName() || shownOverlays().length || cloud.status === 'syncing') return;
     setPref(NAME_ASKED, '1');
     openName(true);
   }, 2500);

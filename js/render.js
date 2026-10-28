@@ -5,6 +5,7 @@ import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, men
 import { openCats, openForm } from './form.js?v=1.04a';
 import { dayTip, hist, openDay, openHistory, renderHistory, setHist } from './history.js?v=1.04a';
 import { userName } from './settings.js?v=1.04a';
+import { queueTips } from './tips.js?v=1.04a';
 
 export let viewDate = new Date();
 export const cards = new Map();
@@ -547,7 +548,6 @@ export function render() {
   const habits = activeOn(viewDate);
   $('empty').hidden = active.length > 0;
   document.body.classList.toggle('no-habits', !active.length);
-  $('hint').hidden = !active.length;
 
   const ids = new Set(habits.map(h => h.id));
   for (const [id, el] of cards) if (!ids.has(id)) { cards.delete(id); removeCard(el); }
@@ -595,21 +595,28 @@ export function render() {
   firstRender = false;
   renderLegend();
   renderArchive();
+  queueTips();
 }
 
-export function renderWeek() {
-  const start = addDays(viewDate, -weekday(viewDate)), tk = todayKey();
-  [...$('days').children].forEach((b, i) => {
+const weekStart = d => addDays(d, -weekday(d));
+function fillWeek(el, vd) {
+  const start = weekStart(vd), tk = todayKey();
+  [...el.children].forEach((b, i) => {
     const d = addDays(start, i), k = key(d), p = dayProgress(d);
     b.querySelector('.dn').textContent = d.getDate();
     b.querySelector('.prog').style.strokeDashoffset = DAY_C * (1 - p.frac);
-    b.classList.toggle('sel', k === key(viewDate));
+    b.classList.toggle('sel', k === key(vd));
     b.classList.toggle('today', k === tk);
     b.classList.toggle('perfect', p.total > 0 && p.done === p.total);
     b.disabled = k > tk;
     b.title = d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) + (p.total ? ` — ${p.done} из ${p.total}` : '');
     b.onclick = () => { if (k !== key(viewDate)) goTo(d); };
   });
+  return start;
+}
+
+export function renderWeek() {
+  const start = fillWeek($('days'), viewDate), tk = todayKey();
   $('next').disabled = key(addDays(start, 6)) >= tk;
   const first = firstHabitDay();
   $('prev').disabled = !first || key(start) <= first;
@@ -749,13 +756,72 @@ $('days').innerHTML = WEEKDAYS.map(wd => `
     <span class="dr"><svg viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15.5"/><circle class="prog" cx="18" cy="18" r="15.5" stroke-dasharray="${DAY_C}" stroke-dashoffset="${DAY_C}"/></svg><span class="dn"></span></span>
   </button>`).join('');
 
+export function goTo(d) {
+  const dir = key(d) > key(viewDate) ? 1 : -1;
+  viewDate = d;
+  render();
+  if (reducedMotion) return;
+  const opts = { duration: 320, easing: 'cubic-bezier(.2, .8, .2, 1)' };
+  $('title').animate([{ opacity: 0, transform: `translateX(${8 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
+  $('sections').animate([{ opacity: .35, transform: `translateX(${10 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
+}
+export const firstHabitDay = () => state.habits.filter(h => !h.archived).map(h => h.created).sort()[0];
+
 {
-  const strip = $('days');
-  let start = null, dx = 0, dragging = false, swiped = false;
+  const strip = $('days'), track = $('daysTrack'), GAP = 16;
+  let start = null, dx = 0, dragging = false, swiped = false, pts = [], off = 0, peeks = {}, anim = null, after = null;
+  const page = () => strip.offsetWidth + GAP;
+  const target = s => {
+    const d = addDays(viewDate, 7 * s), first = firstHabitDay();
+    if (s < 0) return first && key(d) < first ? parseKey(first) : d;
+    return key(d) > todayKey() ? new Date() : d;
+  };
+  const move = x => { off = x; track.style.transform = x ? `translateX(${x}px)` : ''; };
+  const peek = (s, d) => {
+    if (peeks[s]) return;
+    const p = strip.cloneNode(true);
+    p.removeAttribute('id');
+    p.classList.add('peek');
+    p.inert = true;
+    p.setAttribute('aria-hidden', 'true');
+    p.style.left = s * page() + 'px';
+    fillWeek(p, d);
+    track.append(p);
+    peeks[s] = p;
+  };
+  const clear = () => { Object.values(peeks).forEach(p => p.remove()); peeks = {}; move(0); };
+  const flush = () => {
+    if (!anim) return;
+    const a = anim, f = after;
+    anim = after = null;
+    a.cancel();
+    f();
+  };
+  const settle = (to, ms, done) => {
+    const a = anim = track.animate([{ transform: `translateX(${off}px)` }, { transform: `translateX(${to}px)` }], { duration: ms, easing: 'cubic-bezier(.22, .75, .25, 1)' });
+    after = done;
+    move(to);
+    a.onfinish = () => { if (anim !== a) return; anim = after = null; done(); };
+  };
+  const land = d => () => {
+    clear();
+    strip.classList.add('swap');
+    goTo(d);
+    strip.offsetWidth;
+    strip.classList.remove('swap');
+  };
+  const flip = (s, d) => {
+    flush();
+    if (reducedMotion || key(weekStart(d)) === key(weekStart(viewDate))) return goTo(d);
+    peek(s, d);
+    settle(-s * page(), 360, land(d));
+  };
+
   strip.addEventListener('pointerdown', e => {
     if (e.button !== 0 || reordering) return;
+    flush();
     start = { x: e.clientX, y: e.clientY, id: e.pointerId };
-    dx = 0; dragging = false;
+    dx = 0; dragging = false; pts = [];
   });
   strip.addEventListener('pointermove', e => {
     if (!start || e.pointerId !== start.id) return;
@@ -767,53 +833,44 @@ $('days').innerHTML = WEEKDAYS.map(wd => `
       }
       dragging = true;
       try { strip.setPointerCapture(e.pointerId); } catch {}
+      if (!reducedMotion) [-1, 1].forEach(s => { if (!$(s < 0 ? 'prev' : 'next').disabled) peek(s, target(s)); });
     }
     dx = mx;
-    const blocked = $(dx < 0 ? 'next' : 'prev').disabled;
-    strip.style.transform = `translateX(${blocked ? dx * .2 : dx * .6}px)`;
+    pts = [...pts.filter(p => e.timeStamp - p.t < 100), { x: e.clientX, t: e.timeStamp }];
+    if (reducedMotion) return;
+    const w = page(), s = dx < 0 ? 1 : -1;
+    move(peeks[s] ? Math.max(-w, Math.min(w, dx)) : dx / (1 + Math.abs(dx) / 80));
   });
-  const end = () => {
+  const end = e => {
     if (!start) return;
     start = null;
     if (!dragging) return;
     swiped = true;
     setTimeout(() => swiped = false, 50);
-    const from = strip.style.transform;
-    strip.style.transform = '';
-    const btn = $(dx < 0 ? 'next' : 'prev');
-    if (Math.abs(dx) >= 50 && !btn.disabled) {
-      btn.click();
-      if (!reducedMotion) strip.animate([{ opacity: .3, transform: `translateX(${dx < 0 ? 40 : -40}px)` }, { opacity: 1, transform: 'none' }], { duration: 300, easing: EASE });
-    } else if (!reducedMotion) strip.animate([{ transform: from || 'none' }, { transform: 'none' }], { duration: 250, easing: EASE });
+    const s = dx < 0 ? 1 : -1, w = page(), a = pts[0], b = pts[pts.length - 1];
+    const v = a && b && b.t - a.t > 8 ? (b.x - a.x) / (b.t - a.t) : 0;
+    const go = e.type === 'pointerup' && !$(s < 0 ? 'prev' : 'next').disabled
+      && (Math.abs(dx) >= w * .25 || (Math.abs(v) > .35 && Math.sign(v) === Math.sign(dx) && Math.abs(dx) > 24));
+    if (go && reducedMotion) return goTo(target(s));
+    if (go) {
+      const d = target(s);
+      peek(s, d);
+      settle(-s * w, Math.round(Math.min(340, Math.max(160, (w - Math.abs(off)) / Math.max(Math.abs(v), .9)))), land(d));
+    } else if (off) settle(0, Math.round(Math.min(320, 160 + Math.abs(off))), clear);
+    else clear();
   };
   strip.addEventListener('pointerup', end);
   strip.addEventListener('pointercancel', end);
   strip.addEventListener('click', e => { if (swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
-}
 
-export function goTo(d) {
-  const dir = key(d) > key(viewDate) ? 1 : -1;
-  viewDate = d;
-  render();
-  if (reducedMotion) return;
-  const opts = { duration: 320, easing: 'cubic-bezier(.2, .8, .2, 1)' };
-  $('title').animate([{ opacity: 0, transform: `translateX(${8 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
-  $('sections').animate([{ opacity: .35, transform: `translateX(${10 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
+  $('prev').onclick = () => flip(-1, target(-1));
+  $('next').onclick = () => flip(1, target(1));
+  $('todayBtn').onclick = () => flip(1, new Date());
+  addEventListener('keydown', e => {
+    if ((e.key === 't' || e.key === 'T' || e.key === 'е' || e.key === 'Е') && !e.ctrlKey && !e.metaKey && !e.altKey
+        && !e.target.closest?.('input, textarea') && !shownOverlays().length && !isToday(viewDate)) flip(1, new Date());
+  });
 }
-export const firstHabitDay = () => state.habits.filter(h => !h.archived).map(h => h.created).sort()[0];
-$('prev').onclick = () => {
-  const d = addDays(viewDate, -7), first = firstHabitDay();
-  goTo(first && key(d) < first ? parseKey(first) : d);
-};
-$('todayBtn').onclick = () => goTo(new Date());
-addEventListener('keydown', e => {
-  if ((e.key === 't' || e.key === 'T' || e.key === 'е' || e.key === 'Е') && !e.ctrlKey && !e.metaKey && !e.altKey
-      && !e.target.closest?.('input, textarea') && !shownOverlays().length && !isToday(viewDate)) goTo(new Date());
-});
-$('next').onclick = () => {
-  const d = addDays(viewDate, 7);
-  goTo(key(d) > todayKey() ? new Date() : d);
-};
 
 export function applyView(v) {
   if (v === 'list') v = '7d'; else if (v === 'heat') v = '90d';
