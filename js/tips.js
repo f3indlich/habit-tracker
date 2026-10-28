@@ -1,8 +1,8 @@
-import { $, esc, getPref, isToday, NS, reducedMotion, setPref, TEST_MODE, todayKey } from './core.js?v=1.04a';
-import { confirmResolve, menuEl, shownOverlays } from './ui.js?v=1.04a';
-import { reordering, viewDate } from './render.js?v=1.04a';
-import { state } from './storage.js?v=1.04a';
-import { cloud } from './sync.js?v=1.04a';
+import { $, esc, getPref, isToday, NS, reducedMotion, setPref, TEST_MODE, todayKey } from './core.js?v=1.05a';
+import { confirmResolve, menuEl, shownOverlays } from './ui.js?v=1.05a';
+import { reordering, viewDate } from './render.js?v=1.05a';
+import { state } from './storage.js?v=1.05a';
+import { cloud } from './sync.js?v=1.05a';
 
 export const TIPS_STORE = NS + '-tips';
 export const USED_STORE = NS + '-used';
