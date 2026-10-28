@@ -1,25 +1,25 @@
-import { ensureEmojiFont, getPref, GROUP_STORE, ICON_STORE, setPref, TEST_MODE, THEME_STORE, VIEW_STORE } from './js/core.js?v=1.04a';
-import { ICON_STYLES } from './js/icons.js?v=1.04a';
-import { load, setState } from './js/storage.js?v=1.04a';
-import { shownOverlays, toast } from './js/ui.js?v=1.04a';
-import { applyView, GROUPS, render, setGroupMode } from './js/render.js?v=1.04a';
-import { openForm } from './js/form.js?v=1.04a';
-import { applyColors, applyTheme, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=1.04a';
-import { cloud, initCloud } from './js/sync.js?v=1.04a';
-import { markDoneFromPush } from './js/push.js?v=1.04a';
-import * as core from './js/core.js?v=1.04a';
-import * as icons from './js/icons.js?v=1.04a';
-import * as storage from './js/storage.js?v=1.04a';
-import * as ui from './js/ui.js?v=1.04a';
-import * as renderMod from './js/render.js?v=1.04a';
-import * as formMod from './js/form.js?v=1.04a';
-import * as historyMod from './js/history.js?v=1.04a';
-import * as settings from './js/settings.js?v=1.04a';
-import * as sync from './js/sync.js?v=1.04a';
-import * as pushMod from './js/push.js?v=1.04a';
-import * as summaryMod from './js/summary.js?v=1.04a';
-import * as tipsMod from './js/tips.js?v=1.04a';
-import * as guideMod from './js/guide.js?v=1.04a';
+import { ensureEmojiFont, getPref, GROUP_STORE, ICON_STORE, setPref, TEST_MODE, THEME_STORE, VIEW_STORE } from './js/core.js?v=1.05a';
+import { ICON_STYLES } from './js/icons.js?v=1.05a';
+import { load, setState } from './js/storage.js?v=1.05a';
+import { shownOverlays, toast } from './js/ui.js?v=1.05a';
+import { applyView, GROUPS, render, setGroupMode } from './js/render.js?v=1.05a';
+import { openForm } from './js/form.js?v=1.05a';
+import { applyColors, applyTheme, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=1.05a';
+import { cloud, initCloud } from './js/sync.js?v=1.05a';
+import { markDoneFromPush } from './js/push.js?v=1.05a';
+import * as core from './js/core.js?v=1.05a';
+import * as icons from './js/icons.js?v=1.05a';
+import * as storage from './js/storage.js?v=1.05a';
+import * as ui from './js/ui.js?v=1.05a';
+import * as renderMod from './js/render.js?v=1.05a';
+import * as formMod from './js/form.js?v=1.05a';
+import * as historyMod from './js/history.js?v=1.05a';
+import * as settings from './js/settings.js?v=1.05a';
+import * as sync from './js/sync.js?v=1.05a';
+import * as pushMod from './js/push.js?v=1.05a';
+import * as summaryMod from './js/summary.js?v=1.05a';
+import * as tipsMod from './js/tips.js?v=1.05a';
+import * as guideMod from './js/guide.js?v=1.05a';
 
 if (TEST_MODE) {
   for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod]) {

@@ -1,10 +1,10 @@
-import { $, getPref, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=1.04a';
-import { count, findHabit, state, targetOn } from './storage.js?v=1.04a';
-import { closeOverlay, openOverlay, toast } from './ui.js?v=1.04a';
-import { changeCount, render, setViewDate, viewDate } from './render.js?v=1.04a';
-import { form } from './form.js?v=1.04a';
-import { renderSettings } from './settings.js?v=1.04a';
-import { cloud, cloudCfg, renderAccount } from './sync.js?v=1.04a';
+import { $, getPref, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=1.05a';
+import { count, findHabit, state, targetOn } from './storage.js?v=1.05a';
+import { closeOverlay, openOverlay, toast } from './ui.js?v=1.05a';
+import { changeCount, render, setViewDate, viewDate } from './render.js?v=1.05a';
+import { form } from './form.js?v=1.05a';
+import { renderSettings } from './settings.js?v=1.05a';
+import { cloud, cloudCfg, renderAccount } from './sync.js?v=1.05a';
 
 export const push = {
   supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
