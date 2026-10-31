@@ -13,7 +13,7 @@ import { addLongPress, b64, hasPin, IDLE_MS, isPrivate, LOCK_STORE, lockWait, re
 export const FACE = isIOS ? 'Face ID или Touch ID' : 'отпечаток пальца или распознавание лица';
 export const WIPE_WORD = 'СТЕРЕТЬ';
 export let lockMode = null;
-let idleTimer = null, waitTimer = null, privBar = null;
+let idleTimer = null, waitTimer = null, privBar = null, authBusy = false;
 
 // Face ID / Touch ID здесь — только локальная проверка «владелец у телефона».
 // Подпись от WebAuthn нигде не проверяется на сервере: приложение лишь просит
@@ -22,6 +22,10 @@ export async function faceAvailable() {
   try { return !!window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch { return false; }
 }
 async function faceCreate() {
+  authBusy = true;
+  try { return await faceCreateNow(); } finally { authBusy = false; }
+}
+async function faceCreateNow() {
   const cred = await navigator.credentials.create({ publicKey: {
     challenge: crypto.getRandomValues(new Uint8Array(32)),
     rp: { name: 'Трекер привычек', id: location.hostname },
@@ -33,6 +37,10 @@ async function faceCreate() {
   return b64(cred.rawId);
 }
 async function faceCheck(id) {
+  authBusy = true;
+  try { return await faceCheckNow(id); } finally { authBusy = false; }
+}
+async function faceCheckNow(id) {
   const a = await navigator.credentials.get({ publicKey: {
     challenge: crypto.getRandomValues(new Uint8Array(32)),
     rpId: location.hostname,
@@ -68,10 +76,12 @@ function scrub() {
     if ($('histOv')._shown) { hideNow($('histOv')); setHist(null); }
     for (const id of ['hIcon', 'hName', 'hTags', 'hWhy', 'hTiles', 'hPlan', 'hStats', 'hChart', 'hHeat']) $(id).innerHTML = '';
     $('hTiles')._html = null;
+    $('hIcon')._ic = null;
   }
   if (!$('dayOv')._shown || isPrivate(findHabit(day?.id))) {
     if ($('dayOv')._shown) hideNow($('dayOv'));
     for (const id of ['dIcon', 'dName', 'dDate', 'dFacts']) $(id).innerHTML = '';
+    $('dIcon')._ic = null;
     $('dNote').value = '';
   }
   if (!$('formOv')._shown || form.priv || isPrivate(findHabit(editingId))) {
@@ -107,7 +117,7 @@ function bumpIdle() {
 }
 for (const t of ['pointerdown', 'keydown', 'wheel', 'touchstart']) addEventListener(t, () => { if (unlocked) bumpIdle(); }, { capture: true, passive: true });
 addEventListener('scroll', () => { if (unlocked) bumpIdle(); }, { capture: true, passive: true });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') lockNow(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && !authBusy) lockNow(); });
 addEventListener('pagehide', lockNow);
 
 const pinField = (id, label, auto) => `${label ? `<label class="pin-lbl" for="${id}">${label}</label>` : ''}
@@ -267,7 +277,7 @@ export function openLockSettings() {
   sheet('settings', 'Личные привычки', `
     <div class="set-card">
       <button type="button" class="set-row" id="lockChange"><span class="set-ic">${IC.lock}</span><span class="set-txt"><b>Сменить PIN</b></span></button>
-      <button type="button" class="set-row" id="lockFaceRow" hidden><span class="set-ic">${IC.face}</span><span class="set-txt"><b>${esc(FACE[0].toUpperCase() + FACE.slice(1))}</b><small>${rec.cred ? 'Включено' : 'Выключено'}</small></span>
+      <button type="button" class="set-row" id="lockFaceRow" hidden><span class="set-ic">${IC.face}</span><span class="set-txt"><b>${esc(FACE[0].toUpperCase() + FACE.slice(1))}</b></span>
         <span class="switch" role="switch" aria-checked="${!!rec.cred}"><span></span></span></button>
       <button type="button" class="set-row danger" id="lockOff"><span class="set-ic">${IC.trash.replace(' del-ic', '')}</span><span class="set-txt"><b>Отключить личные привычки</b></span></button>
     </div>
@@ -276,8 +286,9 @@ export function openLockSettings() {
   $('lockChange').onclick = showChange;
   $('lockFaceRow').onclick = async () => {
     const r = readLock();
-    if (r.cred) { delete r.cred; writeLock(r); toast(`${FACE[0].toUpperCase() + FACE.slice(1)}: выключено`, null, ''); openLockSettings(); }
-    else if (await enableFace()) openLockSettings();
+    if (r.cred) { delete r.cred; writeLock(r); }
+    else await enableFace();
+    $('lockFaceRow')?.querySelector('.switch').setAttribute('aria-checked', !!readLock().cred);
   };
   $('lockOff').onclick = showOff;
 }

@@ -171,5 +171,14 @@ resetEmojiCheck();
 ok('reset leaves no font link', links() === 0);
 const appSrc = await (await fetch('app.js?x=' + Date.now())).text();
 ok('app checks emoji font once after first render', (appSrc.match(/ensureEmojiFont\(/g) || []).length === 1 && /render\(\);\nif \(!TEST_MODE\) requestAnimationFrame\(\(\) => ensureEmojiFont\(\)\);/.test(appSrc.replace(/\r/g, '')));
+openForm(); await wait(500);
+$('remSwitch').click(); await wait(400);
+const tIn = document.querySelector('#remTimes .native');
+tIn.focus();
+for (const v of ['07:05', '07:35']) { tIn.value = v; tIn.dispatchEvent(new Event('input', { bubbles: true })); tIn.dispatchEvent(new Event('change', { bubbles: true })); await wait(80); }
+ok('reminder time picker stays open while changing', tIn.isConnected && document.activeElement === tIn && document.querySelector('#remTimes .native') === tIn && tIn.parentElement.querySelector('b').textContent === '07:35');
+tIn.blur(); tIn.dispatchEvent(new FocusEvent('blur')); await wait(150);
+ok('reminder time applied after picker closes', form.rem.times.includes('07:35') && document.querySelector('#remTimes b').textContent === '07:35', form.rem.times);
+closeOverlay($('formOv')); await wait(400);
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

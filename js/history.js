@@ -50,7 +50,17 @@ export function openHistory(id) {
   histSlider.reset();
   renderHistory();
   openOverlay($('histOv'));
+  fitTitle();
   queueTips(1000);
+}
+function fitTitle() {
+  const h2 = $('hName'), head = h2.closest('.sheet-head');
+  head.classList.remove('h-wrap');
+  h2.style.hyphens = 'manual'; h2.style.overflowWrap = 'normal';
+  const lh = parseFloat(getComputedStyle(h2).lineHeight) || 24;
+  const wrap = h2.clientWidth && (h2.scrollWidth > h2.clientWidth + 1 || h2.offsetHeight > lh * 2 + 2);
+  h2.style.hyphens = h2.style.overflowWrap = '';
+  head.classList.toggle('h-wrap', !!wrap);
 }
 $('histOv').addEventListener('click', e => { if (e.target === $('histOv') || e.target.closest('[data-close]')) hist = null; });
 $('hEdit').onclick = () => openForm(hist.id);
@@ -111,6 +121,7 @@ export function renderHistory() {
   $('hSheet').style.setProperty('--c', h.color);
   setIcon($('hIcon'), h.icon);
   $('hName').textContent = h.name;
+  fitTitle();
   $('hEdit').hidden = !!h.archived;
   const time = TIMES.find(t => t.v === h.time);
   const goal = goalText(h);

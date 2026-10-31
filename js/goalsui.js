@@ -486,7 +486,7 @@ function habitsHTML(g, today, active) {
   if (!hs.length && !active) return '';
   const auto = g.volume && active && canAuto(g, state) && !isPrivateMismatch(g, hs[0]) ? `<div class="g-auto">
       <span class="g-auto-txt" id="gAutoLbl">Считать «Сделано» по привычке</span>
-      <button type="button" class="switch sm" role="switch" data-act="auto" aria-checked="${!!g.volume.auto}" aria-labelledby="gAutoLbl"><span></span></button>
+      <button type="button" class="switch" role="switch" data-act="auto" aria-checked="${!!g.volume.auto}" aria-labelledby="gAutoLbl"><span></span></button>
     </div>` : '';
   const pace = active ? habitPace(g, state, today) : '';
   return `<section class="g-sec">

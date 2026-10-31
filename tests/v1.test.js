@@ -107,10 +107,24 @@ ok('no marks at all shows never done', mb('e').texts[0] === 'Ещё не вып�
 ok('short text says Был', mb('l').texts[1] === 'Был 3 дня назад' && mb('l').texts[0] === 'Последний раз 3 дня назад', mb('l'));
 const fw = frameElement.style.width;
 for (const w of [320, 360, 430]) {
-  frameElement.style.width = w + 'px'; await wait(100); render(); await wait(500);
+  frameElement.style.width = w + "px"; await wait(100); render(); await wait(800);
   const q = warn('q'), meta = q.parentElement, qb = q.getBoundingClientRect(), mr = meta.getBoundingClientRect();
-  ok(`badge visible with long label at ${w}px`, q.classList.contains('on') && qb.width > 20 && qb.right <= mr.right + 1 && qb.bottom <= mr.bottom + 1 && mb('q').texts.includes(q.textContent), [q.className, q.textContent, Math.round(qb.width), meta.className]);
-  if (w === 320) ok('badge wraps under label when narrow', meta.classList.contains('m-wrap') && qb.top >= meta.querySelector('.m-lead').getBoundingClientRect().bottom - 1, meta.className);
+  ok(`meta stays one line at ${w}px`, mr.height <= 21 && (!q.classList.contains('on') || (qb.right <= mr.right + 1 && qb.bottom <= mr.bottom + 1 && mb('q').texts.includes(q.textContent))), [Math.round(mr.height), q.className, q.textContent]);
+  if (w === 430) ok('badge visible with long label when there is room', q.classList.contains('on') && qb.width > 20, [q.className, q.textContent]);
+}
+state = normalize({ habits: [
+  { id: 'q', name: 'Изучение ПДД', icon: 'books', target: 100, unit: 'вопросов', created: ago(9) },
+  { id: 'p', name: 'Подтягивания', icon: 'strong', target: 20, created: ago(9) },
+  { id: 'a', name: 'Не пить алкоголь', icon: 'check', created: ago(9) },
+], log: Object.fromEntries([1, 2, 3, 4, 5].map(i => [ago(i), { q: 40, p: 20, a: 1 }])) });
+cards.forEach(e => e.remove()); cards.clear();
+for (const w of [320, 393]) {
+  frameElement.style.width = w + 'px'; await wait(100);
+  setCount(findHabit('q'), new Date(), 0); setCount(findHabit('p'), new Date(), 0); render(); await wait(600);
+  const size = () => [$('hero'), card('q'), card('p')].map(e => Math.round(e.getBoundingClientRect().height));
+  const first = size(), seen = [first];
+  for (const [id, v] of [['q', 50], ['q', 100], ['p', 20], ['p', 10], ['q', 30], ['q', 0]]) { setCount(findHabit(id), new Date(), v); render(); await wait(600); seen.push(size()); }
+  ok(`summary and cards keep their height at ${w}px`, seen.every(x => x.join() === first.join()), seen);
 }
 frameElement.style.width = fw; await wait(100); render(); await wait(300);
 

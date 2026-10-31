@@ -408,35 +408,50 @@ export function updateCard(el, h) {
   const meta = el.querySelector('.meta');
   const weekly = isWeekly(h, viewDate), nd = !due && !c && !weekly ? nextDue(h, viewDate) : null;
   const lead = skipped ? '<span class="badge skip">Пропущено</span>'
-    : weekly ? `<span>${weekDone(h, state, viewDate) >= weekQuota(h, viewDate) ? 'На эту неделю всё сделано' : `${weekDone(h, state, viewDate)} из ${weekQuota(h, viewDate)} ${isToday(viewDate) ? 'на этой неделе' : 'за неделю'}`}</span>`
+    : weekly ? `<span>${weekDone(h, state, viewDate) >= weekQuota(h, viewDate) ? 'На эту неделю всё сделано' : `${weekDone(h, state, viewDate)} из ${weekQuota(h, viewDate)}<span class="m-unit"> ${isToday(viewDate) ? 'на этой неделе' : 'за неделю'}</span>`}</span>`
     : nd ? `<span>Следующий раз: ${nd.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>`
-    : multi ?`<span>${c} / ${h.target}${h.unit ? ' ' + esc(h.unit) : ''}</span>`
-    : `<span>${esc(schedText(h)[0].toUpperCase() + schedText(h).slice(1))}</span>`;
+    : multi ?`<span>${c} / ${h.target}${h.unit ? `<span class="m-unit"> ${esc(h.unit)}</span>` : ''}</span>`
+    : `<span class="m-sched">${esc(schedText(h)[0].toUpperCase() + schedText(h).slice(1))}</span>`;
   const badge = isToday(viewDate) && !skipped && due ? missBadge(h) : null, warn = !!badge;
   if (meta.dataset.lead !== lead) {
     meta.querySelector('.m-lead').innerHTML = lead; meta.dataset.lead = lead;
     if (multi && grew && !reducedMotion) meta.querySelector('.m-lead > span').animate([{ color: h.color }, { color: h.color, offset: .35 }, {}], { duration: 700, easing: 'ease-out' });
   }
-  const st = meta.querySelector('.m-streak');
-  st.textContent = s ? `🔥 ${streakText(h, s)}` : st.textContent;
-  st.classList.toggle('on', !!s);
-  const warnEl = meta.querySelector('.m-warn');
-  warnEl.classList.toggle('on', warn);
-  meta.classList.remove('m-wrap');
-  warnEl.classList.remove('m-free');
+  const st = meta.querySelector('.m-streak'), warnEl = meta.querySelector('.m-warn'), label = warnEl.querySelector('.w-long'), leadEl = meta.querySelector('.m-lead');
   if (warn) {
     warnEl.title = badge.title;
     warnEl.classList.toggle('calm', badge.calm);
     warnEl.classList.toggle('stale', !!badge.stale);
-    const room = meta.clientWidth - meta.querySelector('.m-lead').offsetWidth - (s ? meta.querySelector('.m-streak').scrollWidth + 8 : 0) - 8;
-    const label = warnEl.querySelector('.w-long');
-    const fit = w => badge.texts.some(t => { label.textContent = t; return label.offsetWidth + 14 <= Math.min(w, 260); });
-    if (!fit(room) && meta.clientWidth) {
-      meta.classList.add('m-wrap');
-      if (!fit(meta.clientWidth)) { label.textContent = badge.texts[badge.texts.length - 1]; warnEl.classList.add('m-free'); }
-    }
   }
-  if (meta.clientWidth && meta.querySelector('.m-lead').offsetWidth + (s ? st.scrollWidth + 8 : 0) > meta.clientWidth) meta.classList.add('m-wrap');
+  const full = s ? `🔥 ${streakText(h, s)}` : '', short = s && !/недел/.test(full) ? `🔥 ${s}` : full, W = meta.clientWidth;
+  let pick = { unit: true, streak: full, warn: warn ? badge.texts[0] : null };
+  if (W) {
+    const width = el => el.scrollWidth;
+    const leadW = unit => { leadEl.classList.toggle('m-short', !unit); return width(leadEl); };
+    const streakW = t => { if (!t) return 0; st.textContent = t; return width(st) + 8; };
+    const warnFit = room => warn ? badge.texts.find(t => { label.textContent = t; return label.offsetWidth + 22 <= Math.min(room, 268); }) ?? null : null;
+    const tries = [[true, full], [true, short], [false, full], [false, short], [false, '']];
+    const sig = `${W}|${s}|${warn ? badge.texts.join('/') : ''}`, prev = meta._fit;
+    const keep = prev?.sig === sig && (() => { const room = W - leadW(prev.unit) - streakW(prev.streak); if (room < 0) return false; if (!prev.warn) return !warn; label.textContent = prev.warn; return label.offsetWidth + 22 <= Math.min(room, 268); })();
+    pick = keep ? prev : null;
+    if (!pick) for (const [unit, sTxt] of tries) {
+      const room = W - leadW(unit) - streakW(sTxt);
+      if (room < 0) continue;
+      const w = warnFit(room);
+      if (!warn || w) { pick = { unit, streak: sTxt, warn: w }; break; }
+    }
+    if (!pick) {
+      pick = { unit: false, streak: '', warn: null };
+      for (const [unit, sTxt] of tries) if (W - leadW(unit) - streakW(sTxt) >= 0) { pick = { unit, streak: sTxt, warn: null }; break; }
+    }
+    pick.sig = sig; meta._fit = pick;
+    leadEl.classList.toggle('m-short', !pick.unit);
+  }
+  meta.classList.toggle('m-nolead', !pick.unit && !!leadEl.querySelector('.m-sched'));
+  if (pick.streak) st.textContent = pick.streak;
+  st.classList.toggle('on', !!pick.streak);
+  if (pick.warn) label.textContent = pick.warn;
+  warnEl.classList.toggle('on', !!pick.warn);
 
   const todayK = todayKey();
   el.querySelectorAll('.dcol').forEach((col, i) => {
@@ -654,7 +669,9 @@ export function renderHero() {
   $('hero').hidden = !anyHabits;
   countTo($('heroDone'), p.done);
   $('heroTotal').textContent = p.total;
-  $('heroPart').textContent = p.partial ? `и ${p.partial} частично` : '';
+  if (p.partial) $('heroPart').textContent = `и ${p.partial} частично`;
+  $('heroPart').classList.toggle('off', !p.partial);
+  $('heroPart').setAttribute('aria-hidden', !p.partial);
   countTo($('heroPct'), Math.round(p.frac * 100), '%');
   $('heroProg').style.strokeDashoffset = HERO_C * (1 - p.frac);
   const left = p.total - p.done, allDone = p.total > 0 && !left;
