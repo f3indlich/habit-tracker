@@ -13,7 +13,7 @@
 1. Supabase → Authentication → Users.
 2. Найти пользователя по email.
 3. Меню строки → Delete user → подтвердить.
-4. Каскадное удаление уберёт строки в habit_data, push_subscriptions и push_log.
+4. Каскадное удаление уберёт строки в habit_data, push_subscriptions и push_log. Цели со сроком, их шаги и заметки хранятся в habit_data и удаляются вместе с ней.
 5. Проверить в Table Editor (habit_data, push_subscriptions), что строк с этим user_id нет.
 
 ## 3. Срок

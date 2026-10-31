@@ -1,4 +1,4 @@
-﻿param([int]$Port = 8766, [int]$TimeoutSec = 300, [string]$App = '')
+﻿param([int]$Port = 8766, [int]$TimeoutSec = 900, [string]$App = '')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $browser = @(

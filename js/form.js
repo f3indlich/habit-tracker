@@ -568,6 +568,7 @@ $('emptyAdd').onclick = () => openForm();
 $('form').onsubmit = async e => {
   e.preventDefault();
   const name = $('name').value.trim();
+  let added = null;
   if (!name) {
     const box = $('name').parentElement;
     $('name').setAttribute('aria-invalid', 'true');
@@ -612,10 +613,12 @@ $('form').onsubmit = async e => {
     if (!step) delete h.step;
     if (!priv) delete h.private;
   } else {
-    state.habits.push({ id: crypto.randomUUID?.() || String(Date.now()), created: todayKey(), ...data });
+    added = crypto.randomUUID?.() || String(Date.now());
+    state.habits.push({ id: added, created: todayKey(), ...data });
   }
   save(); render();
   closeOverlay($('formOv'));
+  if (added) window.dispatchEvent(new CustomEvent('habit-added', { detail: added }));
   if (hist) renderHistory();
   if (moved) toast(priv ? 'Перенесено в личное' : 'Перенесено в обычные', null, '');
 };

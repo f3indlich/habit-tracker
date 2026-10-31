@@ -1,5 +1,5 @@
 import { $, getPref, HHMM, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=1.06a';
-import { count, findHabit, normSmart, save, smartOf, state, targetOn } from './storage.js?v=1.06a';
+import { count, findHabit, goalRemindOf, normGoalRemind, normSmart, save, smartOf, state, targetOn } from './storage.js?v=1.06a';
 import { closeOverlay, openOverlay, toast } from './ui.js?v=1.06a';
 import { changeCount, render, setViewDate, viewDate } from './render.js?v=1.06a';
 import { form } from './form.js?v=1.06a';
@@ -71,7 +71,9 @@ export function renderPush() {
   $('pushTest').hidden = $('pushOff').hidden = st !== 'on';
   $('notifyBox').hidden = !['on', 'ready', 'login'].includes(st);
   $('smartBox').hidden = st !== 'on';
+  $('goalRemBox').hidden = st !== 'on';
   renderSmart();
+  renderGoalRemind();
   renderRemindHint();
 }
 export function renderSmart() {
@@ -101,6 +103,20 @@ for (const [id, i] of [['smartQFrom', 0], ['smartQTo', 1]]) $(id).onchange = e =
   const q = [...smartOf().quiet]; q[i] = e.target.value;
   setSmart({ quiet: q });
 };
+export function renderGoalRemind() {
+  const g = goalRemindOf();
+  $('goalRemSwitch').setAttribute('aria-checked', g.on);
+  $('goalRemWrap').classList.toggle('open', g.on);
+  $('goalRemWrap').inert = !g.on;
+  if (document.activeElement !== $('goalRemAt')) $('goalRemAt').value = g.at;
+}
+export function setGoalRemind(patch) {
+  state.goalRemind = normGoalRemind({ ...goalRemindOf(), ...patch });
+  save();
+  renderGoalRemind();
+}
+$('goalRemSwitch').onclick = () => setGoalRemind({ on: !goalRemindOf().on });
+$('goalRemAt').onchange = e => { if (HHMM.test(e.target.value)) setGoalRemind({ at: e.target.value }); else renderGoalRemind(); };
 export function renderRemindHint() {
   const el = $('remindHint');
   const st = pushState();

@@ -9,7 +9,7 @@ const ver = (app.src.match(/[?&]v=([^&#]+)/) || [])[1];
 ok('app loads as module', app.type === 'module');
 ok('version format', ver === APP_VERSION && /^\d+\.\d{2}[a-z]?$/.test(ver), ver);
 const mods = performance.getEntriesByType('resource').map(e => e.name).filter(n => /\/js\/\w+\.js/.test(n));
-ok('all modules loaded with app version', mods.length === 16 && mods.every(n => n.endsWith('?v=' + ver)), mods);
+ok('all modules loaded with app version', mods.length === 18 && mods.every(n => n.endsWith('?v=' + ver)), mods);
 const css = document.querySelector('link[href*="styles.css"]').getAttribute('href');
 ok('styles use app version', css === 'styles.css?v=' + ver, css);
 const swSrc = await (await fetch('sw.js?x=' + Date.now())).text();

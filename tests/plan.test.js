@@ -119,6 +119,11 @@ try { localStorage.removeItem(PLAN_STORE); } catch {}
 openHistory('w'); await wait(600);
 ok('plan block shown for quantity habit', !$('hPlan').hidden && $('hPlan').textContent.includes('Засчитано'));
 ok('plan block shows the chosen window', $('hPlan').querySelector('[aria-pressed=true]').dataset.w === planWin);
+const hitOk = [...$('hPlan').querySelectorAll('.plan-seg button, .plan-l1, .plan-bar')].every(b => {
+  const r = b.getBoundingClientRect(), at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  return at && !at.closest('.plan-i');
+});
+ok('info button does not cover the window switch', hitOk);
 const weekText = $('hPlan').querySelector('.plan-l1').textContent;
 $('hPlan').querySelector('[data-w=all]').click(); await wait(200);
 ok('window switch changes numbers', $('hPlan').querySelector('.plan-l1').textContent !== weekText && planWin === 'all', [weekText, $('hPlan').querySelector('.plan-l1').textContent]);

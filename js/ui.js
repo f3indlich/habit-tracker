@@ -296,7 +296,7 @@ export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get
 }
 
 for (const ov of document.querySelectorAll('.overlay.page')) addEdgeBack(ov);
-for (const id of ['histOv', 'sumOv', 'dayOv', 'formOv', 'catOv', 'nameOv', 'acctOv', 'installOv', 'delOv', 'lockOv']) addPullDown($(id));
+for (const id of ['histOv', 'sumOv', 'dayOv', 'formOv', 'catOv', 'nameOv', 'acctOv', 'installOv', 'delOv', 'lockOv', 'gFormOv']) addPullDown($(id));
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (menuEl) return closeMenu();

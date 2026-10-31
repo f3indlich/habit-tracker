@@ -85,6 +85,7 @@
     </div>
     <div class="top-actions">
       <button class="ghost icon-btn" id="viewBtn"></button>
+      <button class="ghost icon-btn" id="goalsBtn" aria-label="Цели" title="Цели"><svg class="ic" viewBox="0 0 24 24"><path d="M5.5 21V4.5M5.5 4.5h11.5l-2.5 4.25 2.5 4.25H5.5"/></svg></button>
       <button class="ghost icon-btn acct-btn" id="acctBtn" data-sync="none" aria-label="Аккаунт и синхронизация">
         <svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg>
         <span class="sync-dot"></span>
@@ -122,6 +123,11 @@
     <b>Начните с одной привычки</b>
     <p>Маленькие шаги каждый день — большие перемены.</p>
     <button class="primary" id="emptyAdd">Добавить привычку</button>
+  </div>
+
+  <div class="goal-strip" id="goalStrip" hidden>
+    <button type="button" class="gs-open" id="gsOpen"><svg class="ic" viewBox="0 0 24 24"><path d="M5.5 21V4.5M5.5 4.5h11.5l-2.5 4.25 2.5 4.25H5.5"/></svg><span id="gsText"></span></button>
+    <button type="button" class="ghost icon-btn gs-x" id="gsHide" aria-label="Скрыть до завтра" title="Скрыть до завтра"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
 
   <div id="sections"></div>
@@ -273,6 +279,21 @@
         </div>
         <p class="set-hint">Действует на всех Ваших устройствах. Если всё на сегодня выполнено или пропущено, уведомления не будет. В тихие часы такие напоминания не приходят.</p>
       </div>
+      <div id="goalRemBox" hidden>
+        <h4 class="set-sub">Сроки целей</h4>
+        <div class="set-card">
+          <div class="set-row static">
+            <span class="set-txt"><b id="goalRemLbl">Напоминать о сроках целей</b><small>За 3 дня, за день и в день срока</small></span>
+            <button type="button" class="switch" id="goalRemSwitch" role="switch" aria-checked="true" aria-labelledby="goalRemLbl"><span></span></button>
+          </div>
+          <div class="collapse" id="goalRemWrap"><div>
+            <label class="set-row static">
+              <span class="set-txt"><b>Время</b></span>
+              <input type="time" class="set-time" id="goalRemAt" step="300">
+            </label>
+          </div></div>
+        </div>
+      </div>
       <div id="notifyBox">
         <h4 class="set-sub" id="notifyTitle">Что видно в уведомлениях</h4>
         <div class="set-card" id="notifyList" role="radiogroup" aria-labelledby="notifyTitle"></div>
@@ -289,6 +310,15 @@
         </button>
       </div>
       <p class="set-hint">Создавайте, переименовывайте, меняйте порядок и удаляйте категории. По ним можно группировать список.</p>
+    </section>
+    <section class="set-group">
+      <h3>Цели</h3>
+      <div class="set-card">
+        <div class="set-row static">
+          <span class="set-txt"><b id="gStripLbl">Показывать ближайшую цель над списком привычек</b></span>
+          <button type="button" class="switch" id="gStripSwitch" role="switch" aria-checked="true" aria-labelledby="gStripLbl"><span></span></button>
+        </div>
+      </div>
     </section>
     <section class="set-group">
       <h3>Цвета</h3>
@@ -433,6 +463,7 @@
       <button type="button" class="link-btn s-more" id="sMore" hidden></button>
     </div>
     </div></div>
+    <button type="button" class="s-goals" id="sGoals" hidden></button>
     <button type="button" class="link-btn s-how" id="sHow" aria-haspopup="dialog">Как считается</button>
   </div>
 </div>
@@ -785,6 +816,80 @@
       <div class="form-actions">
         <button type="button" id="nameSkip">Пропустить</button>
         <button type="submit" class="primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="overlay page" id="goalsOv" hidden>
+  <div class="sheet" id="gSheet" role="dialog" aria-modal="true" aria-labelledby="gTitle">
+    <div class="page-head g-head">
+      <button class="ghost icon-btn" data-close id="gBack" title="Назад" aria-label="Назад" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <h2 id="gTitle">Цели</h2>
+      <button class="ghost icon-btn" id="gMore" aria-label="Действия с целью" aria-haspopup="menu" hidden><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
+      <button class="ghost icon-btn" id="gClose" aria-label="Закрыть" title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div id="gListView">
+      <div class="seg" id="gTabs" role="group" aria-label="Какие цели показать">
+        <button type="button" data-t="active">Активные</button>
+        <button type="button" data-t="done">Выполненные</button>
+      </div>
+      <div class="g-items" id="gItems"></div>
+      <button type="button" class="primary g-add" id="gAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Новая цель</span></button>
+    </div>
+    <div class="g-view" id="gGoalView" hidden></div>
+  </div>
+</div>
+
+<div class="overlay" id="gFormOv" hidden>
+  <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="gfTitle">
+    <div class="sheet-head">
+      <h2 id="gfTitle">Новая цель</h2>
+      <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <form class="form g-form" id="gForm" novalidate>
+      <div class="field" id="gfNameField">
+        <label class="lbl" for="gfName">Название</label>
+        <input type="text" id="gfName" maxlength="80" enterkeyhint="done" autocomplete="off" placeholder="Например: сдать теорию ПДД">
+      </div>
+      <div class="field">
+        <label class="lbl" for="gfDue">Срок</label>
+        <input type="date" id="gfDue">
+        <div class="g-quick" id="gfQuick">
+          <button type="button" data-q="week">Через неделю</button>
+          <button type="button" data-q="month">Через месяц</button>
+          <button type="button" data-q="eom">Конец месяца</button>
+        </div>
+        <p class="field-hint" id="gfDueHint"></p>
+      </div>
+      <details class="g-more" id="gfMore">
+        <summary>Дополнительно</summary>
+        <div class="field">
+          <label class="lbl" for="gfStart">Дата начала</label>
+          <input type="date" id="gfStart">
+        </div>
+        <div class="field">
+          <span class="lbl">Объём <span>— необязательно</span></span>
+          <div class="g-vol">
+            <input type="number" id="gfTotal" min="0" step="any" inputmode="decimal" placeholder="Всего" aria-label="Всего">
+            <input type="number" id="gfDone" min="0" step="any" inputmode="decimal" placeholder="Уже сделано" aria-label="Уже сделано">
+            <input type="text" id="gfUnit" maxlength="20" enterkeyhint="done" placeholder="напр. вопросов" aria-label="Единица">
+          </div>
+          <p class="field-hint" id="gfVolHint"></p>
+        </div>
+        <div class="field">
+          <label class="lbl" for="gfNote">Заметка</label>
+          <textarea id="gfNote" maxlength="1000" rows="3"></textarea>
+        </div>
+        <div class="field">
+          <span class="lbl">Цвет</span>
+          <div class="colors" id="gfColors"></div>
+        </div>
+      </details>
+      <div id="gfPrivSlot"></div>
+      <div class="form-actions">
+        <button type="button" data-close>Отмена</button>
+        <button type="submit" class="primary" id="gfSubmit">Создать</button>
       </div>
     </form>
   </div>

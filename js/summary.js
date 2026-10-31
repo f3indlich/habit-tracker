@@ -5,6 +5,7 @@ import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.
 import { queueTips } from './tips.js?v=1.06a';
 import { visibleHabits } from './privacy.js?v=1.06a';
 import { overWeekday, planPct, planStats } from './plan.js?v=1.06a';
+import { renderSumGoals } from './goalsui.js?v=1.06a';
 import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=1.06a';
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
@@ -192,6 +193,7 @@ export function obsRange(range, ds) {
 }
 
 export function renderSummary() {
+  renderSumGoals();
   dayCache = new Map();
   try { drawSummary(); } finally { dayCache = null; }
 }

@@ -221,12 +221,12 @@ export function renderPlan(h) {
   const steps = h.goals?.length ? goalSteps(h) : null;
   box.innerHTML = `<div class="plan-head"><div class="seg plan-seg" role="group" aria-label="Период">${Object.entries(PLAN_WINDOWS).map(([id, w]) =>
       `<button type="button" data-w="${id}" aria-pressed="${id === planWin}">${w.label.replace(' время', '<span class="plan-long"> время</span>')}</button>`).join('')}</div>
-      <button type="button" class="tile-i plan-i" aria-label="Как считается план" aria-haspopup="dialog">${IC_I}</button></div>
+      <button type="button" class="tile-i plan-i" aria-label="Как считается выполнение плана" aria-haspopup="dialog">${IC_I}</button></div>
     ${!p.plannedDays ? '<p class="plan-empty">Пока нет данных</p>' : `
     <div class="plan-l1">Засчитано <b>${p.credited}</b> из ${p.plan}${unit} (${pct}%)</div>
     ${p.over ? `<div class="plan-l2">${overText(p)}</div>` : ''}
     <div class="plan-l3">Цель достигнута в ${p.daysDone} из ${ofDays(p.plannedDays)}</div>
-    <div class="plan-bar" aria-hidden="true"><i style="width:${pct / scale * 100}%"></i>${overW ? `<b style="width:${overW / scale * 100}%"></b>` : ''}</div>
+    <div class="plan-bar" aria-hidden="true"><span style="width:${100 / scale * 100}%"><i style="width:${pct}%"></i></span>${overW ? `<b style="width:${overW / scale * 100}%"></b>` : ''}</div>
     ${unitChanged(h, from) ? '<p class="plan-note">Единица измерения менялась — старые и новые числа могут не совпадать по смыслу</p>' : ''}`}
     ${steps ? `<details class="plan-goals"><summary>История целей</summary><ul>${steps.map(s =>
       `<li>с ${fmtShort(s.from)} — ${s.target}${s.unit ? ' ' + esc(s.unit) : ''}</li>`).join('')}</ul></details>` : ''}`;
@@ -239,7 +239,7 @@ export function renderPlan(h) {
   };
   box.querySelector('.plan-i').onclick = e => {
     if (menuEl?._anchor === e.currentTarget) return closeMenu();
-    openPopover(e.currentTarget, `<div class="pop-title">План и факт</div><p class="pop-lead">${PLAN_INFO}</p>`, h.color);
+    openPopover(e.currentTarget, `<div class="pop-title">Выполнение плана</div><p class="pop-lead">${PLAN_INFO}</p>`, h.color);
   };
 }
 
@@ -268,9 +268,10 @@ export function dayRing(h, d, i, size) {
 export function weekView(h, ds) {
   const val = d => {
     const st = dayState(h, d), c = count(h, d), t = targetOn(h, d), multi = t > 1;
+    const w = s => `<span class="wk-w">${s}</span>`, of = n => t >= 1000 ? `${n}<span class="wk-t"><wbr>/${t}</span>` : `${n}<wbr>/${t}`;
     return {
-      full: multi ? `${c}/${t}` : 'готово', part: `${c}/${t}`, skip: 'пропуск', off: 'не в плане',
-      miss: multi ? `0/${t}` : 'нет', pending: multi ? `0/${t}` : 'сегодня',
+      full: multi ? of(c) : w('готово'), part: of(c), skip: w('пропуск'), off: w('не в плане'),
+      miss: multi ? of(0) : w('нет'), pending: multi ? of(0) : w('сегодня'),
     }[st] || '';
   };
   return `<div class="wk">${ds.map((d, i) => `

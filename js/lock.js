@@ -6,6 +6,7 @@ import { purgePrivate, render } from './render.js?v=1.06a';
 import { editingId, form, syncPrivRow } from './form.js?v=1.06a';
 import { day, hist, setHist } from './history.js?v=1.06a';
 import { exportData } from './settings.js?v=1.06a';
+import { goalsLocked } from './goalsui.js?v=1.06a';
 import { cloud } from './sync.js?v=1.06a';
 import { addLongPress, b64, hasPin, IDLE_MS, isPrivate, LOCK_STORE, lockWait, readLock, setPin, setUnlocked, tryPin, unb64, unlocked, validPin, writeLock } from './privacy.js?v=1.06a';
 
@@ -79,6 +80,7 @@ function scrub() {
     form.priv = false;
   }
   syncPrivRow();
+  goalsLocked();
   if ($('lockOv')._shown) hideNow($('lockOv'));
   clearBody();
 }
@@ -250,7 +252,12 @@ function dropPrivate(remove) {
   if (remove) {
     state.habits = state.habits.filter(h => !isPrivate(h));
     for (const map of [state.log, state.skip, state.notes]) for (const k in map) for (const id of ids) setMap(map, k, id, 0);
-  } else state.habits.forEach(h => { delete h.private; });
+    state.goals = (state.goals || []).filter(g => !isPrivate(g));
+    for (const g of state.goals) if (g.habitIds?.some(id => ids.includes(id))) { g.habitIds = g.habitIds.filter(id => !ids.includes(id)); g.updatedAt = Date.now(); }
+  } else {
+    state.habits.forEach(h => { delete h.private; });
+    for (const g of state.goals || []) if (isPrivate(g)) { delete g.private; g.updatedAt = Date.now(); }
+  }
   save();
 }
 
