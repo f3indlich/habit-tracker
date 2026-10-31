@@ -1,12 +1,12 @@
-import { $, addDays, esc, key, parseKey, plural, todayKey, weekday } from './core.js?v=2.0';
-import { iconHTML } from './icons.js?v=2.0';
-import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=2.0';
-import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=2.0';
-import { queueTips } from './tips.js?v=2.0';
-import { visibleHabits } from './privacy.js?v=2.0';
-import { overWeekday, planPct, planStats } from './plan.js?v=2.0';
-import { renderSumGoals } from './goalsui.js?v=2.0';
-import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=2.0';
+import { $, addDays, esc, key, parseKey, plural, todayKey, weekday } from './core.js?v=2.1a';
+import { iconHTML } from './icons.js?v=2.1a';
+import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=2.1a';
+import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=2.1a';
+import { queueTips } from './tips.js?v=2.1a';
+import { visibleHabits } from './privacy.js?v=2.1a';
+import { overWeekday, planPct, planStats } from './plan.js?v=2.1a';
+import { renderSumGoals } from './goalsui.js?v=2.1a';
+import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=2.1a';
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
 export const MONTHS_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
