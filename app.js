@@ -23,9 +23,11 @@ import * as guideMod from './js/guide.js?v=1.06a';
 import * as privacyMod from './js/privacy.js?v=1.06a';
 import * as lockMod from './js/lock.js?v=1.06a';
 import * as planMod from './js/plan.js?v=1.06a';
+import * as goalsMod from './js/goals.js?v=1.06a';
+import * as goalsUi from './js/goalsui.js?v=1.06a';
 
 if (TEST_MODE) {
-  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod, privacyMod, lockMod, planMod]) {
+  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod, privacyMod, lockMod, planMod, goalsMod, goalsUi]) {
     for (const k of Object.keys(m)) {
       const set = typeof m[k] !== 'function' && m['set' + k[0].toUpperCase() + k.slice(1)];
       try { Object.defineProperty(window, k, { configurable: true, get: () => m[k], set: set || undefined }); } catch {}

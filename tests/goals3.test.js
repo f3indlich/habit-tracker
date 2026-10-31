@@ -1,0 +1,133 @@
+window.wait = ms => new Promise(r => setTimeout(r, ms));
+window.__errs = [];
+addEventListener('error', e => __errs.push(String(e.message)));
+addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
+const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+const TD = todayKey(), ago = n => key(addDays(new Date(), -n)), fwd = n => key(addDays(new Date(), n));
+
+const src = await (await fetch((window.__serverSrc || 'supabase/functions/send-reminders/index.ts') + '?x=' + Date.now())).text();
+const S = new parent.Function(src.replace(/^import .*$/mg, '').replace(/if \(typeof Deno[\s\S]*$/, '') + '\nreturn { goalReminders, goalPayload, goalText, goalRemindCfg, goalNumbers, habitFact, localNow, GOAL_TAG };')();
+const at = (iso, tz = 'Europe/Moscow', data, sent) => S.goalReminders(data, tz, new Date(iso), sent);
+const GG = (id, due, o = {}) => ({ id, title: 'Цель ' + id, start: '2025-03-01', due, status: 'active', steps: [], habitIds: [], ...o });
+const data = { goals: [GG('d3', '2025-03-13'), GG('d1', '2025-03-11'), GG('d0', '2025-03-10'), GG('two', '2025-03-12'), GG('done', '2025-03-11', { status: 'done' }),
+  GG('closed', '2025-03-11', { status: 'closed' }), GG('late', '2025-03-09'), GG('far', '2025-04-10')] };
+const list = at('2025-03-10T07:30:00Z', 'Europe/Moscow', data);
+ok('server: 3, 1 and 0 days before due', list.map(x => x.key).join() === 'goal:d3,goal:d1,goal:d0' && list.map(x => x.type).join() === 'd3,d1,d0', list.map(x => x.key));
+ok('server: not for done, closed, overdue or other days', !list.some(x => /done|closed|late|two|far/.test(x.key)));
+ok('server: nothing before chosen time', at('2025-03-10T06:30:00Z', 'Europe/Moscow', data).length === 0);
+ok('server: default time is 10:00 and on', S.goalRemindCfg(undefined).on === true && S.goalRemindCfg(undefined).at === '10:00' && S.goalRemindCfg({ at: 'xx' }).at === '10:00');
+ok('server: custom time', at('2025-03-10T07:30:00Z', 'Europe/Moscow', { ...data, goalRemind: { on: true, at: '12:00' } }).length === 0 && at('2025-03-10T09:05:00Z', 'Europe/Moscow', { ...data, goalRemind: { on: true, at: '12:00' } }).length === 3);
+ok('server: turned off', at('2025-03-10T09:05:00Z', 'Europe/Moscow', { ...data, goalRemind: { on: false } }).length === 0);
+ok('server: dedupe by sent keys', at('2025-03-10T07:30:00Z', 'Europe/Moscow', data, { 'goal:d1': 1 }).map(x => x.key).join() === 'goal:d3,goal:d0');
+ok('server: one key per goal and day', new Set(list.map(x => x.key)).size === list.length && list.every(x => x.day === '2025-03-10'));
+const tzData = { goals: [GG('t', '2025-03-11')], goalRemind: { on: true, at: '00:00' } };
+ok('server: time zone decides the day', at('2025-03-10T22:30:00Z', 'Europe/Moscow', tzData)[0]?.type === 'd0' && at('2025-03-10T22:30:00Z', 'UTC', tzData)[0]?.type === 'd1');
+ok('server: bad goals ignored', at('2025-03-10T07:30:00Z', 'Europe/Moscow', { goals: [null, 5, { id: 'x' }, { id: 'y', due: 'bad', status: 'active' }] }).length === 0 && at('2025-03-10T07:30:00Z', 'UTC', {}).length === 0);
+
+const vg = GG('pdd', '2025-03-13', { title: 'Сдать теорию ПДД', volume: { total: 800, done: 620, unit: 'вопросов' } });
+const [v1] = at('2025-03-10T07:30:00Z', 'Europe/Moscow', { goals: [vg] });
+ok('server text: days and pace', S.goalText(v1) === 'До срока цели «Сдать теорию ПДД» осталось 3 дня. Нужно 60 вопросов в день.', S.goalText(v1));
+const [v2] = at('2025-03-10T07:30:00Z', 'Europe/Moscow', { goals: [{ ...vg, volume: { total: 800, done: 300, unit: 'вопросов' } }] });
+ok('server text: behind', S.goalText(v2).endsWith('Отстаёте на 300 вопросов.'), S.goalText(v2));
+const [v3] = at('2025-03-10T07:30:00Z', 'Europe/Moscow', { goals: [GG('s', '2025-03-11', { title: 'Отчёт', steps: [{ id: 'a', text: 'a', done: false }, { id: 'b', text: 'b', done: false }] })] });
+ok('server text: one day left, behind on steps', S.goalText(v3) === 'До срока цели «Отчёт» остался 1 день. Отстаёте на 2 шага.', S.goalText(v3));
+const [v4] = at('2025-03-10T07:30:00Z', 'Europe/Moscow', { goals: [GG('z', '2025-03-10', { title: 'Визит' })] });
+ok('server text: last day', S.goalText(v4) === 'Сегодня последний день срока цели «Визит».', S.goalText(v4));
+const pub = S.goalPayload([v1]);
+ok('server payload: title, tag, no ids', pub.title === 'Срок цели' && pub.tag === S.GOAL_TAG && pub.goal === true && pub.ids.length === 0 && !JSON.stringify(pub).includes('pdd'));
+const priv = S.goalPayload([{ ...v1, private: true }]);
+ok('server payload: private goal is neutral', priv.title === 'Трекер привычек' && priv.body === 'Пора заглянуть в приложение' && priv.tag === S.GOAL_TAG && !JSON.stringify(priv).includes('ПДД') && !JSON.stringify(priv).includes('800'));
+const mixed = S.goalPayload([v4, { ...v1, private: true }]);
+ok('server payload: private hidden among others', !mixed.body.includes('ПДД') && mixed.body.includes('Визит'));
+ok('server payload: several goals', S.goalPayload([v1, v4]).title === 'Сроки целей');
+
+const habit = { id: 'q', name: 'Билеты', created: ago(20), target: 40, unit: 'вопросов', schedule: { type: 'weekdays', days: [0, 1, 2, 3, 4] }, days: [0, 1, 2, 3, 4] };
+const hLog = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [ago(i), { q: 10 + i }]));
+setState(normalize({ habits: [habit], log: hLog, skip: { [ago(3)]: { q: 1 } } }));
+const qs = findHabit('q');
+ok('server auto volume equals app count', S.habitFact(qs, state, ago(14), TD) === planStats(qs, state, ago(14), TD, TD).fact, [S.habitFact(qs, state, ago(14), TD), planStats(qs, state, ago(14), TD, TD).fact]);
+const autoGoal = { id: 'ag', title: 'А', start: ago(14), due: fwd(10), status: 'active', volume: { total: 2000, done: 0, unit: '', auto: true }, habitIds: ['q'], steps: [] };
+const sn = S.goalNumbers(autoGoal, state, TD);
+ok('server pace equals app pace', sn.pace === pacePerDay(autoGoal, state, TD) && sn.unit === 'вопросов', [sn, pacePerDay(autoGoal, state, TD)]);
+
+ok('remind settings default on at 10:00', goalRemindOf().on === true && goalRemindOf().at === '10:00' && !state.goalRemind);
+setGoalRemind({ at: '09:30' });
+ok('remind settings saved', state.goalRemind.on === true && state.goalRemind.at === '09:30' && $('goalRemAt').value === '09:30');
+setGoalRemind({ on: false });
+ok('remind settings off', state.goalRemind.on === false && $('goalRemSwitch').getAttribute('aria-checked') === 'false' && $('goalRemWrap').inert);
+ok('remind settings normalized', normalize({ habits: [], log: {}, goalRemind: { on: 'x', at: '99:99' } }).goalRemind.at === '10:00' && !('goalRemind' in normalize({ habits: [], log: {} })));
+ok('remind settings merged', mergeStates({ goalRemind: { on: true, at: '10:00' } }, { goalRemind: { on: true, at: '10:00' } }, { goalRemind: { on: false, at: '10:00' } }).goalRemind.on === false);
+
+const SG = 'ZZZ_PRIVATE_GOAL', SS = 'ZZZ_PRIVATE_STEP', SN = 'ZZZ_PRIVATE_NOTE', SH = 'ZZZ_PRIVATE_HABIT';
+const leaks = () => {
+  const out = [], all = [SG, SS, SN, SH];
+  if (all.some(x => document.body.textContent.includes(x))) out.push('text');
+  if (all.some(x => document.body.innerHTML.includes(x))) out.push('html');
+  if (all.some(x => document.title.includes(x))) out.push('title');
+  for (const el of document.querySelectorAll('[aria-label], [title]')) if (all.some(x => (el.getAttribute('aria-label') || '').includes(x) || (el.title || '').includes(x))) out.push('attr');
+  for (const el of document.querySelectorAll('input, textarea')) if (all.some(x => el.value.includes(x))) out.push('value');
+  if ($('toastText').textContent && all.some(x => $('toastText').textContent.includes(x))) out.push('toast');
+  return out;
+};
+lockNow(); localStorage.removeItem(LOCK_STORE);
+setState(normalize({ habits: [{ id: 'a', name: 'Обычная', icon: 'walk', created: ago(10) }, { id: 'p', name: SH, icon: 'zen', created: ago(10), private: true }], log: { [TD]: { a: 1, p: 1 } },
+  goals: [{ id: 'r', title: 'Обычная цель', start: ago(5), due: fwd(10), habitIds: ['a'] },
+    { id: 'pg', title: SG, start: ago(5), due: fwd(2), private: true, note: SN, steps: [{ id: 's1', text: SS }], habitIds: ['p'] }] }));
+save(); cards.forEach(e => e.remove()); cards.clear(); render(); await wait(400);
+ok('locked: strip shows only regular goal', $('gsText').textContent === 'Ближайшая цель: Обычная цель · 10 дней', $('gsText').textContent);
+openGoals(); await wait(500);
+ok('locked: list without private goal', $('gItems').querySelectorAll('.g-card').length === 1 && !leaks().length, leaks());
+openGoal('pg'); await wait(150);
+ok('locked: private goal does not open', gv.id === null && !leaks().length);
+$('gTabs').querySelector('[data-t=done]').click(); await wait(100);
+$('gTabs').querySelector('[data-t=active]').click(); await wait(100);
+openGoalForm(); await wait(300);
+ok('locked: no private switch in form', $('gfPrivSlot').innerHTML === '' && !$('gFormOv').textContent.includes('Личная'));
+closeOverlay($('gFormOv')); await wait(300);
+openSummary(); await wait(900);
+ok('locked: summary counts ignore private goal', goalCounts().active === 1 && !leaks().length);
+closeOverlay($('sumOv')); await wait(300);
+const reg = findGoal('r');
+openGoal('r'); await wait(150);
+ok('private habit not offered for regular goal', !linkable(reg).some(h => h.id === 'p'));
+ok('private habit cannot be linked to regular goal', linkHabit(reg, 'p') === false && !reg.habitIds.includes('p') && $('toastText').textContent === 'Личную привычку можно привязать только к личной цели');
+ok('locked: no leaks anywhere', !leaks().length, leaks());
+
+await setPin('2468');
+unlock(); await wait(400);
+$('gBack').click(); await wait(150);
+ok('unlocked: private goal in list with lock', !!$('gItems').querySelector('[data-id=pg] .g-lock') && $('gItems').textContent.includes(SG));
+openGoal('pg'); await wait(150);
+ok('unlocked: private goal opens with steps and note', $('gTitle').textContent === SG && $('gGoalView').textContent.includes(SS) && $('gGoalView').textContent.includes(SN));
+ok('unlocked: private habit shown in private goal', $('gGoalView').textContent.includes(SH));
+ok('strip still ignores private goal', $('gsText').textContent.includes('Обычная цель'));
+ok('summary still ignores private goal', goalCounts().active === 1);
+Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+document.dispatchEvent(new Event('visibilitychange'));
+ok('hidden: locked and private goal closed', !unlocked && gv.id === null && !leaks().length, leaks());
+delete document.visibilityState;
+await wait(400);
+render(); renderGoals(); await wait(100);
+ok('after hidden and redraw nothing leaks', !leaks().length, leaks());
+
+unlock(); await wait(300);
+openGoalForm(); await wait(300);
+ok('unlocked: private switch in form', !!$('gfPriv') && $('gfPriv').getAttribute('aria-checked') === 'false');
+$('gfName').value = SG + '_NEW'; $('gfDue').value = fwd(5);
+$('gfPriv').click();
+$('gForm').requestSubmit(); await wait(500);
+const ng = state.goals.find(g => g.title === SG + '_NEW');
+ok('private goal created', !!ng && ng.private === true);
+ok('toasts neutral', !$('toastText').textContent.includes(SG));
+openGoalForm(ng); await wait(300);
+ok('editing private goal: form open', $('gfName').value === SG + '_NEW');
+lockNow(); await wait(50);
+ok('lock closes private goal form and clears it', !$('gFormOv')._shown && $('gfName').value === '' && !leaks().length, leaks());
+$('gClose').click(); await wait(400);
+ok('after lock: goals page clean', !leaks().length, leaks());
+const pl = S.goalPayload(S.goalReminders({ goals: [{ ...state.goals.find(g => g.id === 'pg'), due: TD }], goalRemind: { on: true, at: '00:00' } }, Intl.DateTimeFormat().resolvedOptions().timeZone, new Date()));
+ok('server: private goal reminder neutral', pl.body === 'Пора заглянуть в приложение' && !JSON.stringify(pl).includes(SG) && !JSON.stringify(pl).includes(SS));
+localStorage.removeItem(LOCK_STORE);
+
+ok('no page errors', __errs.length === 0, __errs);
+return R.join('\n');

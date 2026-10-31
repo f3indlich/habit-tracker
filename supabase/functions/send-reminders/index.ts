@@ -212,6 +212,89 @@ function smartPayload(list) {
   return { ...base, title, body: 'Загляните в приложение' };
 }
 
+const GOAL_TAG = 'habit-goals';
+const GOAL_DAYS = { 3: 'd3', 1: 'd1', 0: 'd0' };
+const MAX_COUNT = 100000;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function goalRemindCfg(v) {
+  const o = v && typeof v === 'object' ? v : {};
+  return { on: o.on !== false, at: HHMM.test(o.at || '') ? o.at : '10:00' };
+}
+
+const daysBetween = (a, b) => Math.round((keyDate(a).getTime() - keyDate(b).getTime()) / DAY_MS);
+
+function habitFact(h, data, from, to) {
+  const log = data?.log || {}, skip = data?.skip || {};
+  let sum = 0;
+  for (let k = h.created && from < h.created ? h.created : from; k <= to; k = shiftKey(k, 1)) {
+    if (!inLife(h, k) || skip[k]?.[h.id]) continue;
+    const c = Math.min(MAX_COUNT, Math.max(0, Math.floor(log[k]?.[h.id] || 0)));
+    if (!c) continue;
+    const sc = scheduleOn(h, k);
+    if (sc.type === 'perWeek' || schedDue(sc, k)) sum += c;
+  }
+  return sum;
+}
+
+function goalNumbers(g, data, today) {
+  const span = daysBetween(g.due, g.start), expected = span <= 0 ? 1 : Math.max(0, Math.min(1, daysBetween(today, g.start) / span));
+  const ids = Array.isArray(g.habitIds) ? g.habitIds : [];
+  const hs = ids.map(id => (data?.habits || []).find(h => h && h.id === id)).filter(Boolean);
+  const quant = h => (h.target || 1) > 1 || (Array.isArray(h.goals) && h.goals.some(x => x.target > 1));
+  const auto = g.volume?.auto && ids.length === 1 && hs.length === 1 && quant(hs[0]) ? hs[0] : null;
+  let done = 0, total = 0, unit = '', kind = 'time';
+  if (g.volume && g.volume.total > 0) {
+    kind = 'volume';
+    total = g.volume.total;
+    done = auto ? (g.start > today ? 0 : habitFact(auto, data, g.start, today)) : Math.max(0, Number(g.volume.done) || 0);
+    unit = (auto ? auto.unit : g.volume.unit) || '';
+  } else if (Array.isArray(g.steps) && g.steps.length) {
+    kind = 'steps';
+    total = g.steps.length;
+    done = g.steps.filter(x => x && x.done).length;
+  }
+  const left = daysBetween(g.due, today);
+  const fraction = total ? Math.min(1, done / total) : expected;
+  const behind = kind !== 'time' && fraction < expected - 0.1 - 1e-9 ? Math.max(1, Math.ceil(expected * total - done - 1e-9)) : 0;
+  const rest = total - done;
+  const pace = kind === 'volume' && rest > 0 ? Math.ceil(rest / Math.max(left, 1) - 1e-9) : 0;
+  return { kind, left, behind, pace, unit };
+}
+
+function goalReminders(data, tz, now, sent = {}) {
+  const cfg = goalRemindCfg(data?.goalRemind);
+  if (!cfg.on) return [];
+  const local = localNow(tz, now);
+  if (local.minutes < toMin(cfg.at)) return [];
+  const out = [];
+  for (const g of Array.isArray(data?.goals) ? data.goals : []) {
+    if (!g || typeof g.id !== 'string' || g.status !== 'active' || !DATE_RE.test(g.due || '')) continue;
+    const left = daysBetween(g.due, local.day), type = GOAL_DAYS[left];
+    if (!type) continue;
+    const key = 'goal:' + g.id;
+    if (sent[key]) continue;
+    const start = DATE_RE.test(g.start || '') && g.start <= g.due ? g.start : g.due;
+    out.push({ key, type, day: local.day, title: String(g.title || 'Цель'), private: g.private === true, ...goalNumbers({ ...g, start }, data, local.day) });
+  }
+  return out;
+}
+
+function goalText(r) {
+  const unit = r.unit ? ' ' + r.unit : '';
+  let t = r.left === 0 ? `Сегодня последний день срока цели «${r.title}».` : `До срока цели «${r.title}» ${ruPlural(r.left, 'остался', 'осталось', 'осталось')} ${r.left} ${ruPlural(r.left, 'день', 'дня', 'дней')}.`;
+  if (r.pace) t += ` Нужно ${r.pace}${unit} в день.`;
+  if (r.behind) t += ` Отстаёте на ${r.behind}${r.kind === 'steps' ? ' ' + ruPlural(r.behind, 'шаг', 'шага', 'шагов') : unit}.`;
+  return t;
+}
+
+function goalPayload(list) {
+  const vis = list.filter(g => !g.private);
+  const base = { tag: GOAL_TAG, goal: true, ids: [] };
+  if (!vis.length) return { ...base, title: 'Трекер привычек', body: 'Пора заглянуть в приложение' };
+  return { ...base, title: vis.length === 1 ? 'Срок цели' : 'Сроки целей', body: vis.map(goalText).join(' ') };
+}
+
 function safeEqual(a, b) {
   const x = new TextEncoder().encode(String(a)), y = new TextEncoder().encode(String(b));
   if (x.length !== y.length) return false;
@@ -241,7 +324,7 @@ if (typeof Deno !== 'undefined') {
       : { data: [], error: null };
     if (e2) return Response.json({ error: e2.message }, { status: 500 });
 
-    const summary = { users: users.length, notified: 0, smart: 0, repeat: 0, sent: 0, removed: 0, failed: 0 };
+    const summary = { users: users.length, notified: 0, smart: 0, repeat: 0, goals: 0, sent: 0, removed: 0, failed: 0 };
     for (const row of rows) {
       const list = byUser.get(row.user_id);
       const latestSub = [...list].sort((a, b) => String(b.last_seen).localeCompare(String(a.last_seen)))[0];
@@ -268,20 +351,37 @@ if (typeof Deno !== 'undefined') {
         if (rows.length > 1) await db.from('push_log').upsert(rows.slice(0, -1), { onConflict: 'user_id,habit_id,day', ignoreDuplicates: true });
         if (!dup) fresh.push(h);
       }
-      if (!fresh.length && !smart) continue;
+      const goals = [];
+      const cand = goalReminders(row.data, tz, now);
+      if (cand.length) {
+        const { data: glogs } = await db.from('push_log').select('habit_id')
+          .eq('user_id', row.user_id).eq('day', cand[0].day).in('habit_id', cand.map(g => g.key));
+        const sentKeys = new Set((glogs || []).map(l => l.habit_id));
+        for (const g of cand) {
+          if (sentKeys.has(g.key)) continue;
+          const { error: dup } = await db.from('push_log').insert({ user_id: row.user_id, habit_id: g.key, day: g.day });
+          if (!dup) goals.push(g);
+        }
+      }
+      if (!fresh.length && !smart && !goals.length) continue;
       summary.notified++;
       if (smart) summary[smart.kind === 'evening' ? 'smart' : 'repeat']++;
-      const body = JSON.stringify({ ...(smart ? smartPayload(smart.list) : payloadFor(fresh)), url: './' });
+      summary.goals += goals.length;
+      const bodies = [];
+      if (fresh.length || smart) bodies.push(JSON.stringify({ ...(smart ? smartPayload(smart.list) : payloadFor(fresh)), url: './' }));
+      if (goals.length) bodies.push(JSON.stringify({ ...goalPayload(goals), url: './' }));
       let delivered = 0, transient = 0;
       for (const s of list) {
-        try {
-          await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, { TTL: 3600, urgency: 'high' });
-          summary.sent++; delivered++;
-        } catch (err) {
-          if (err?.statusCode === 404 || err?.statusCode === 410) {
-            await db.from('push_subscriptions').delete().eq('endpoint', s.endpoint);
-            summary.removed++;
-          } else {
+        for (const body of bodies) {
+          try {
+            await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, { TTL: 3600, urgency: 'high' });
+            summary.sent++; delivered++;
+          } catch (err) {
+            if (err?.statusCode === 404 || err?.statusCode === 410) {
+              await db.from('push_subscriptions').delete().eq('endpoint', s.endpoint);
+              summary.removed++;
+              break;
+            }
             summary.failed++; transient++;
             console.error('push failed', err?.statusCode, err?.body || err?.message);
           }
@@ -290,6 +390,7 @@ if (typeof Deno !== 'undefined') {
       if (!delivered && transient) {
         for (const h of fresh) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', h.day).in('habit_id', h.slotKeys);
         if (smart) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', smart.day).eq('habit_id', smart.key);
+        for (const g of goals) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', g.day).eq('habit_id', g.key);
       }
     }
 

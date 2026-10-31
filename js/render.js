@@ -8,6 +8,7 @@ import { userName } from './settings.js?v=1.06a';
 import { queueTips } from './tips.js?v=1.06a';
 import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=1.06a';
 import { openLockSettings } from './lock.js?v=1.06a';
+import { renderGoalStrip } from './goalsui.js?v=1.06a';
 
 export let viewDate = new Date();
 export const cards = new Map();
@@ -429,7 +430,7 @@ export function updateCard(el, h) {
     warnEl.classList.toggle('stale', !!badge.stale);
     const room = meta.clientWidth - meta.querySelector('.m-lead').offsetWidth - (s ? meta.querySelector('.m-streak').scrollWidth + 8 : 0) - 8;
     const label = warnEl.querySelector('.w-long');
-    const fit = w => badge.texts.some(t => { label.textContent = t; return label.offsetWidth + 14 <= w; });
+    const fit = w => badge.texts.some(t => { label.textContent = t; return label.offsetWidth + 14 <= Math.min(w, 260); });
     if (!fit(room) && meta.clientWidth) {
       meta.classList.add('m-wrap');
       if (!fit(meta.clientWidth)) { label.textContent = badge.texts[badge.texts.length - 1]; warnEl.classList.add('m-free'); }
@@ -609,6 +610,7 @@ export function render() {
   firstRender = false;
   renderLegend();
   renderArchive();
+  renderGoalStrip();
   queueTips();
 }
 

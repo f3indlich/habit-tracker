@@ -133,7 +133,7 @@ ok('settings have a help group before data', groups.indexOf('Помощь') === 
 $('helpBtn').click(); await wait(500);
 ok('help page opens over settings', $('helpOv')._shown && shownOverlays().pop() === $('helpOv'));
 const rows = () => [...$('helpList').querySelectorAll('.help-item')];
-ok('help has three groups and ten rows', $('helpList').querySelectorAll('.set-group').length === 3 && rows().length === 10, rows().length);
+ok('help has three groups and eleven rows', $('helpList').querySelectorAll('.set-group').length === 3 && rows().length === 11, rows().length);
 ok('articles start closed', rows().filter(r => r.dataset.id).every(r => r.querySelector('.help-body').hidden));
 rows()[0].querySelector('.set-row').click(); await wait(100);
 ok('tap opens an article', !rows()[0].querySelector('.help-body').hidden && rows()[0].querySelector('.set-row').getAttribute('aria-expanded') === 'true');

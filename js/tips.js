@@ -15,6 +15,7 @@ export const TIP_TEXT = {
   order: { bar: 'Удерживайте карточку и тяните, чтобы поменять порядок привычек.' },
   hist: { title: 'История по дням', lines: [['Нажмите на день', ' — увидите подробности и сможете добавить заметку.'], ['Смахните график', ' влево или вправо, чтобы листать периоды.'], ['Потяните окно вниз', ', чтобы закрыть его.']] },
   sum: { title: 'Что значат цифры', text: 'Нажмите ⓘ рядом с показателем — откроется объяснение, как он считается. Смахните график, чтобы перейти к прошлому периоду.' },
+  goals: { title: 'Цель со сроком', text: 'Добавьте цель, дату и шаги. Приложение покажет, сколько осталось дней, какой нужен темп и успеваете ли Вы.' },
   sync: { bar: 'Включите синхронизацию, чтобы не потерять привычки при смене телефона.' },
 };
 const SESSION_MAX = 3;
@@ -159,6 +160,7 @@ export function runTips() {
   const top = shownOverlays().pop();
   if (top === $('histOv')) return showTip('hist', $('hChart'));
   if (top === $('sumOv')) return showTip('sum', $('sSheet').querySelector('.tile-i'));
+  if (top === $('goalsOv')) return $('gListView').hidden ? false : showTip('goals', $('gAdd'));
   if (top || !isToday(viewDate)) return false;
   const vis = [...document.querySelectorAll('#sections .habit')].filter(e => e.offsetParent !== null);
   if (!vis.length) return false;

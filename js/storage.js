@@ -4,6 +4,7 @@ import { toast } from './ui.js?v=1.06a';
 import { render } from './render.js?v=1.06a';
 import { cloud, cloudQueue } from './sync.js?v=1.06a';
 import { visibleHabits } from './privacy.js?v=1.06a';
+import { normGoals } from './goals.js?v=1.06a';
 
 export let state;
 export function load() {
@@ -43,6 +44,12 @@ export function normSmart(v) {
   };
 }
 export const smartOf = (s = state) => s.smart || { ...SMART_DEF, quiet: [...SMART_DEF.quiet] };
+export const GOAL_REMIND_DEF = { on: true, at: '10:00' };
+export function normGoalRemind(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  return { on: v.on !== false, at: typeof v.at === 'string' && HHMM.test(v.at) ? v.at : GOAL_REMIND_DEF.at };
+}
+export const goalRemindOf = (s = state) => s.goalRemind || { ...GOAL_REMIND_DEF };
 export function normSchedule(s, created) {
   if (!s || typeof s !== 'object' || Array.isArray(s) || !SCHED_TYPES.includes(s.type)) return null;
   const int = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi ? v : null;
@@ -115,8 +122,11 @@ export function normalize(s) {
   });
   const pname = isObj(s.profile) && typeof s.profile.name === 'string' ? s.profile.name.trim().slice(0, 40) : '';
   if (pname) s.profile = { name: pname }; else delete s.profile;
+  s.goals = normGoals(s.goals, seen);
   const sm = normSmart(s.smart);
   if (sm) s.smart = sm; else delete s.smart;
+  const gr = normGoalRemind(s.goalRemind);
+  if (gr) s.goalRemind = gr; else delete s.goalRemind;
   for (const map of [s.log, s.skip]) for (const k of Object.keys(map)) {
     if (!isKey(k) || !isObj(map[k])) { delete map[k]; continue; }
     for (const id of Object.keys(map[k])) {
