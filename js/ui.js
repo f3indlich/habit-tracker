@@ -1,8 +1,8 @@
-import { $, esc, reducedMotion, RING_C, viewportHeight } from './core.js?v=1.06a';
-import { IC } from './icons.js?v=1.06a';
-import { reordering, setReorder } from './render.js?v=1.06a';
-import { setHist } from './history.js?v=1.06a';
-import { hintPull } from './tips.js?v=1.06a';
+import { $, esc, reducedMotion, RING_C, viewportHeight } from './core.js?v=2.0';
+import { IC } from './icons.js?v=2.0';
+import { reordering, setReorder } from './render.js?v=2.0';
+import { setHist } from './history.js?v=2.0';
+import { hintPull } from './tips.js?v=2.0';
 
 export function rollNumber(slot, text, dir, animate) {
   if (slot._val === text) return;

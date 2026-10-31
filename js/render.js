@@ -1,14 +1,14 @@
-import { $, addDays, COLORS, DAY_C, days, ofDays, EASE, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, key, MONTHS_SHORT, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=1.06a';
-import { IC, setIcon } from './icons.js?v=1.06a';
-import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=1.06a';
-import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=1.06a';
-import { openCats, openForm } from './form.js?v=1.06a';
-import { dayTip, hist, openDay, openHistory, renderHistory, setHist } from './history.js?v=1.06a';
-import { userName } from './settings.js?v=1.06a';
-import { queueTips } from './tips.js?v=1.06a';
-import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=1.06a';
-import { openLockSettings } from './lock.js?v=1.06a';
-import { renderGoalStrip } from './goalsui.js?v=1.06a';
+import { $, addDays, COLORS, DAY_C, days, ofDays, EASE, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, key, MONTHS_SHORT, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=2.0';
+import { IC, setIcon } from './icons.js?v=2.0';
+import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=2.0';
+import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=2.0';
+import { openCats, openForm } from './form.js?v=2.0';
+import { dayTip, hist, openDay, openHistory, renderHistory, setHist } from './history.js?v=2.0';
+import { userName } from './settings.js?v=2.0';
+import { queueTips } from './tips.js?v=2.0';
+import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=2.0';
+import { openLockSettings } from './lock.js?v=2.0';
+import { renderGoalStrip } from './goalsui.js?v=2.0';
 
 export let viewDate = new Date();
 export const cards = new Map();
