@@ -1,11 +1,11 @@
-import { $, isIOS, isStandalone, NS, PRIVACY_EMAIL, TEST_MODE } from './core.js?v=1.05a';
-import { findHabit, normalize, save, setState, state } from './storage.js?v=1.05a';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.05a';
-import { render } from './render.js?v=1.05a';
-import { pick } from './form.js?v=1.05a';
-import { hist, renderHistory, setHist } from './history.js?v=1.05a';
-import { pushDisable, pushRefresh, renderPush } from './push.js?v=1.05a';
-import { lockNow } from './lock.js?v=1.05a';
+import { $, isIOS, isStandalone, NS, PRIVACY_EMAIL, TEST_MODE } from './core.js?v=1.06a';
+import { findHabit, normalize, save, setState, state } from './storage.js?v=1.06a';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.06a';
+import { render } from './render.js?v=1.06a';
+import { pick } from './form.js?v=1.06a';
+import { hist, renderHistory, setHist } from './history.js?v=1.06a';
+import { pushDisable, pushRefresh, renderPush } from './push.js?v=1.06a';
+import { lockNow } from './lock.js?v=1.06a';
 
 export const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
 cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');

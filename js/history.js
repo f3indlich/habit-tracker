@@ -1,11 +1,11 @@
-import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.05a';
-import { setIcon } from './icons.js?v=1.05a';
-import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, streak, targetOn } from './storage.js?v=1.05a';
-import { askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=1.05a';
-import { catName } from './render.js?v=1.05a';
-import { openForm } from './form.js?v=1.05a';
-import { queueTips } from './tips.js?v=1.05a';
-import { overText, PLAN_STORE, PLAN_WINDOWS, planPct, planStats, unitChanged, windowRange } from './plan.js?v=1.05a';
+import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.06a';
+import { setIcon } from './icons.js?v=1.06a';
+import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, streak, targetOn } from './storage.js?v=1.06a';
+import { askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=1.06a';
+import { catName } from './render.js?v=1.06a';
+import { openForm } from './form.js?v=1.06a';
+import { queueTips } from './tips.js?v=1.06a';
+import { overText, PLAN_STORE, PLAN_WINDOWS, planPct, planStats, unitChanged, windowRange } from './plan.js?v=1.06a';
 
 export let hist = null;
 export const IC_I = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg>';
