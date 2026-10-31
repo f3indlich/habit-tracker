@@ -1,13 +1,13 @@
-import { $, esc, isIOS } from './core.js?v=1.05a';
-import { IC } from './icons.js?v=1.05a';
-import { findHabit, save, setMap, state } from './storage.js?v=1.05a';
-import { closeMenu, closeOverlay, openOverlay, shownOverlays, toast } from './ui.js?v=1.05a';
-import { purgePrivate, render } from './render.js?v=1.05a';
-import { editingId, form, syncPrivRow } from './form.js?v=1.05a';
-import { day, hist, setHist } from './history.js?v=1.05a';
-import { exportData } from './settings.js?v=1.05a';
-import { cloud } from './sync.js?v=1.05a';
-import { addLongPress, b64, hasPin, IDLE_MS, isPrivate, LOCK_STORE, lockWait, readLock, setPin, setUnlocked, tryPin, unb64, unlocked, validPin, writeLock } from './privacy.js?v=1.05a';
+import { $, esc, isIOS } from './core.js?v=1.06a';
+import { IC } from './icons.js?v=1.06a';
+import { findHabit, save, setMap, state } from './storage.js?v=1.06a';
+import { closeMenu, closeOverlay, openOverlay, shownOverlays, toast } from './ui.js?v=1.06a';
+import { purgePrivate, render } from './render.js?v=1.06a';
+import { editingId, form, syncPrivRow } from './form.js?v=1.06a';
+import { day, hist, setHist } from './history.js?v=1.06a';
+import { exportData } from './settings.js?v=1.06a';
+import { cloud } from './sync.js?v=1.06a';
+import { addLongPress, b64, hasPin, IDLE_MS, isPrivate, LOCK_STORE, lockWait, readLock, setPin, setUnlocked, tryPin, unb64, unlocked, validPin, writeLock } from './privacy.js?v=1.06a';
 
 export const FACE = isIOS ? 'Face ID или Touch ID' : 'отпечаток пальца или распознавание лица';
 export const WIPE_WORD = 'СТЕРЕТЬ';

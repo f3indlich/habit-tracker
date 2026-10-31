@@ -1,11 +1,11 @@
-import { $, addDays, esc, key, parseKey, plural, todayKey, weekday } from './core.js?v=1.05a';
-import { iconHTML } from './icons.js?v=1.05a';
-import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=1.05a';
-import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=1.05a';
-import { queueTips } from './tips.js?v=1.05a';
-import { visibleHabits } from './privacy.js?v=1.05a';
-import { overWeekday, planPct, planStats } from './plan.js?v=1.05a';
-import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=1.05a';
+import { $, addDays, esc, key, parseKey, plural, todayKey, weekday } from './core.js?v=1.06a';
+import { iconHTML } from './icons.js?v=1.06a';
+import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=1.06a';
+import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=1.06a';
+import { queueTips } from './tips.js?v=1.06a';
+import { visibleHabits } from './privacy.js?v=1.06a';
+import { overWeekday, planPct, planStats } from './plan.js?v=1.06a';
+import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=1.06a';
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
 export const MONTHS_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
