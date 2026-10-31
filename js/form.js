@@ -1,6 +1,7 @@
-import { $, addDays, COLORS, days, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, WEEKDAYS } from './core.js?v=1.05a';
-import { ICON_KEYS, iconHTML, setIcon } from './icons.js?v=1.05a';
-import { findHabit, normRemind, noteGoalChange, save, state } from './storage.js?v=1.05a';
+import { $, addDays, COLORS, days, esc, scheduleOf, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=1.05a';
+import { IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=1.05a';
+import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=1.05a';
+import { findHabit, goalOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=1.05a';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.05a';
 import { catName, render } from './render.js?v=1.05a';
 import { hist, renderHistory } from './history.js?v=1.05a';
@@ -8,7 +9,7 @@ import { renderRemindHint } from './push.js?v=1.05a';
 
 export let editingId = null;
 export const form = {
-  icon: 'check', color: COLORS[0], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null, newCat: false,
+  icon: 'check', color: COLORS[0], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], times: 3, every: 2, anchor: '', dom: 1, time: 'any', cat: null, newCat: false,
   rem: { on: false, touched: false, mode: 'times', times: ['09:00'], repeat: 0, repeatN: 1, from: '09:00', to: '21:00', days: null, dates: false, dFrom: '', dTo: '' },
 };
 
@@ -18,6 +19,21 @@ export function drawIconPickers() {
 }
 $('colors').innerHTML = COLORS.map(c => `<button type="button" data-v="${c}" style="--sw:${c}" aria-label="Цвет ${c}"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`).join('');
 $('weekdays').innerHTML = WEEKDAYS.map((w, i) => `<button type="button" data-v="${i}">${w}</button>`).join('');
+$('timesChips').innerHTML = [1, 2, 3, 4, 5, 6].map(n => `<button type="button" data-v="${n}">${n}</button>`).join('');
+$('everyChips').innerHTML = [2, 3, 4, 5, 6, 7, 8].map(n => `<button type="button" data-v="${n}">${n}</button>`).join('');
+export const SCHED_OF_FORM = { daily: 'daily', days: 'weekdays', perWeek: 'perWeek', everyNWeeks: 'everyNWeeks', monthly: 'monthly' };
+export function formSchedule(created = todayKey()) {
+  const t = SCHED_OF_FORM[form.sched];
+  return normSchedule({ type: t, days: [...form.days], times: form.times, every: form.every, anchor: form.anchor || created, dom: form.dom }, created);
+}
+export function schedHint() {
+  switch (form.sched) {
+    case 'perWeek': return 'В любые удобные дни с понедельника по воскресенье. Когда наберёте нужное число раз, до конца недели привычки не будет в списке на день.';
+    case 'everyNWeeks': return `Привычка будет в списке в неделю с выбранной датой, а дальше — ${form.every === 2 ? 'через неделю' : `раз в ${form.every} ${plural(form.every, 'неделю', 'недели', 'недель')}`}.`;
+    case 'monthly': return form.dom > 28 ? `В месяцах без ${form.dom} числа — в последний день месяца.` : `Каждый месяц ${form.dom} числа.`;
+    default: return '';
+  }
+}
 $('timeSeg').innerHTML = TIMES.map(t => `<button type="button" data-v="${t.v}"><span class="t-ic">${t.icon}</span><span class="t-lb">${t.label}</span></button>`).join('');
 
 export function syncPreview() {
@@ -29,9 +45,9 @@ export function syncPreview() {
   setIcon($('fpIcon'), form.icon);
   const n = formTarget(), unit = $('unit').value.trim();
   const goal = form.goal === 'once' ? 'Один раз в день'
-    : `${n} ${unit || plural(n, 'раз', 'раза', 'раз')} в день` + (form.goal === 'step' ? ` · шаг ${formStep()}` : '');
-  const sched = form.sched === 'daily' || form.days.length === 7 ? 'каждый день'
-    : form.days.length ? schedText({ days: form.days }) : 'дни не выбраны';
+    : `${n} ${unit || plural(n, 'раз', 'раза', 'раз')} в день` + (form.goal === 'step' ? ` · по ${formStep()} за нажатие` : '');
+  const sc = formSchedule();
+  const sched = sc ? schedText({ schedule: sc }) : 'дни не выбраны';
   const time = TIMES.find(t => t.v === form.time);
   $('fpMeta').textContent = [goal, sched, form.time !== 'any' && time ? time.label.toLowerCase() : '', remShort()].filter(Boolean).join(' · ');
   renderRemindHint();
@@ -48,7 +64,7 @@ export const remDefaults = () => REM_DEFAULT[form.time] || REM_DEFAULT.any;
 export const formTarget = () => form.goal === 'once' ? 1 : clampTarget($('target').value);
 export const formStep = () => form.goal === 'step' ? clampStep($('step').value) : 1;
 export const remTarget = () => Math.ceil(formTarget() / formStep());
-export const habitDays = () => form.sched === 'days' && form.days.length && form.days.length < 7 ? form.days : [0, 1, 2, 3, 4, 5, 6];
+export const habitDays = () => (form.sched === 'days' || form.sched === 'everyNWeeks') && form.days.length && form.days.length < 7 ? form.days : [0, 1, 2, 3, 4, 5, 6];
 export const remDays = () => { const all = habitDays(), d = (form.rem.days || all).filter(x => all.includes(x)); return d.length ? d : all; };
 export const remIsSpread = () => form.rem.mode === 'spread' && remTarget() > 1;
 export const fmtDur = m => { const h = Math.floor(m / 60), mm = Math.round(m % 60); return [h && `${h} ч`, mm && `${mm} мин`].filter(Boolean).join(' ') || 'меньше минуты'; };
@@ -300,7 +316,18 @@ export function syncForm() {
   $('target').max = form.goal === 'step' ? 10000 : 100;
   if (form.goal !== 'once') $('target').value = clampTarget($('target').value);
   renderStep();
-  setCollapse($('daysWrap'), form.sched === 'days');
+  setCollapse($('daysWrap'), form.sched === 'days' || form.sched === 'everyNWeeks');
+  setCollapse($('timesWrap'), form.sched === 'perWeek');
+  setCollapse($('everyWrap'), form.sched === 'everyNWeeks');
+  setCollapse($('domWrap'), form.sched === 'monthly');
+  press($('timesChips'), v => +v === form.times);
+  press($('everyChips'), v => +v === form.every);
+  $('timesLbl').innerHTML = `<b>${form.times} ${plural(form.times, 'раз', 'раза', 'раз')}</b> в неделю, в любые дни`;
+  $('everyLbl').innerHTML = `Каждые <b>${form.every} ${plural(form.every, 'неделю', 'недели', 'недель')}</b>, в выбранные дни`;
+  if ($('anchor').value !== form.anchor) $('anchor').value = form.anchor;
+  if (document.activeElement !== $('dom')) $('dom').value = form.dom;
+  $('schedHint').textContent = schedHint();
+  $('schedHint').hidden = !$('schedHint').textContent;
   if (form.cat && !catName(form.cat)) form.cat = null;
   $('catChips').innerHTML = [{ id: '', name: 'Без категории' }, ...state.categories]
     .map(c => `<button type="button" data-v="${esc(c.id)}" aria-pressed="${(form.cat || '') === c.id}">${esc(c.name)}</button>`).join('')
@@ -313,7 +340,15 @@ export const pick = (box, fn) => box.onclick = e => { const b = e.target.closest
 pick($('emojis'), v => form.icon = v);
 pick($('colors'), v => form.color = v);
 pick($('goalSeg'), v => form.goal = v);
-pick($('schedSeg'), v => form.sched = v);
+pick($('schedSeg'), v => {
+  if (v === 'everyNWeeks' && !['everyNWeeks', 'days'].includes(form.sched)) form.days = [weekday(new Date())];
+  form.sched = v;
+});
+pick($('timesChips'), v => form.times = +v);
+pick($('everyChips'), v => form.every = +v);
+$('anchor').addEventListener('change', () => { if (/^\d{4}-\d{2}-\d{2}$/.test($('anchor').value)) form.anchor = $('anchor').value; syncForm(); });
+$('dom').addEventListener('input', () => { const n = parseInt($('dom').value); if (n >= 1 && n <= 31) { form.dom = n; syncForm(); } });
+$('dom').addEventListener('change', () => { $('dom').value = form.dom; });
 pick($('timeSeg'), v => form.time = v);
 pick($('catChips'), v => {
   if (v === '__new') { form.newCat = !form.newCat; if (form.newCat) setTimeout(() => $('newCatName').focus(), 80); }
@@ -400,9 +435,27 @@ export function renderStep() {
   });
 }
 
-export function openForm(id = null) {
+let privRow = null;
+export function syncPrivRow() {
+  if (!unlocked) { privRow?.remove(); privRow = null; return; }
+  if (!privRow) {
+    privRow = document.createElement('div');
+    privRow.className = 'field';
+    privRow.innerHTML = `<div class="rem priv-rem"><div class="rem-head"><span class="rem-ic">${IC.lock}</span>
+      <span class="rem-tt"><b>Личная привычка</b><small>Только в разделе «Личное»</small></span>
+      <button type="button" class="switch" role="switch" aria-label="Личная привычка"><span></span></button></div></div>`;
+    privRow.querySelector('.rem-head').onclick = () => { form.priv = !form.priv; syncPrivRow(); };
+  }
+  if (!privRow.isConnected) $('why').closest('.field').before(privRow);
+  privRow.querySelector('.rem').classList.toggle('on', form.priv);
+  privRow.querySelector('.switch').setAttribute('aria-checked', form.priv);
+}
+
+export function openForm(id = null, priv = false) {
   const h = id && findHabit(id);
   editingId = h ? id : null;
+  form.priv = unlocked && (h ? isPrivate(h) : priv);
+  syncPrivRow();
   $('form').reset();
   $('formTitle').textContent = h ? 'Изменить привычку' : 'Новая привычка';
   $('submit').innerHTML = h
@@ -411,10 +464,13 @@ export function openForm(id = null) {
   $('tplField').hidden = !!h;
   Object.assign(form, h
     ? { icon: h.icon, color: h.color, goal: h.step ? 'step' : h.target > 1 ? 'multi' : 'once', sched: h.days ? 'days' : 'daily', days: h.days ? [...h.days] : [0, 1, 2, 3, 4], time: h.time, cat: h.cat }
-    : { icon: 'check', color: COLORS[state.habits.length % COLORS.length], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null },
+    : { icon: 'check', color: COLORS[visibleHabits(state).length % COLORS.length], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null },
     { newCat: false });
+  const sc = h ? scheduleOf(h) : { type: 'daily' }, FORM_OF_SCHED = { daily: 'daily', weekdays: 'days', perWeek: 'perWeek', everyNWeeks: 'everyNWeeks', monthly: 'monthly' };
+  Object.assign(form, { sched: FORM_OF_SCHED[sc.type], days: sc.days ? [...sc.days] : [0, 1, 2, 3, 4], times: sc.times || 3, every: sc.every || 2, anchor: sc.anchor || todayKey(), dom: sc.dom || new Date().getDate() });
   $('newCatName').value = '';
   $('name').value = h?.name || '';
+  $('name').removeAttribute('aria-invalid');
   $('target').value = h && h.target > 1 ? h.target : 8;
   $('step').value = h?.step || 5;
   delete $('stepViz').dataset.k; delete $('stepViz').dataset.n;
@@ -430,11 +486,12 @@ export function openForm(id = null) {
   setTimeout(() => $('name').focus({ preventScroll: true }), 60);
 }
 let formBase = '';
-export const formSnap = () => JSON.stringify([form.icon, form.color, form.goal, form.sched, form.days, form.time, form.cat,
-  form.newCat && $('newCatName').value.trim(), { ...form.rem, touched: undefined }, ...['name', 'target', 'step', 'unit', 'why'].map(id => $(id).value)]);
+export const formSnap = () => JSON.stringify([form.icon, form.color, form.goal, form.sched, form.days, form.times, form.every, form.anchor, form.dom, form.time, form.cat,
+  form.newCat && $('newCatName').value.trim(), { ...form.rem, touched: undefined }, form.priv, ...['name', 'target', 'step', 'unit', 'why'].map(id => $(id).value)]);
 $('formOv')._guard = () => formSnap() === formBase || askConfirm('Закрыть без сохранения?',
   editingId ? 'Изменения в привычке не сохранятся.' : 'Новая привычка не будет добавлена.', 'Закрыть');
 
+const shownHabits = () => [...visibleHabits(state), ...privateHabits(state)];
 export function openCats() {
   renderCats();
   openOverlay($('catOv'));
@@ -460,7 +517,7 @@ export function renderCats() {
   const IC_DOWN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
   const IC_DEL = '<svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
   list.innerHTML = state.categories.map((c, i) => {
-    const n = state.habits.filter(h => h.cat === c.id).length;
+    const n = shownHabits().filter(h => h.cat === c.id).length;
     return `<div class="cat-row" data-id="${esc(c.id)}">
       <input type="text" class="cat-name" maxlength="40" value="${esc(c.name)}" aria-label="Название категории">
       <span class="cat-cnt" title="Привычек этой категории">${n}</span>
@@ -479,7 +536,7 @@ $('catList').addEventListener('click', async e => {
   if (b.dataset.act === 'up' && i > 0) [cats[i - 1], cats[i]] = [cats[i], cats[i - 1]];
   else if (b.dataset.act === 'down' && i < cats.length - 1) [cats[i + 1], cats[i]] = [cats[i], cats[i + 1]];
   else if (b.dataset.act === 'del') {
-    const n = state.habits.filter(h => h.cat === id).length;
+    const n = shownHabits().filter(h => h.cat === id).length;
     if ((n || redUi()) && !await askConfirm('Удалить категорию?', `«${cats[i].name}» будет удалена.` + (n ? ` ${n} ${plural(n, 'привычка останется', 'привычки останутся', 'привычек останутся')} без категории — сами привычки и их история не пострадают.` : ''), 'Удалить')) return;
     state.categories = state.categories.filter(c => c.id !== id);
     state.habits.forEach(h => { if (h.cat === id) h.cat = null; });
@@ -508,11 +565,17 @@ $('addBtn').onclick = () => openForm();
 $('fab').onclick = () => openForm();
 $('emptyAdd').onclick = () => openForm();
 
-$('form').onsubmit = e => {
+$('form').onsubmit = async e => {
   e.preventDefault();
   const name = $('name').value.trim();
-  if (!name) return;
-  if (form.sched === 'days' && !form.days.length) return toast('Выберите хотя бы один день недели');
+  if (!name) {
+    const box = $('name').parentElement;
+    $('name').setAttribute('aria-invalid', 'true');
+    $('name').focus();
+    box.classList.remove('shake'); box.offsetWidth; box.classList.add('shake');
+    return toast('Введите название привычки', null, '');
+  }
+  if ((form.sched === 'days' || form.sched === 'everyNWeeks') && !form.days.length) return toast('Выберите хотя бы один день недели');
   if (form.rem.on && remIsSpread() && toMin(form.rem.to) <= toMin(form.rem.from)) {
     $('rem').scrollIntoView({ block: 'center', behavior: 'smooth' });
     return toast('Напоминания: конец промежутка должен быть позже начала', null, '');
@@ -528,15 +591,33 @@ $('form').onsubmit = e => {
   };
   if (step) data.step = step;
   const h = editingId && findHabit(editingId);
+  const priv = unlocked ? form.priv : isPrivate(h), moved = !!h && unlocked && priv !== isPrivate(h);
+  if (priv) data.private = true;
+  const sc = formSchedule(h?.created), oldSc = h ? scheduleOf(h) : { type: 'daily' }, schedMoved = !sameSchedule(sc, oldSc);
+  data.days = sc.type === 'weekdays' ? [...sc.days] : null;
+  data.schedule = !['daily', 'weekdays'].includes(sc.type) || (h && (schedMoved || h.schedule)) ? sc : undefined;
+  let scope = 'today';
+  const old = h && goalOn(h, new Date()).target, goalMoved = h && old > 1 && old !== target;
+  if (h && (goalMoved || schedMoved) && h.created < todayKey()) {
+    const what = [goalMoved && `цель: было ${old}, станет ${target}`, schedMoved && `расписание: было «${schedText(h)}», станет «${schedText({ schedule: sc })}»`].filter(Boolean).join('; ');
+    scope = await askConfirm('С какого дня действуют изменения?', `Меняется ${what}.`, 'Сохранить', {
+      items: [{ v: 'today', label: 'С сегодняшнего дня' }, { v: 'all', label: 'И для прошлых дней' }],
+      hint: '«И для прошлых дней» — если ошиблись при вводе. «С сегодняшнего дня» — прошлые дни останутся как были.',
+    });
+    if (!scope || !findHabit(h.id)) return;
+  }
   if (h) {
-    noteGoalChange(h, data);
+    noteGoalChange(h, data, scope);
     Object.assign(h, data, { updated: todayKey() });
     if (!step) delete h.step;
+    if (!priv) delete h.private;
   } else {
     state.habits.push({ id: crypto.randomUUID?.() || String(Date.now()), created: todayKey(), ...data });
   }
   save(); render();
   closeOverlay($('formOv'));
   if (hist) renderHistory();
+  if (moved) toast(priv ? 'Перенесено в личное' : 'Перенесено в обычные', null, '');
 };
 
+$('name').addEventListener('input', () => $('name').removeAttribute('aria-invalid'));

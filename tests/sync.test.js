@@ -42,6 +42,7 @@ const fake = {
   auth: {
     onAuthStateChange: cb => { authCb = cb; },
     getSession: async () => ({ data: { session } }),
+    getUser: async () => ({ data: { user: session?.user ?? null }, error: null }),
     signOut: async () => { session = null; authCb('SIGNED_OUT', null); },
     stopAutoRefresh() {},
   },

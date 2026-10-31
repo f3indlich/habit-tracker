@@ -1,24 +1,30 @@
 import { $, addDays, esc, key, parseKey, plural, todayKey, weekday } from './core.js?v=1.05a';
 import { iconHTML } from './icons.js?v=1.05a';
-import { count, counts, inLife, state, targetOn } from './storage.js?v=1.05a';
-import { addPeriodSwipe, closeMenu, menuEl, openOverlay, openPopover } from './ui.js?v=1.05a';
+import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=1.05a';
+import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=1.05a';
 import { queueTips } from './tips.js?v=1.05a';
+import { visibleHabits } from './privacy.js?v=1.05a';
+import { overWeekday, planPct, planStats } from './plan.js?v=1.05a';
 import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=1.05a';
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
 export const MONTHS_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
-export const LIMITS = { attnPct: 60, attnDrop: 10, obsDays: 21, obsDrop: 15, obsWeekday: 15, obsStreak: 5, obsGrowth: 5, stableHigh: 80, trendDays: 3, startDays: 7, rows: 5 };
+export const LIMITS = { attnPct: 60, attnDrop: 10, obsDays: 21, obsDrop: 15, obsWeekday: 15, obsStreak: 5, obsGrowth: 5, stableHigh: 80, trendDays: 3, startDays: 7, rows: 5, overDays: 4 };
 const pctOf = (sum, n) => n ? Math.round(sum / n * 100) : null;
 
+let dayCache = null;
 export function dayInfo(d) {
   const k = key(d), t = todayKey(), vals = [], open = [];
+  if (dayCache?.has(k)) return dayCache.get(k);
   if (k > t) return { vals, open, pending: false };
-  for (const h of state.habits) {
+  for (const h of visibleHabits(state)) {
     if (!inLife(h, k) || !counts(h, d)) continue;
     const v = Math.min(count(h, d) / targetOn(h, d), 1);
     (k === t && v < 1 ? open : vals).push({ h, v });
   }
-  return { vals, open, pending: open.length > 0 };
+  const info = { vals, open, pending: open.length > 0 };
+  dayCache?.set(k, info);
+  return info;
 }
 export const isFull = info => !info.pending && info.vals.length > 0 && info.vals.every(x => x.v >= 1);
 
@@ -58,7 +64,7 @@ export function habitList(rows, filter) {
 }
 
 export function streakInfo(ds) {
-  const first = state.habits.map(h => h.created).sort()[0];
+  const first = visibleHabits(state).map(h => h.created).sort()[0];
   if (!first) return { cur: 0, best: 0, lastAgo: null };
   const t = todayKey(), from = ds ? key(ds[0]) : first, last = ds ? key(ds[ds.length - 1]) : t, to = last < t ? last : t;
   let run = 0, inRun = 0, best = 0, lastFull = null;
@@ -96,7 +102,12 @@ export function summaryParts(range, ds, cur, prev, today = new Date()) {
 }
 export const summaryText = p => p.before + p.num + p.after;
 
-export function observations({ streak = 0, cur, prev, obsCur, obsPrev }) {
+export function overDayText(over) {
+  if (!over || over.total < LIMITS.overDays) return '';
+  const sorted = over.wd.map((n, i) => ({ n, i })).sort((a, b) => b.n - a.n);
+  return sorted[0].n > sorted[1].n ? `Вы чаще перевыполняете цель по ${WD_DAT[sorted[0].i]}` : '';
+}
+export function observations({ streak = 0, cur, prev, obsCur, obsPrev, over }) {
   const out = [], enough = obsCur && obsCur.days >= LIMITS.obsDays;
   const growth = trend(cur, prev);
   if (streak >= LIMITS.obsStreak) out.push({ text: `Полных дней подряд: ${streak}` });
@@ -116,6 +127,8 @@ export function observations({ streak = 0, cur, prev, obsCur, obsPrev }) {
       if (best.pct - worst.pct >= LIMITS.obsWeekday) out.push({ text: `Лучше всего по ${WD_DAT[best.i]}: ${best.pct}%, хуже всего по ${WD_DAT[worst.i]}: ${worst.pct}%` });
     }
   }
+  const od = overDayText(over);
+  if (od) out.push({ text: od });
   return out.slice(0, 3);
 }
 
@@ -129,7 +142,7 @@ export function dayCell(d) {
 }
 
 export const historyDays = () => {
-  const first = state.habits.map(h => h.created).sort()[0];
+  const first = visibleHabits(state).map(h => h.created).sort()[0];
   if (!first) return 0;
   let n = 0;
   for (let d = parseKey(first), t = todayKey(); key(d) <= t && n < LIMITS.startDays; d = addDays(d, 1)) if (dayInfo(d).vals.length) n++;
@@ -137,20 +150,22 @@ export const historyDays = () => {
 };
 
 export const trendWord = d => d == null ? '' : d > 0 ? `выше прошлого периода на ${d}%` : d < 0 ? `ниже прошлого периода на ${-d}%` : 'как в прошлом периоде';
+export const planLine = p => p?.plannedDays ? `Засчитано ${planPct(p)}%${p.over ? ` · +${p.over} сверх` : ''}` : '';
 export const rowLabel = x => `${x.h.name}: ${x.pct}%${x.delta == null ? '' : `, ${trendWord(x.delta)}`}`;
 
 export const HOW = [
-  ['Запланированный день', 'Привычка по расписанию, уже создана и не в архиве. Дни не по расписанию и дни с пропуском не учитываются.'],
-  ['Выполнено', 'Средняя доля выполнения по всем запланированным отметкам. 5 из 8 стаканов — это 62%, больше цели — 100%.'],
+  ['Запланированный день', 'Привычка по расписанию, уже создана и не в архиве. Дни не по расписанию и дни с пропуском не учитываются. У привычек «несколько раз в неделю» в план попадают дни с отметкой, а если за неделю сделано меньше задуманного, это считается одним пропущенным днём в конце недели.'],
+  ['Выполнено', 'Сколько в среднем сделано от запланированного. 5 из 8 стаканов — это 62%, больше цели — 100%.'],
   ['Полный день', 'День, когда выполнены все запланированные привычки. Сегодня засчитывается, когда отмечено всё.'],
   ['Серия', 'Полные дни подряд. Дни без запланированных привычек и незаконченный сегодняшний день её не прерывают.'],
   ['Изменение', 'Разница с прошлым периодом такой же длины. Не показывается, если в прошлом периоде меньше 3 запланированных дней.'],
-  ['Нужно внимание', 'Привычки ниже 60% или с падением на 10% и больше.'],
+  ['Нужно внимание', 'Привычки, которые выполнены меньше чем на 60% или стали получаться на 10% реже.'],
 ];
 const TILE_INFO = {
   done: ['Выполнено', 'Сколько из запланированного Вы сделали за период.', HOW[1][1]],
   full: ['Полных дней', 'Дни, когда сделано всё, что было запланировано.', HOW[2][1]],
   streak: ['Лучшая серия', 'Самая длинная череда полных дней за период.', HOW[3][1]],
+  over: ['Сверх плана', 'Сколько раз за период цель «несколько раз в день» была перевыполнена.', 'Считаются дни, когда по привычке с целью больше одного раза сделано больше цели этого дня. Каждая привычка учитывается отдельно, суммы разных единиц не складываются. На процент выполнения перевыполнение не влияет и пропуски в другие дни не закрывает.'],
 };
 
 export let summaryView = null;
@@ -158,11 +173,12 @@ const put = (el, html) => { if (el._html !== html) { el.innerHTML = html; el._ht
 const tileHTML = (k, icon, l, v, sub, sub2 = '') => `<div class="tile"><span class="t-ic" aria-hidden="true">${icon}</span>
   <div class="t-txt"><div class="l">${l}</div><div class="s">${sub}</div>${sub2 ? `<div class="s s2">${sub2}</div>` : ''}</div><div class="v">${v}</div>
   <button class="tile-i" data-k="${k}" aria-label="Что значит «${l}»" aria-haspopup="dialog">${IC_I}</button></div>`;
-const arrow = d => d == null ? '<span class="trend" aria-hidden="true"></span>' : `<span class="trend ${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}" aria-hidden="true">${d > 0 ? '↑' : d < 0 ? '↓' : '→'} ${fmtTrend(d)}</span>`;
+const arrow = d => d == null ? '<span class="trend" aria-hidden="true"></span>' : `<span class="trend ${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}" aria-hidden="true">${d > 0 ? `↑ ${fmtTrend(d)}` : d < 0 ? `↓ ${fmtTrend(d)}` : 'как было'}</span>`;
 
 export function openSummary() {
   summaryView = { range: summaryView?.range || 'week', anchor: new Date(), filter: 'best', all: false };
   for (const id of ['sTiles', 'sHabits', 'sObs']) $(id)._html = null;
+  sumSlider.reset();
   openOverlay($('sumOv'));
   renderSummary();
   queueTips(1000);
@@ -176,10 +192,14 @@ export function obsRange(range, ds) {
 }
 
 export function renderSummary() {
+  dayCache = new Map();
+  try { drawSummary(); } finally { dayCache = null; }
+}
+function drawSummary() {
   const { range } = summaryView, ds = rangeDays(range, summaryView.anchor), today = todayKey();
   for (const b of $('sTabs').children) b.setAttribute('aria-pressed', b.dataset.r === range);
   $('sLabel').textContent = rangeLabel(range, ds);
-  const first = state.habits.map(h => h.created).sort()[0];
+  const first = visibleHabits(state).map(h => h.created).sort()[0];
   $('sPrev').disabled = !first || key(ds[0]) <= first;
   $('sNext').disabled = key(ds[ds.length - 1]) >= today;
 
@@ -195,16 +215,20 @@ export function renderSummary() {
   $('sSum').replaceChildren(parts.before, Object.assign(document.createElement('b'), { textContent: parts.num }), parts.after);
 
   const live = key(ds[ds.length - 1]) >= today, st = streakInfo(ds);
+  const from = key(ds[0]), to = key(ds[ds.length - 1]), quant = visibleHabits(state).filter(isQuant);
+  const plans = new Map(quant.map(h => [h.id, planStats(h, state, from, to, today)]));
+  const overDays = [...plans.values()].reduce((s, p) => s + p.daysOver, 0);
   put($('sTiles'),
     tileHTML('done', '✅', 'Выполнено', cur.pct + '%', 'из запланированного') +
     tileHTML('full', '📅', 'Полных дней', `${cur.full}<small> из ${cur.days}</small>`, 'всё запланированное сделано') +
-    tileHTML('streak', '🔥', 'Лучшая серия', st.best, 'дней подряд без пропусков', esc(streakNote(st, live))));
+    tileHTML('streak', '🔥', 'Лучшая серия', st.best, 'дней подряд без пропусков', esc(streakNote(st, live))) +
+    (quant.length ? tileHTML('over', '🎯', 'Сверх плана', overDays, `${plural(overDays, 'день', 'дня', 'дней')} с перевыполнением цели`) : ''));
 
   (range === 'year' ? heatmap : calendarHeat)($('sHeat'), ds, dayCell);
   $('sFutLg').hidden = range === 'year' || key(ds[ds.length - 1]) <= today;
 
   const [oc, op] = obsRange(range, ds);
-  const obs = observations({ streak: live ? st.cur : 0, cur, prev, obsCur: periodStats(oc), obsPrev: periodStats(op) });
+  const obs = observations({ streak: live ? st.cur : 0, cur, prev, obsCur: periodStats(oc), obsPrev: periodStats(op), over: overWeekday(quant, state, key(oc[0]), key(oc[oc.length - 1]), today) });
   $('sObsWrap').hidden = !obs.length;
   put($('sObs'), obs.map(o => `<li>${esc(o.text)}${o.hint ? `<small>${esc(o.hint)}</small>` : ''}</li>`).join(''));
 
@@ -212,9 +236,9 @@ export function renderSummary() {
   for (const b of $('sFilter').children) b.setAttribute('aria-pressed', b.dataset.f === summaryView.filter);
   const shown = summaryView.all ? list : list.slice(0, LIMITS.rows);
   put($('sHabits'), !list.length ? `<p class="s-empty">${summaryView.filter === 'attn' ? 'Все привычки выполняются стабильно' : 'В этот период данных нет'}</p>`
-    : shown.map(x => `<button type="button" class="hab-row" data-id="${esc(x.h.id)}" style="--c:${esc(x.h.color)}" aria-label="${esc(rowLabel(x))}">
-      <span class="hicon">${iconHTML(x.h.icon)}</span><span class="hr-name">${esc(x.h.name)}</span>
-      <span class="hr-bar" aria-hidden="true"><i style="width:${x.pct}%"></i></span><span class="hr-pct">${x.pct}%</span>${arrow(x.delta)}</button>`).join(''));
+    : shown.map(x => { const sub = planLine(plans.get(x.h.id)); return `<button type="button" class="hab-row" data-id="${esc(x.h.id)}" style="--c:${esc(x.h.color)}" aria-label="${esc(rowLabel(x) + (sub ? '. ' + sub : ''))}">
+      <span class="hicon">${iconHTML(x.h.icon)}</span><span class="hr-name">${esc(x.h.name)}${sub ? `<small class="hr-sub">${esc(sub)}</small>` : ''}</span>
+      <span class="hr-bar" aria-hidden="true"><i style="width:${x.pct}%"></i></span><span class="hr-pct">${x.pct}%</span>${arrow(x.delta)}</button>`; }).join(''));
   $('sMore').hidden = list.length <= LIMITS.rows;
   $('sMore').textContent = summaryView.all ? 'Свернуть' : `Показать все (${list.length})`;
 }
@@ -225,8 +249,10 @@ $('sTabs').onclick = e => {
   summaryView.range = r;
   renderSummary();
 };
-$('sPrev').onclick = () => { summaryView.anchor = shiftAnchor(summaryView.range, summaryView.anchor, -1); renderSummary(); };
-$('sNext').onclick = () => { summaryView.anchor = shiftAnchor(summaryView.range, summaryView.anchor, 1); renderSummary(); };
+const sumSlider = periodSlider({
+  sheet: $('sSheet'), zone: '#sSheet .pnav, #sSum, #sTiles, #sHeat', track: $('sPerTrack'), prev: $('sPrev'), next: $('sNext'), tabs: $('sTabs'),
+  active: () => !!summaryView, get: () => summaryView.anchor, set: a => { summaryView.anchor = a; }, step: (a, s) => shiftAnchor(summaryView.range, a, s), render: renderSummary,
+});
 $('sFilter').onclick = e => {
   const f = e.target.closest('button')?.dataset.f;
   if (!f || f === summaryView.filter) return;
@@ -250,4 +276,3 @@ bindTips($('sHeat'));
 const ring = $('heroProg').closest('.hero-ring');
 ring.onclick = openSummary;
 ring.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSummary(); } };
-addPeriodSwipe($('sSheet'), '#sSheet .pnav, #sSum, #sTiles, #sHeat', $('sPrev'), $('sNext'));

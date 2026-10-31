@@ -10,7 +10,7 @@ state = normalize({ habits: [
 cards.forEach(e => e.remove()); cards.clear(); render(); await wait(300);
 const card = id => document.querySelector(`.habit[data-id="${id}"]`);
 openHistory('p'); await wait(600);
-ok('history tag step', [...$('hTags').children].some(t => t.textContent.includes('шаг 5')), $('hTags').textContent);
+ok('history tag step', [...$('hTags').children].some(t => t.textContent.includes('по 5')), $('hTags').textContent);
 ok('history renders chart', $('hChart').innerHTML.length > 100);
 for (const r of ['month', 'year']) { $('hTabs').querySelector(`[data-r=${r}]`).click(); await wait(300); }
 ok('history year heat', !$('hHeatWrap').hidden);

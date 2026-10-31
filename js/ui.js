@@ -1,4 +1,4 @@
-import { $, reducedMotion, RING_C } from './core.js?v=1.05a';
+import { $, esc, reducedMotion, RING_C, viewportHeight } from './core.js?v=1.05a';
 import { IC } from './icons.js?v=1.05a';
 import { reordering, setReorder } from './render.js?v=1.05a';
 import { setHist } from './history.js?v=1.05a';
@@ -76,8 +76,15 @@ export function flash(el) {
 }
 
 export const shownOverlays = () => [...document.querySelectorAll('.overlay')].filter(o => o._shown);
+let histHeld = false, histSkip = 0;
+const keepFieldInView = () => {
+  const el = document.activeElement;
+  if (el?.matches('input:not([type=checkbox]), textarea') && el.closest('.overlay')?._shown) el.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
+};
 export function openOverlay(ov) {
   const fresh = !ov._shown;
+  if (!shownOverlays().length) window.visualViewport?.addEventListener('resize', keepFieldInView);
+  if (fresh && !histHeld) { history.pushState({ sheet: true }, ''); histHeld = true; }
   if (fresh) ov._opener = document.activeElement;
   ov._shown = true;
   ov.hidden = false;
@@ -93,11 +100,23 @@ export function closeOverlay(ov) {
   if (!ov._shown) return;
   ov._shown = false;
   ov.classList.remove('open');
-  if (!shownOverlays().length) document.body.classList.remove('locked');
+  if (!shownOverlays().length) {
+    document.body.classList.remove('locked');
+    window.visualViewport?.removeEventListener('resize', keepFieldInView);
+    if (histHeld) { histHeld = false; histSkip++; history.back(); }
+  }
   setTimeout(() => { if (!ov._shown) ov.hidden = true; }, reducedMotion ? 0 : 320);
   if (ov._opener?.isConnected) ov._opener.focus({ preventScroll: true });
   ov._opener = null;
 }
+addEventListener('popstate', async () => {
+  if (histSkip) { histSkip--; return; }
+  histHeld = false;
+  const top = shownOverlays().pop();
+  if (!top) return;
+  if (top === $('confirm')) closeConfirm(false); else await requestClose(top);
+  if (shownOverlays().length && !histHeld) { history.pushState({ sheet: true }, ''); histHeld = true; }
+});
 addEventListener('keydown', e => {
   if (e.key !== 'Tab') return;
   const ov = shownOverlays().pop();
@@ -193,24 +212,91 @@ export function addPullDown(ov) {
   });
 }
 
-export function addPeriodSwipe(sheet, zone, prev, next) {
+export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get, set, step, render }) {
+  const vp = track.parentElement, GAP = 16;
+  let peeks = {}, off = 0, anim = null, after = null;
+  const page = () => vp.offsetWidth + GAP;
+  const btn = s => s < 0 ? prev : next;
+  const move = x => { off = x; track.style.transform = x ? `translateX(${x}px)` : ''; };
+  const shift = s => { set(step(get(), s)); track.classList.add('no-anim'); render(); };
+  const peek = s => {
+    if (peeks[s] || btn(s).disabled) return;
+    const a = get();
+    track.classList.add('no-anim');
+    set(step(a, s));
+    render();
+    const p = track.cloneNode(true);
+    set(a);
+    render();
+    p.querySelectorAll('.per-peek').forEach(e => e.remove());
+    [p, ...p.querySelectorAll('[id]')].forEach(e => e.removeAttribute('id'));
+    p.className = 'per-track per-peek no-anim';
+    p.inert = true;
+    p.setAttribute('aria-hidden', 'true');
+    p.style.transform = '';
+    p.style.left = s * page() + 'px';
+    track.append(p);
+    peeks[s] = p;
+  };
+  const clear = () => { Object.values(peeks).forEach(p => p.remove()); peeks = {}; move(0); };
+  const flush = () => {
+    if (!anim) return;
+    const a = anim, f = after;
+    anim = after = null;
+    a.cancel();
+    f();
+  };
+  const settle = (to, ms, done) => {
+    const a = anim = track.animate([{ transform: `translateX(${off}px)` }, { transform: `translateX(${to}px)` }], { duration: ms, easing: 'cubic-bezier(.22, .75, .25, 1)' });
+    after = done;
+    move(to);
+    a.onfinish = () => { if (anim !== a) return; anim = after = null; done(); };
+  };
+  const land = s => () => { clear(); shift(s); };
+  const go = s => {
+    flush();
+    if (!active() || btn(s).disabled) return;
+    if (reducedMotion) return shift(s);
+    peek(s);
+    settle(-s * page(), 340, land(s));
+  };
+  prev.onclick = () => go(-1);
+  next.onclick = () => go(1);
+  tabs.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (b && b.getAttribute('aria-pressed') !== 'true') { flush(); clear(); track.classList.remove('no-anim'); }
+  }, true);
   trackTouch(sheet, {
-    start: g => !!g.target.closest(zone) && !g.target.closest('.hscroll'),
+    start: g => {
+      if (!active() || !g.target.closest(zone) || g.target.closest('.hscroll')) return false;
+      flush();
+    },
     move: g => {
-      if (g.lock) return;
-      if (Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) g.lock = 'x';
-      else if (Math.abs(g.dy) > 12) return false;
+      if (!g.lock) {
+        if (Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) {
+          g.lock = 'x';
+          if (!reducedMotion) [-1, 1].forEach(peek);
+        } else if (Math.abs(g.dy) > 12) return false;
+        else return;
+      }
+      if (reducedMotion) return;
+      const w = page(), s = g.dx < 0 ? 1 : -1;
+      move(peeks[s] ? Math.max(-w, Math.min(w, g.dx)) : g.dx / (1 + Math.abs(g.dx) / 80));
     },
     end: (g, dt, cancel) => {
-      if (cancel || Math.abs(g.dx) < 50) return;
-      const b = g.dx > 0 ? prev : next;
-      if (!b.disabled) b.click();
+      const s = g.dx < 0 ? 1 : -1, w = page(), v = g.dx / dt;
+      const ok = !cancel && !btn(s).disabled && (Math.abs(g.dx) >= w * .25 || (Math.abs(v) > .35 && Math.abs(g.dx) > 24));
+      if (ok && reducedMotion) return shift(s);
+      if (ok) { peek(s); settle(-s * w, Math.round(Math.min(340, Math.max(160, (w - Math.abs(off)) / Math.max(Math.abs(v), .9)))), land(s)); }
+      else if (off) settle(0, Math.round(Math.min(320, 160 + Math.abs(off))), clear);
+      else clear();
     },
   });
+  return { reset: () => { flush(); clear(); track.classList.remove('no-anim'); } };
 }
 
 for (const ov of document.querySelectorAll('.overlay.page')) addEdgeBack(ov);
-for (const id of ['histOv', 'sumOv', 'dayOv', 'formOv', 'catOv', 'nameOv', 'acctOv', 'installOv']) addPullDown($(id));
+for (const id of ['histOv', 'sumOv', 'dayOv', 'formOv', 'catOv', 'nameOv', 'acctOv', 'installOv', 'delOv', 'lockOv']) addPullDown($(id));
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (menuEl) return closeMenu();
@@ -221,9 +307,14 @@ addEventListener('keydown', e => {
 });
 
 export let confirmResolve = null;
-export function askConfirm(title, text, yesLabel) {
+export function askConfirm(title, text, yesLabel, choices = null) {
   $('cTitle').textContent = title;
   $('cText').textContent = text;
+  $('cChoices').hidden = !choices;
+  $('cChoices').innerHTML = choices ? choices.items.map((c, i) =>
+    `<label class="del-check"><input type="radio" name="cChoice" value="${esc(c.v)}"${i ? '' : ' checked'}><span>${esc(c.label)}</span></label>`).join('')
+    + (choices.hint ? `<p class="c-hint">${esc(choices.hint)}</p>` : '') : '';
+  $('cYes').className = choices ? 'primary' : 'danger-fill';
   $('cYes').innerHTML = (/^Удалить/.test(yesLabel) ? IC.trash : '') + '<span></span>';
   $('cYes').lastChild.textContent = yesLabel;
   openOverlay($('confirm'));
@@ -233,9 +324,9 @@ export function askConfirm(title, text, yesLabel) {
 export function closeConfirm(result) {
   if (!confirmResolve) return;
   closeOverlay($('confirm'));
-  const res = confirmResolve;
+  const res = confirmResolve, pick = $('cChoices').hidden ? null : $('cChoices').querySelector('input:checked')?.value;
   confirmResolve = null;
-  res(result);
+  res(result && pick != null ? pick : result);
 }
 $('cYes').onclick = () => closeConfirm(true);
 $('cNo').onclick = () => closeConfirm(false);
@@ -325,7 +416,7 @@ export function openMenu(anchor, items) {
 export function placeMenu(anchor) {
   document.body.append(menuEl);
   const r = anchor.getBoundingClientRect(), mw = menuEl.offsetWidth;
-  const roomBelow = innerHeight - r.bottom - 6 - 28, roomAbove = r.top - 6 - 16;
+  const roomBelow = viewportHeight() - r.bottom - 6 - 28, roomAbove = r.top - 6 - 16;
   const below = menuEl.offsetHeight <= roomBelow || roomBelow >= roomAbove;
   menuEl.style.maxHeight = Math.max(160, below ? roomBelow : roomAbove) + 'px';
   const mh = menuEl.offsetHeight;
@@ -344,12 +435,12 @@ export function openPopover(anchor, html, color) {
   document.body.append(menuEl);
   const r = anchor.getBoundingClientRect(), mw = menuEl.offsetWidth;
   const mh = menuEl.offsetHeight, ax = r.left + r.width / 2, left = Math.round((innerWidth - mw) / 2);
-  const side = mh + 8 <= innerHeight - r.bottom - 16 ? 'below' : mh + 8 <= r.top - 16 ? 'above' : 'center';
+  const side = mh + 8 <= viewportHeight() - r.bottom - 16 ? 'below' : mh + 8 <= r.top - 16 ? 'above' : 'center';
   menuEl.dataset.side = side;
   menuEl.style.left = left + 'px';
   if (side === 'center') {
-    menuEl.style.maxHeight = innerHeight - 32 + 'px';
-    menuEl.style.top = Math.max(16, Math.round((innerHeight - menuEl.offsetHeight) / 2)) + 'px';
+    menuEl.style.maxHeight = viewportHeight() - 32 + 'px';
+    menuEl.style.top = Math.max(16, Math.round((viewportHeight() - menuEl.offsetHeight) / 2)) + 'px';
     menuEl.style.transformOrigin = 'center';
     return;
   }

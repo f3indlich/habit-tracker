@@ -1,11 +1,11 @@
-import { $, ACCENT_STORE, DATA_STORE, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.05a';
+import { $, ACCENT_STORE, DATA_STORE, esc, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, PRIVACY_EMAIL, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=1.05a';
 import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=1.05a';
 import { normalize, save, setState, state } from './storage.js?v=1.05a';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.05a';
 import { cards, render, setWasAllDone } from './render.js?v=1.05a';
 import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=1.05a';
 import { hist, renderHistory } from './history.js?v=1.05a';
-import { renderAccount } from './sync.js?v=1.05a';
+import { cloud, deleteAccount, emailMatches, renderAccount } from './sync.js?v=1.05a';
 
 export function applyIcons(style) {
   document.body.dataset.icons = style;
@@ -59,9 +59,7 @@ export function applyTheme(t) {
   if (!THEMES[t]) t = 'auto';
   if (t === 'auto') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.dataset.theme = t;
-  document.querySelectorAll('meta[name=theme-color]').forEach(m => {
-    m.content = t === 'dark' ? '#0e1015' : t === 'light' ? '#f4f5f9' : m.media.includes('dark') ? '#0e1015' : '#f4f5f9';
-  });
+  syncThemeColor();
   $('themeSeg').innerHTML = Object.entries(THEMES).map(([id, [label, ic]]) =>
     `<button type="button" role="radio" aria-checked="${id === t}" data-t="${id}">${IC[ic]}<span>${label}</span></button>`).join('');
 }
@@ -96,7 +94,15 @@ export function applyColors({ accent, data } = colorPrefs()) {
   document.documentElement.toggleAttribute('data-ui-red', RED_UI.includes(accent));
   document.documentElement.dataset.accent = accent;
   document.documentElement.dataset.data = data;
+  syncThemeColor(accent);
   renderColors();
+}
+const hexMix = (a, b, p) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * p + parseInt(b.slice(i, i + 2), 16) * (1 - p)).toString(16).padStart(2, '0')).join('');
+export function syncThemeColor(accent = colorPrefs().accent) {
+  const t = document.documentElement.dataset.theme, [, light, ad] = PALETTES[accent], dark = hexMix(ad, '#0e1015', .42);
+  document.querySelectorAll('meta[name=theme-color]').forEach(m => {
+    m.content = t === 'dark' ? dark : t === 'light' ? light : m.media.includes('dark') ? dark : light;
+  });
 }
 export const COLOR_KINDS = { accent: ['Интерфейс', ACCENT_STORE], data: ['Статистика', DATA_STORE] };
 export let colorKind = 'accent';
@@ -132,7 +138,7 @@ $('swRow').onclick = e => {
   $('swRow').querySelector(`[data-c="${b.dataset.c}"]`)?.focus({ preventScroll: true });
 };
 
-$('exportBtn').onclick = async () => {
+export async function exportData() {
   const name = `habits-${todayKey()}.json`;
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
@@ -145,7 +151,8 @@ $('exportBtn').onclick = async () => {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-};
+}
+$('exportBtn').onclick = exportData;
 $('importBtn').onclick = () => $('importFile').click();
 $('importFile').onchange = async e => {
   const file = e.target.files[0];
@@ -154,13 +161,13 @@ $('importFile').onchange = async e => {
   let data;
   try { data = JSON.parse(await file.text()); } catch { return toast('Не удалось прочитать файл'); }
   if (!data || !Array.isArray(data.habits) || !data.log || typeof data.log !== 'object') return toast('Это не файл трекера привычек');
-  const ok = await askConfirm('Заменить данные?', `Текущие привычки будут заменены данными из файла (${data.habits.length} шт.).`, 'Заменить');
+  const ok = await askConfirm('Заменить данные?', `Текущие привычки будут заменены данными из файла (привычек в нём: ${data.habits.length}).`, 'Заменить');
   if (!ok) return;
   setState(normalize(data));
   cards.forEach(el => el.remove()); cards.clear();
   setWasAllDone(null);
   save(); render();
-  toast('Данные импортированы');
+  toast('Данные восстановлены из файла');
 };
 
 export let installPrompt = null;
@@ -221,3 +228,20 @@ $('nameForm').onsubmit = e => {
 $('nameSkip').onclick = () => closeOverlay($('nameOv'));
 $('setName').onclick = () => openName(false);
 $('setLogin').onclick = () => { openOverlay($('acctOv')); renderAccount(); };
+
+$('setDelete').onclick = () => {
+  if (!cloud.session) return;
+  $('delAcctEmail').textContent = cloud.session.user.email;
+  $('delEmail').value = '';
+  $('delLocal').checked = false;
+  $('delMail').hidden = !PRIVACY_EMAIL;
+  $('delMail').innerHTML = PRIVACY_EMAIL ? `Не получается удалить? Напишите на <a href="mailto:${esc(PRIVACY_EMAIL)}">${esc(PRIVACY_EMAIL)}</a>, удалим в течение 30 дней.` : '';
+  openOverlay($('delOv'));
+};
+$('delExport').onclick = exportData;
+$('delForm').onsubmit = e => {
+  e.preventDefault();
+  if (!cloud.session) return;
+  if (!emailMatches($('delEmail').value, cloud.session.user.email)) { toast('Почта не совпадает с почтой аккаунта'); $('delEmail').focus(); return; }
+  deleteAccount($('delLocal').checked);
+};

@@ -1,11 +1,13 @@
-import { $, addDays, COLORS, DAY_C, days, ofDays, EASE, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isDue, isToday, key, MONTHS_SHORT, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=1.05a';
+import { $, addDays, COLORS, DAY_C, days, ofDays, EASE, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, key, MONTHS_SHORT, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=1.05a';
 import { IC, setIcon } from './icons.js?v=1.05a';
-import { activeOn, at, count, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=1.05a';
+import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=1.05a';
 import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=1.05a';
 import { openCats, openForm } from './form.js?v=1.05a';
 import { dayTip, hist, openDay, openHistory, renderHistory, setHist } from './history.js?v=1.05a';
 import { userName } from './settings.js?v=1.05a';
 import { queueTips } from './tips.js?v=1.05a';
+import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=1.05a';
+import { openLockSettings } from './lock.js?v=1.05a';
 
 export let viewDate = new Date();
 export const cards = new Map();
@@ -17,9 +19,9 @@ export function habitMenu(anchor, id) {
     { icon: IC.history, label: 'История и статистика', run: () => openHistory(id) },
     '-',
     h.target > 1 && c < h.target && { icon: IC.full, label: 'Выполнить полностью', run: () => changeCount(h, viewDate, h.target) },
-    h.target > 1 && c > 0 && { icon: IC.minus, label: h.step ? `Убрать шаг (−${c % h.step || h.step})` : 'Убрать одно повторение', run: () => changeCount(h, viewDate, stepDown(h, c)) },
+    h.target > 1 && c > 0 && { icon: IC.minus, label: h.step ? `Убрать ${c % h.step || h.step}` : 'Убрать одно', run: () => changeCount(h, viewDate, stepDown(h, c)) },
     c > 0 && { icon: IC.reset, label: 'Сбросить отметку', run: () => changeCount(h, viewDate, 0) },
-    (skipped || (isDue(h, viewDate) && !c)) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
+    (skipped || (isDue(h, viewDate) && !c && !isWeekly(h, viewDate))) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
     inLife(h, key(viewDate)) && { icon: IC.note, label: noteOf(h, viewDate) ? 'Заметка' : 'Добавить заметку', run: () => openDay(id, viewDate) },
     '-',
     { icon: IC.edit, label: 'Изменить', run: () => openForm(id) },
@@ -40,7 +42,7 @@ export function sectionDefs() {
   const defs = groupMode === 'time' ? TIMES.map(t => ({ id: 't:' + t.v, label: `${t.icon} ${t.v === 'any' ? 'В любое время' : t.label}` }))
     : groupMode === 'custom' ? [...state.categories.map(c => ({ id: 'c:' + c.id, label: c.name })), { id: 'c:', label: 'Без категории' }]
     : [{ id: 'all', label: '' }];
-  return [...defs, { id: 'off', label: '💤 Не по расписанию' }];
+  return [...defs, { id: 'off', label: '💤 Не сегодня' }];
 }
 export function sectionOf(h) {
   if (!isDue(h, viewDate) && !count(h, viewDate)) return 'off';
@@ -72,7 +74,7 @@ export function buildCard(id) {
       <div class="dots">${'<div class="dcol"><span class="dw"></span><button class="dot"></button></div>'.repeat(7)}</div>
     </div>
     <div class="ctl">
-    <button class="step-minus idle" title="Убрать одно повторение">${IC.minus}</button>
+    <button class="step-minus idle" title="Убрать одно">${IC.minus}</button>
     <button class="check">
       <svg class="ring" viewBox="0 0 48 48">
         <circle class="track" cx="24" cy="24" r="22"/>
@@ -329,6 +331,7 @@ export function changeCount(h, d, n, clearSkip = false) {
     const dayNote = isToday(d) ? '' : ` (${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })})`;
     let text = `${h.name}${dayNote}: ${isDone ? 'выполнено' : n ? `${n} из ${h.target}` : 'отметка снята'}`;
     if (isDone && h.target > 1 && getPref(OVER_HINT, '') !== '1') { setPref(OVER_HINT, '1'); text = 'Цель выполнена! Нажмите ещё раз, чтобы записать сверх плана'; }
+    if (isPrivate(h) && text.startsWith(h.name)) text = 'Привычка' + text.slice(h.name.length);
     toast(text, () => {
       if (!findHabit(h.id)) return;
       setMap(state.log, key(d), h.id, prev);
@@ -364,7 +367,7 @@ export function updateCard(el, h) {
   el.querySelector('.prog').style.strokeDashoffset = RING_C * (1 - Math.min(c / h.target, 1));
   const check = el.querySelector('.check'), extra = c - h.target;
   check.title = !multi ? (done ? 'Выполнено — нажмите, чтобы снять отметку' : 'Отметить выполненной')
-    : `Нажмите: +${stepOf(h)}, кнопка − убирает повторение` + (done ? '' : ' · удерживайте: выполнить целиком');
+    : `Нажмите: +${stepOf(h)}, кнопка − убирает лишнее` + (done ? '' : ' · удерживайте: выполнить целиком');
   check.setAttribute('aria-label', `${h.name}: ` + (!multi ? `${done ? 'выполнено' : 'не выполнено'}. ${check.title}`
     : extra > 0 ? `${c} из ${h.target}, перевыполнено на ${extra}. Нажмите, чтобы добавить ещё`
     : extra === 0 ? `${c} из ${h.target}, выполнено. Нажмите, чтобы добавить сверх цели`
@@ -391,7 +394,7 @@ export function updateCard(el, h) {
   const num = el.querySelector('.num');
   const numText = multi && c > 0 && c < h.target ? String(c) : '';
   num.classList.toggle('long', numText.length > 3);
-  minusBtn.title = h.step ? `Убрать шаг (−${c % h.step || h.step})` : 'Убрать одно повторение';
+  minusBtn.title = h.step ? `Убрать ${c % h.step || h.step}` : 'Убрать одно';
   if (numText) rollNumber(num, numText, c > (el._c ?? c) ? 1 : -1, sameDay);
   else if (!done) rollNumber(num, '', 1, false);
   const grew = sameDay && c > (el._c ?? c);
@@ -402,8 +405,11 @@ export function updateCard(el, h) {
 
   el.querySelector('.name').textContent = h.name;
   const meta = el.querySelector('.meta');
+  const weekly = isWeekly(h, viewDate), nd = !due && !c && !weekly ? nextDue(h, viewDate) : null;
   const lead = skipped ? '<span class="badge skip">Пропущено</span>'
-    : multi ? `<span>${c} / ${h.target}${h.unit ? ' ' + esc(h.unit) : ''}</span>`
+    : weekly ? `<span>${weekDone(h, state, viewDate) >= weekQuota(h, viewDate) ? 'На эту неделю всё сделано' : `${weekDone(h, state, viewDate)} из ${weekQuota(h, viewDate)} ${isToday(viewDate) ? 'на этой неделе' : 'за неделю'}`}</span>`
+    : nd ? `<span>Следующий раз: ${nd.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>`
+    : multi ?`<span>${c} / ${h.target}${h.unit ? ' ' + esc(h.unit) : ''}</span>`
     : `<span>${esc(schedText(h)[0].toUpperCase() + schedText(h).slice(1))}</span>`;
   const badge = isToday(viewDate) && !skipped && due ? missBadge(h) : null, warn = !!badge;
   if (meta.dataset.lead !== lead) {
@@ -411,19 +417,25 @@ export function updateCard(el, h) {
     if (multi && grew && !reducedMotion) meta.querySelector('.m-lead > span').animate([{ color: h.color }, { color: h.color, offset: .35 }, {}], { duration: 700, easing: 'ease-out' });
   }
   const st = meta.querySelector('.m-streak');
-  st.textContent = s ? `🔥 ${days(s)}` : st.textContent;
+  st.textContent = s ? `🔥 ${streakText(h, s)}` : st.textContent;
   st.classList.toggle('on', !!s);
   const warnEl = meta.querySelector('.m-warn');
   warnEl.classList.toggle('on', warn);
+  meta.classList.remove('m-wrap');
+  warnEl.classList.remove('m-free');
   if (warn) {
     warnEl.title = badge.title;
     warnEl.classList.toggle('calm', badge.calm);
     warnEl.classList.toggle('stale', !!badge.stale);
     const room = meta.clientWidth - meta.querySelector('.m-lead').offsetWidth - (s ? meta.querySelector('.m-streak').scrollWidth + 8 : 0) - 8;
     const label = warnEl.querySelector('.w-long');
-    for (const t of badge.texts) { label.textContent = t; if (label.offsetWidth + 14 <= room) break; }
-    if (label.offsetWidth + 14 > room) warnEl.classList.remove('on');
+    const fit = w => badge.texts.some(t => { label.textContent = t; return label.offsetWidth + 14 <= w; });
+    if (!fit(room) && meta.clientWidth) {
+      meta.classList.add('m-wrap');
+      if (!fit(meta.clientWidth)) { label.textContent = badge.texts[badge.texts.length - 1]; warnEl.classList.add('m-free'); }
+    }
   }
+  if (meta.clientWidth && meta.querySelector('.m-lead').offsetWidth + (s ? st.scrollWidth + 8 : 0) > meta.clientWidth) meta.classList.add('m-wrap');
 
   const todayK = todayKey();
   el.querySelectorAll('.dcol').forEach((col, i) => {
@@ -450,7 +462,7 @@ export function updateCard(el, h) {
     const cls = (out ? 'x' : v >= tgt ? 'l3' : v * 2 >= tgt ? 'l2' : v > 0 ? 'l1' : sk ? 'sk' : '')
       + (k === day ? ' cur' : '');
     if (cell.className !== cls) cell.className = cls;
-    if (!out && k <= end && !sk && (!h.days || h.days.includes(L.wd[i])) && !(k === todayK && v < tgt)) { dueN++; if (v >= tgt) fullN++; }
+    if (!out && k <= end && !sk && isDue(h, L.days[i]) && !(k === todayK && v < tgt)) { dueN++; if (v >= tgt) fullN++; }
   });
   mh.querySelector('.sh-r').textContent = dueN ? `${fullN} из ${ofDays(dueN)} · ${Math.round(fullN / dueN * 100)}%` : 'пока нет данных';
 }
@@ -509,7 +521,7 @@ export function buildStripLayout(view) {
 
 export function renderLegend() {
   const v = VIEWS[document.body.dataset.view];
-  $('viewLegend').hidden = !state.habits.some(h => !h.archived);
+  $('viewLegend').hidden = !visibleHabits(state).some(h => !h.archived);
   $('viewLegend').classList.toggle('round', !v.cells);
   $('viewLegend').title = v.label;
   $('viewLegend').innerHTML = `<span><i class="lg3"></i>выполнено</span><span><i class="lg1"></i>частично</span>
@@ -544,12 +556,13 @@ export function render() {
   $('todayBtn').hidden = isToday(viewDate);
   renderWeek();
 
-  const active = state.habits.filter(h => !h.archived);
+  const active = visibleHabits(state).filter(h => !h.archived);
   const habits = activeOn(viewDate);
+  const priv = privateHabits(state), privLive = priv.filter(h => !h.archived && key(viewDate) >= h.created);
   $('empty').hidden = active.length > 0;
   document.body.classList.toggle('no-habits', !active.length);
 
-  const ids = new Set(habits.map(h => h.id));
+  const ids = new Set([...habits, ...privLive].map(h => h.id));
   for (const [id, el] of cards) if (!ids.has(id)) { cards.delete(id); removeCard(el); }
 
   const defs = sectionDefs();
@@ -590,6 +603,7 @@ export function render() {
     sec.hidden = true;
     if (!sec.querySelector('.habit')) { sec.remove(); sectionEls.delete(id); }
   }
+  renderPrivate(privLive, priv.filter(h => h.archived));
 
   renderHero();
   firstRender = false;
@@ -622,12 +636,23 @@ export function renderWeek() {
   $('prev').disabled = !first || key(start) <= first;
 }
 
+export function placeBand() {
+  const el = [$('hero'), $('empty')].find(e => !e.hidden);
+  const r = (el || $('days')).getBoundingClientRect();
+  document.body.style.setProperty('--band', Math.round((el ? r.top + Math.min(r.height / 2, 70) : r.bottom + 14) + scrollY) + 'px');
+}
+if ('ResizeObserver' in window) {
+  const ro = new ResizeObserver(() => placeBand());
+  [$('hero'), $('empty'), document.querySelector('.top'), $('days')].forEach(el => ro.observe(el));
+}
+
 export function renderHero() {
   const p = dayProgress(viewDate), today = isToday(viewDate);
-  const anyHabits = state.habits.some(h => !h.archived);
+  const anyHabits = visibleHabits(state).some(h => !h.archived);
   $('hero').hidden = !anyHabits;
   countTo($('heroDone'), p.done);
   $('heroTotal').textContent = p.total;
+  $('heroPart').textContent = p.partial ? `и ${p.partial} частично` : '';
   countTo($('heroPct'), Math.round(p.frac * 100), '%');
   $('heroProg').style.strokeDashoffset = HERO_C * (1 - p.frac);
   const left = p.total - p.done, allDone = p.total > 0 && !left;
@@ -638,14 +663,16 @@ export function renderHero() {
     : `Осталось ${left} — Вы справитесь`;
 
   const chips = [];
-  const ps = perfectStreak();
-  if (ps) chips.push(`⭐ Идеально ${days(ps)} подряд`);
-  const best = state.habits.filter(h => !h.archived).map(h => ({ h, s: streak(h) })).sort((a, b) => b.s - a.s)[0];
-  if (best?.s >= 2) chips.push(`🔥 ${best.h.name} · ${days(best.s)}`);
+  if (today) {
+    const ps = perfectStreak();
+    if (ps) chips.push(`⭐ Идеально ${days(ps)} подряд`);
+    const best = visibleHabits(state).filter(h => !h.archived).map(h => ({ h, s: streak(h) })).sort((a, b) => b.s - a.s)[0];
+    if (best?.s >= 2) chips.push(`🔥 ${best.h.name} · ${streakText(best.h, best.s)}`);
+  }
   if (!chips.length) {
-    let done = 0, total = 0;
-    for (let i = 0; i < 7; i++) { const d = dayProgress(addDays(viewDate, -i)); done += d.done; total += d.total; }
-    chips.push(`📅 За 7 дней: ${total ? Math.round(done / total * 100) : 0}%`);
+    let done = 0, total = 0, planned = 0;
+    for (let i = 0; i < 7; i++) { const d = dayProgress(addDays(viewDate, -i)); done += d.done; total += d.total; if (d.total) planned++; }
+    if (planned >= 3) chips.push(`📅 За 7 дней: ${Math.round(done / total * 100)}%`);
   }
   const box = $('heroChips');
   box.innerHTML = chips.map(c => `<span class="chip" title="${esc(c)}">${esc(c)}</span>`).join('');
@@ -679,13 +706,13 @@ export function archiveHabit(id) {
   const h = findHabit(id);
   h.archived = todayKey();
   save(); render();
-  toast(`«${h.name}» — в архиве`, () => { const x = findHabit(id); if (x) { delete x.archived; save(); render(); } });
+  toast(isPrivate(h) ? 'Перенесено в архив' : `«${h.name}» — в архиве`, () => { const x = findHabit(id); if (x) { delete x.archived; save(); render(); } });
 }
 
 export async function deleteForever(id) {
   const h = findHabit(id);
   const ok = await askConfirm('Удалить навсегда?',
-    `Привычка «${h.name}» и вся её история будут стёрты. Это нельзя отменить.`, 'Удалить');
+    `${isPrivate(h) ? 'Привычка' : `Привычка «${h.name}»`} и вся её история будут стёрты. Это нельзя отменить.`, 'Удалить');
   if (!ok || !findHabit(id)) return;
   state.habits = state.habits.filter(x => x.id !== id);
   for (const map of [state.log, state.skip, state.notes]) for (const k in map) setMap(map, k, id, 0);
@@ -701,12 +728,49 @@ export function setArchiveOpen(open) {
 $('archToggle').onclick = () => setArchiveOpen($('archToggle').getAttribute('aria-expanded') !== 'true');
 
 export function renderArchive() {
-  const archived = state.habits.filter(h => h.archived);
+  const archived = visibleHabits(state).filter(h => h.archived);
   $('archive').hidden = !archived.length;
   if (!archived.length) setArchiveOpen(false);
   $('archCount').textContent = archived.length;
+  fillArchive($('archList'), archived);
+}
 
-  const list = $('archList');
+export let privSec = null;
+export function purgePrivate() {
+  for (const [id, el] of cards) if (el.closest('.priv-sec') || isPrivate(findHabit(id))) { cards.delete(id); el.remove(); }
+  privSec?.remove();
+  privSec = null;
+}
+export function renderPrivate(live, archived) {
+  if (!unlocked) return purgePrivate();
+  if (!privSec) {
+    privSec = document.createElement('section');
+    privSec.className = 'section priv-sec enter';
+    privSec.innerHTML = `<div class="sec-h"><span class="sec-t">${IC.lock}<span>Личное</span></span>
+      <span class="priv-acts"><button type="button" class="ghost icon-btn priv-set" title="Настройки личного" aria-label="Настройки личного">${IC.more}</button>
+      <button type="button" class="ghost icon-btn priv-add" title="Новая личная привычка" aria-label="Новая личная привычка">${IC.plus}</button></span></div>
+      <div class="list"></div><p class="priv-empty">Здесь пока пусто. Нажмите «+», чтобы добавить личную привычку.</p><div class="arch-list priv-arch"></div>`;
+    privSec.querySelector('.priv-add').onclick = () => openForm(null, true);
+    privSec.querySelector('.priv-set').onclick = openLockSettings;
+    privSec.addEventListener('animationend', e => { if (e.target === privSec) privSec.classList.remove('enter'); });
+  }
+  if ($('sections').lastElementChild !== privSec) $('sections').append(privSec);
+  const list = privSec.querySelector('.list');
+  const nextLive = n => { while (n && n.classList.contains('leaving')) n = n.nextElementSibling; return n; };
+  let prev = null;
+  for (const h of live) {
+    let el = cards.get(h.id);
+    if (!el) { el = buildCard(h.id); cards.set(h.id, el); }
+    const want = nextLive(prev ? prev.nextElementSibling : list.firstElementChild);
+    if (el !== want) list.insertBefore(el, want);
+    prev = el;
+    updateCard(el, h);
+  }
+  privSec.querySelector('.priv-empty').hidden = live.length + archived.length > 0;
+  fillArchive(privSec.querySelector('.priv-arch'), archived);
+}
+
+function fillArchive(list, archived) {
   const known = new Set();
   for (const h of archived) {
     known.add(h.id);
@@ -765,7 +829,7 @@ export function goTo(d) {
   $('title').animate([{ opacity: 0, transform: `translateX(${8 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
   $('sections').animate([{ opacity: .35, transform: `translateX(${10 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
 }
-export const firstHabitDay = () => state.habits.filter(h => !h.archived).map(h => h.created).sort()[0];
+export const firstHabitDay = () => [...visibleHabits(state), ...privateHabits(state)].filter(h => !h.archived).map(h => h.created).sort()[0];
 
 {
   const strip = $('days'), track = $('daysTrack'), GAP = 16;
@@ -805,10 +869,10 @@ export const firstHabitDay = () => state.habits.filter(h => !h.archived).map(h =
   };
   const land = d => () => {
     clear();
-    strip.classList.add('swap');
+    document.body.classList.add('jump');
     goTo(d);
     strip.offsetWidth;
-    strip.classList.remove('swap');
+    document.body.classList.remove('jump');
   };
   const flip = (s, d) => {
     flush();

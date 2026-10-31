@@ -8,7 +8,7 @@ const SHELL_FILES = [
   './index.html',
   `./styles.css?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
-  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide'].map(m => `./js/${m}.js?v=${VERSION}`),
+  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide', 'privacy', 'lock', 'plan'].map(m => `./js/${m}.js?v=${VERSION}`),
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/apple-touch-icon.png',
@@ -105,7 +105,7 @@ async function notifyMode() {
 function notifyView(d, mode) {
   const ids = Array.isArray(d.ids) ? d.ids : [];
   if (mode === 'hide') return { title: 'Трекер привычек', body: ids.length > 1 ? `Пора отметить привычки: ${ids.length}` : 'Пора отметить привычку', ids, done: false };
-  return { title: d.title || 'Трекер привычек', body: d.body || '', ids, done: ids.length === 1 };
+  return { title: d.title || 'Трекер привычек', body: d.body || '', ids, done: ids.length === 1 && !d.smart };
 }
 
 self.addEventListener('push', e => {

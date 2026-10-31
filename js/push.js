@@ -1,16 +1,20 @@
-import { $, getPref, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=1.05a';
-import { count, findHabit, state, targetOn } from './storage.js?v=1.05a';
+import { $, getPref, HHMM, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=1.05a';
+import { count, findHabit, normSmart, save, smartOf, state, targetOn } from './storage.js?v=1.05a';
 import { closeOverlay, openOverlay, toast } from './ui.js?v=1.05a';
 import { changeCount, render, setViewDate, viewDate } from './render.js?v=1.05a';
 import { form } from './form.js?v=1.05a';
 import { renderSettings } from './settings.js?v=1.05a';
 import { cloud, cloudCfg, renderAccount } from './sync.js?v=1.05a';
+import { isPrivate, unlocked, visibleHabits } from './privacy.js?v=1.05a';
 
 export const push = {
   supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
   sub: null, busy: false,
 };
 export const pushTz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+export function tzName() {
+  try { return new Intl.DateTimeFormat('ru-RU', { timeZoneName: 'long' }).formatToParts(new Date()).find(p => p.type === 'timeZoneName').value; } catch { return pushTz(); }
+}
 export const b64uBytes = s => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
 export function pushState() {
   if (!cloudCfg.vapidPublicKey || !cloud.enabled) return 'off';
@@ -22,8 +26,8 @@ export function pushState() {
 }
 export const PUSH_TEXT = {
   ios: ['Только в установленном приложении', 'На iPhone напоминания приходят, если трекер добавлен на экран «Домой» (iOS 16.4 и новее). Откройте его оттуда и включите здесь.'],
-  unsupported: ['Недоступны', 'Этот браузер не поддерживает push-уведомления.'],
-  login: ['Нужен вход в аккаунт', 'Напоминания отправляет сервер, поэтому сначала войдите — тогда он будет знать Ваши привычки.'],
+  unsupported: ['Недоступны', 'Этот браузер не умеет показывать уведомления.'],
+  login: ['Нужен вход в аккаунт', 'Чтобы напоминания приходили, даже когда приложение закрыто, войдите в аккаунт.'],
   denied: ['Запрещены', 'Уведомления заблокированы для этого сайта. Разрешите их в настройках браузера или iPhone и вернитесь сюда.'],
   ready: ['Выключены', 'Включите, чтобы получать напоминания в заданное время.'],
   on: ['Включены на этом устройстве', ''],
@@ -59,15 +63,44 @@ export function renderPush() {
   if (st === 'off') return renderRemindHint();
   const [title, text] = PUSH_TEXT[st];
   $('pushTitle').textContent = title;
-  $('pushText').textContent = st === 'on' ? `Часовой пояс: ${pushTz()}` : text;
+  $('pushText').textContent = st === 'on' ? `Часовой пояс: ${tzName()}` : text;
   $('pushIc').dataset.on = st === 'on';
   $('pushOn').hidden = !(st === 'ready' || st === 'login');
   $('pushOnLabel').textContent = st === 'login' ? 'Войти в аккаунт' : 'Включить напоминания';
   $('pushOn').disabled = push.busy;
   $('pushTest').hidden = $('pushOff').hidden = st !== 'on';
   $('notifyBox').hidden = !['on', 'ready', 'login'].includes(st);
+  $('smartBox').hidden = st !== 'on';
+  renderSmart();
   renderRemindHint();
 }
+export function renderSmart() {
+  const s = smartOf();
+  $('smartSwitch').setAttribute('aria-checked', s.on);
+  $('smartWrap').classList.toggle('open', s.on);
+  $('smartWrap').inert = !s.on;
+  if (document.activeElement !== $('smartAt')) $('smartAt').value = s.at;
+  if (document.activeElement !== $('smartQFrom')) $('smartQFrom').value = s.quiet[0];
+  if (document.activeElement !== $('smartQTo')) $('smartQTo').value = s.quiet[1];
+  $('smartRepSwitch').setAttribute('aria-checked', !!s.repeat);
+  $('smartRepWrap').classList.toggle('open', !!s.repeat);
+  $('smartRepWrap').inert = !s.repeat;
+  for (const b of $('smartRep').children) b.setAttribute('aria-pressed', +b.dataset.v === (s.repeat || 60));
+}
+export function setSmart(patch) {
+  state.smart = normSmart({ ...smartOf(), ...patch });
+  save();
+  renderSmart();
+}
+$('smartSwitch').onclick = () => setSmart({ on: !smartOf().on });
+$('smartRepSwitch').onclick = () => setSmart({ repeat: smartOf().repeat ? 0 : 60 });
+$('smartRep').onclick = e => { const b = e.target.closest('[data-v]'); if (b) setSmart({ repeat: +b.dataset.v }); };
+$('smartAt').onchange = e => { if (HHMM.test(e.target.value)) setSmart({ at: e.target.value }); else renderSmart(); };
+for (const [id, i] of [['smartQFrom', 0], ['smartQTo', 1]]) $(id).onchange = e => {
+  if (!HHMM.test(e.target.value)) return renderSmart();
+  const q = [...smartOf().quiet]; q[i] = e.target.value;
+  setSmart({ quiet: q });
+};
 export function renderRemindHint() {
   const el = $('remindHint');
   const st = pushState();
@@ -139,15 +172,21 @@ $('pushOff').onclick = () => pushDisable().then(() => toast('Напоминан�
 $('pushTest').onclick = async () => {
   try {
     const reg = await navigator.serviceWorker.ready;
-    const h = notifyMode() === 'show' && state.habits.find(x => !x.archived);
+    const h = notifyMode() === 'show' && visibleHabits(state).find(x => !x.archived);
     await reg.showNotification(h ? h.name : 'Трекер привычек', { body: h ? 'Пора выполнить привычку' : 'Пора отметить привычку', icon: 'icons/icon-192.png', tag: 'test' });
   } catch (err) { toast('Не удалось показать уведомление: ' + err.message, null, ''); }
 };
 export function markDoneFromPush(id) {
   const h = findHabit(id);
-  if (!h || h.archived) return;
+  if (!h || h.archived || (isPrivate(h) && !unlocked)) return;
   if (!isToday(viewDate)) setViewDate(new Date());
   if (count(h, new Date()) < targetOn(h, new Date())) changeCount(h, new Date(), h.target, true);
   render();
 }
 navigator.serviceWorker?.addEventListener('message', e => { if (e.data?.type === 'done') markDoneFromPush(e.data.id); });
+let seenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !push.sub || !cloud.session || Date.now() - seenAt < 60000) return;
+  seenAt = Date.now();
+  pushSave(push.sub).catch(() => {});
+});
