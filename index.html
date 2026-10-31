@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.min.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://twgxewleqqmkzlzvrcev.supabase.co wss://twgxewleqqmkzlzvrcev.supabase.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Трекер привычек</title>
 <meta name="description" content="Отслеживайте ежедневные привычки, серии и прогресс">
 <link rel="manifest" href="manifest.webmanifest">
 <script src="config.js"></script>
-<meta name="theme-color" content="#f4f5f9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0e1015" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#29476d" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -25,6 +25,50 @@
       media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
 <link rel="apple-touch-startup-image" href="icons/splash-1179x2556-dark.png"
       media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-750x1334-light.png"
+      media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-750x1334-dark.png"
+      media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-1080x2340-light.png"
+      media="(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-1080x2340-dark.png"
+      media="(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-1170x2532-light.png"
+      media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-1170x2532-dark.png"
+      media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-1206x2622-light.png"
+      media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-1206x2622-dark.png"
+      media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-1284x2778-light.png"
+      media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-1284x2778-dark.png"
+      media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-1290x2796-light.png"
+      media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-1290x2796-dark.png"
+      media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-1320x2868-light.png"
+      media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-1320x2868-dark.png"
+      media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-1640x2360-light.png"
+      media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-1640x2360-dark.png"
+      media="(device-width: 820px) and (device-height: 1180px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-1668x2388-light.png"
+      media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-1668x2388-dark.png"
+      media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-2048x2732-light.png"
+      media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-2048x2732-dark.png"
+      media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash-2064x2752-light.png"
+      media="(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: light)">
+<link rel="apple-touch-startup-image" href="icons/splash-2064x2752-dark.png"
+      media="(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
 <link rel="stylesheet" href="styles.css?v=1.05a">
 </head>
 <body>
@@ -61,7 +105,7 @@
 
   <div class="card hero" id="hero">
     <div class="hero-text">
-      <div class="hero-n"><b id="heroDone">0</b>из <span id="heroTotal">0</span> выполнено</div>
+      <div class="hero-n"><b id="heroDone">0</b>из <span id="heroTotal">0</span> выполнено<span id="heroPart"></span></div>
       <div class="hero-msg" id="heroMsg"></div>
       <div class="chips" id="heroChips"></div>
     </div>
@@ -163,6 +207,12 @@
           <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
         </button>
       </div>
+      <div class="set-card set-del" id="setDelCard" hidden>
+        <button type="button" class="set-row danger" id="setDelete">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></span>
+          <span class="set-txt"><b>Удалить аккаунт</b></span>
+        </button>
+      </div>
     </section>
     <section class="set-group" id="pushGroup">
       <h3>Напоминания</h3>
@@ -185,8 +235,46 @@
         </button>
       </div>
       <p class="set-hint">Время напоминания задаётся в каждой привычке. Напоминание придёт, только если привычка на сегодня ещё не выполнена.</p>
+      <div id="smartBox" hidden>
+        <h4 class="set-sub">Невыполненное за день</h4>
+        <div class="set-card smart">
+          <div class="set-row static">
+            <span class="set-txt"><b id="smartLbl">Вечернее напоминание о невыполненном</b><small>Одно уведомление, если на сегодня что-то осталось</small></span>
+            <button type="button" class="switch" id="smartSwitch" role="switch" aria-checked="false" aria-labelledby="smartLbl"><span></span></button>
+          </div>
+          <div class="collapse" id="smartWrap"><div>
+            <label class="set-row static">
+              <span class="set-txt"><b>Время</b></span>
+              <input type="time" class="set-time" id="smartAt" step="300">
+            </label>
+            <div class="set-row static">
+              <span class="set-txt"><b id="smartRepLbl">Повторить один раз, если не отмечено</b><small>Если Вы не открывали приложение</small></span>
+              <button type="button" class="switch sm" id="smartRepSwitch" role="switch" aria-checked="false" aria-labelledby="smartRepLbl"><span></span></button>
+            </div>
+            <div class="collapse" id="smartRepWrap"><div>
+              <div class="set-row static smart-rep">
+                <span class="set-txt"><b>Через</b></span>
+                <div class="cat-chips" id="smartRep" role="group" aria-label="Интервал повтора">
+                  <button type="button" data-v="30" aria-pressed="false">30 мин</button>
+                  <button type="button" data-v="60" aria-pressed="false">1 ч</button>
+                  <button type="button" data-v="120" aria-pressed="false">2 ч</button>
+                </div>
+              </div>
+            </div></div>
+            <div class="set-row static">
+              <span class="set-txt"><b>Тихие часы</b></span>
+              <span class="smart-quiet">
+                <input type="time" class="set-time" id="smartQFrom" step="300" aria-label="Тихие часы с">
+                <span aria-hidden="true">–</span>
+                <input type="time" class="set-time" id="smartQTo" step="300" aria-label="Тихие часы до">
+              </span>
+            </div>
+          </div></div>
+        </div>
+        <p class="set-hint">Действует на всех Ваших устройствах. Если всё на сегодня выполнено или пропущено, уведомления не будет. В тихие часы такие напоминания не приходят.</p>
+      </div>
       <div id="notifyBox">
-        <h4 class="set-sub" id="notifyTitle">Конфиденциальность уведомлений</h4>
+        <h4 class="set-sub" id="notifyTitle">Что видно в уведомлениях</h4>
         <div class="set-card" id="notifyList" role="radiogroup" aria-labelledby="notifyTitle"></div>
         <p class="set-hint">Настройка действует на этом устройстве. Скрытые уведомления не показывают названия привычек и цифры, в том числе на экране блокировки.</p>
       </div>
@@ -232,11 +320,11 @@
       <div class="set-card">
         <button type="button" class="set-row" id="exportBtn">
           <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M12 15V3.5M7.5 8L12 3.5 16.5 8M5 13.5v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></span>
-          <span class="set-txt"><b>Экспорт данных</b><small>Сохранить копию всех привычек в файл</small></span>
+          <span class="set-txt"><b>Сохранить копию</b><small>Скачать файл со всеми данными: привычки, отметки, заметки</small></span>
         </button>
         <button type="button" class="set-row" id="importBtn">
           <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5V15M7.5 10.5L12 15l4.5-4.5M5 13.5v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg></span>
-          <span class="set-txt"><b>Импорт</b><small>Заменить данные копией из файла</small></span>
+          <span class="set-txt"><b>Восстановить из копии</b><small>Загрузить сохранённый файл вместо текущих данных</small></span>
         </button>
       </div>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
@@ -261,7 +349,7 @@
     </div>
     <div class="help-search">
       <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-      <input type="search" id="helpQ" placeholder="Поиск по справке" aria-label="Поиск по справке" autocomplete="off">
+      <input type="search" id="helpQ" enterkeyhint="search" placeholder="Поиск по справке" aria-label="Поиск по справке" autocomplete="off">
     </div>
     <div id="helpList"></div>
     <p class="help-empty" id="helpEmpty" hidden>Ничего не нашлось. Попробуйте другое слово.</p>
@@ -294,7 +382,7 @@
             <div class="set-row static"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg></span><span class="set-txt"><b>Синхронизация — по желанию</b><small>Вход по почте без пароля, когда понадобится</small></span></div>
             <div class="set-row static"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></span><span class="set-txt"><b>Напоминания — когда будете готовы</b><small>Включаются у каждой привычки отдельно</small></span></div>
           </div>
-          <div class="ob-name"><label for="obName">Как Вас зовут? Необязательно</label><input type="text" id="obName" maxlength="40" autocomplete="given-name" autocapitalize="words" placeholder="Ваше имя"></div>
+          <div class="ob-name"><label for="obName">Как Вас зовут? Необязательно</label><input type="text" id="obName" enterkeyhint="done" maxlength="40" autocomplete="given-name" autocapitalize="words" placeholder="Ваше имя"></div>
         </section>
       </div>
     </div>
@@ -323,6 +411,7 @@
       <div class="plabel" id="sLabel"></div>
       <button class="ghost icon-btn" id="sNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
+    <div class="per-vp" id="sPer"><div class="per-track" id="sPerTrack">
     <p class="s-sum" id="sSum" aria-live="polite"></p>
     <div id="sBody">
       <div class="tiles s-tiles" id="sTiles"></div>
@@ -343,6 +432,7 @@
       <div class="hab-list" id="sHabits"></div>
       <button type="button" class="link-btn s-more" id="sMore" hidden></button>
     </div>
+    </div></div>
     <button type="button" class="link-btn s-how" id="sHow" aria-haspopup="dialog">Как считается</button>
   </div>
 </div>
@@ -361,6 +451,7 @@
     <div class="h-tags" id="hTags"></div>
     <div class="why" id="hWhy" hidden></div>
     <div class="tiles" id="hTiles"></div>
+    <div class="plan" id="hPlan" hidden></div>
     <div class="seg" id="hTabs">
       <button data-r="week">Неделя</button>
       <button data-r="month">Месяц</button>
@@ -371,13 +462,15 @@
       <div class="plabel" id="hLabel"></div>
       <button class="ghost icon-btn" id="hNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
-    <div class="pstats" id="hStats"></div>
-    <div class="chart" id="hChart"></div>
-    <div id="hHeatWrap" hidden>
-      <div class="heat-title">Каждый день года</div>
-      <div class="chart" id="hHeat"></div>
-      <div class="legend legend-num"><span><i class="lv0"></i>0%</span><span><i class="lv1"></i>до 50%</span><span><i class="lv2"></i>50–75%</span><span><i class="lv3"></i>75–99%</span><span><i class="lv4"></i>100%</span></div>
-    </div>
+    <div class="per-vp" id="hPer"><div class="per-track" id="hPerTrack">
+      <div class="pstats" id="hStats"></div>
+      <div class="chart" id="hChart"></div>
+      <div id="hHeatWrap" hidden>
+        <div class="heat-title">Каждый день года</div>
+        <div class="chart" id="hHeat"></div>
+        <div class="legend legend-num"><span><i class="lv0"></i>0%</span><span><i class="lv1"></i>до 50%</span><span><i class="lv2"></i>50–75%</span><span><i class="lv3"></i>75–99%</span><span><i class="lv4"></i>100%</span></div>
+      </div>
+    </div></div>
   </div>
 </div>
 
@@ -407,12 +500,12 @@
       <h2 id="formTitle">Новая привычка</h2>
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <form class="form" id="form">
+    <form class="form" id="form" novalidate>
       <div class="prev-dock">
         <div class="form-prev" id="formPrev">
           <div class="hicon" id="fpIcon" aria-hidden="true"></div>
           <div class="fp-text">
-            <input type="text" class="fp-name" id="name" maxlength="60" placeholder="Название привычки" aria-label="Название привычки" autocomplete="off" required>
+            <input type="text" class="fp-name" id="name" enterkeyhint="done" maxlength="60" placeholder="Название привычки" aria-label="Название привычки" autocomplete="off" required>
             <div class="fp-meta" id="fpMeta"></div>
           </div>
           <div class="fp-check" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
@@ -435,25 +528,25 @@
         <div class="seg seg-ic" id="goalSeg">
           <button type="button" data-v="once"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.5 2.5 5-5.3"/></svg><span>Один раз</span></button>
           <button type="button" data-v="multi"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="19" cy="12" r="2.6"/></svg><span>Несколько</span></button>
-          <button type="button" data-v="step"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19.5h4.5V15H13v-4.5h4.5V6H21"/></svg><span>С шагом</span></button>
+          <button type="button" data-v="step"><svg class="ic" viewBox="0 0 24 24"><path d="M4 19.5h4.5V15H13v-4.5h4.5V6H21"/></svg><span>Порциями</span></button>
         </div>
         <div class="collapse" id="goalWrap"><div>
           <div class="goal-box">
             <div class="goal-row">
               <div class="stepper">
                 <button type="button" class="icon-btn" id="tMinus" aria-label="Меньше">−</button>
-                <input type="number" id="target" min="2" max="100" value="8" inputmode="numeric" aria-label="Цель на день">
+                <input type="number" id="target" enterkeyhint="done" min="2" max="100" value="8" inputmode="numeric" aria-label="Цель на день">
                 <button type="button" class="icon-btn" id="tPlus" aria-label="Больше">+</button>
               </div>
-              <input type="text" id="unit" maxlength="20" placeholder="единица, напр. стаканов">
+              <input type="text" id="unit" enterkeyhint="done" maxlength="20" placeholder="напр. стаканов">
             </div>
             <div class="collapse" id="stepWrap"><div>
               <div class="step-box">
-                <div class="step-head">Шаг за одно нажатие</div>
+                <div class="step-head">Сколько добавлять за одно нажатие</div>
                 <div class="goal-row">
                   <div class="stepper">
                     <button type="button" class="icon-btn" id="sMinus" aria-label="Меньше">−</button>
-                    <input type="number" id="step" min="1" value="5" inputmode="numeric" aria-label="Шаг">
+                    <input type="number" id="step" enterkeyhint="done" min="1" value="5" inputmode="numeric" aria-label="Сколько за нажатие">
                     <button type="button" class="icon-btn" id="sPlus" aria-label="Больше">+</button>
                   </div>
                   <div class="step-sum" id="stepSum"></div>
@@ -465,13 +558,21 @@
           </div>
         </div></div>
       </div>
-      <div class="field">
+      <div class="field sched-field">
         <span class="lbl">Расписание</span>
-        <div class="seg" id="schedSeg">
+        <div class="cat-chips sched-chips" id="schedSeg">
           <button type="button" data-v="daily">Каждый день</button>
           <button type="button" data-v="days">По дням недели</button>
+          <button type="button" data-v="perWeek">Несколько раз в неделю</button>
+          <button type="button" data-v="everyNWeeks">Раз в несколько недель</button>
+          <button type="button" data-v="monthly">Раз в месяц</button>
         </div>
+        <div class="collapse" id="timesWrap"><div><div class="sched-row"><span id="timesLbl"></span></div><div class="num-chips" id="timesChips"></div></div></div>
+        <div class="collapse" id="everyWrap"><div><div class="sched-row"><span id="everyLbl"></span></div><div class="num-chips" id="everyChips"></div>
+          <label class="sched-row sched-date">С какой недели<input type="date" id="anchor" enterkeyhint="done"></label></div></div>
         <div class="collapse" id="daysWrap"><div><div class="weekdays" id="weekdays"></div></div></div>
+        <div class="collapse" id="domWrap"><div><label class="sched-row sched-dom">Число месяца<input type="number" id="dom" min="1" max="31" inputmode="numeric" enterkeyhint="done"></label></div></div>
+        <p class="sched-hint" id="schedHint"></p>
       </div>
       <div class="field">
         <span class="lbl">Время дня</span>
@@ -493,7 +594,7 @@
                 </div>
               </div></div>
               <div class="collapse" id="remSpreadWrap"><div>
-                <div class="rem-sub">Промежуток</div>
+                <div class="rem-sub">С какого и до какого времени</div>
                 <div class="rem-range">
                   <label class="pick"><small>Начало</small><b id="remFromVal"></b><input class="native" type="time" id="remFrom" step="300" aria-label="Начало промежутка"></label>
                   <svg class="ic rem-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -545,14 +646,14 @@
         <div class="cat-chips" id="catChips"></div>
         <div class="collapse" id="newCatWrap"><div>
           <div class="new-cat">
-            <input type="text" id="newCatName" maxlength="40" placeholder="Например: Физическая активность">
+            <input type="text" id="newCatName" enterkeyhint="done" maxlength="40" placeholder="Например: Физическая активность">
             <button type="button" class="primary" id="newCatAdd">Создать</button>
           </div>
         </div></div>
       </div>
       <div class="field">
         <span class="lbl">Зачем мне это? <span style="font-weight:400">— необязательно</span></span>
-        <input type="text" id="why" maxlength="120" placeholder="Например: хочу больше энергии по утрам">
+        <input type="text" id="why" enterkeyhint="done" maxlength="120" placeholder="Например: хочу больше энергии по утрам">
       </div>
       <div class="form-actions">
         <button type="button" data-close>Отмена</button>
@@ -582,13 +683,13 @@
 
     <div id="acct-setup" hidden>
       <p class="acct-note">Синхронизация между устройствами ещё не подключена. Сейчас привычки хранятся только на этом устройстве.</p>
-      <p class="acct-note">Чтобы включить её, вставьте адрес проекта Supabase и публичный ключ в файл <b>config.js</b> рядом с приложением.</p>
+      <p class="acct-note">Приложением можно пользоваться и так. Чтобы не потерять привычки, время от времени сохраняйте копию в файл: «Настройки» → «Сохранить копию».</p>
     </div>
 
     <div id="acct-email" hidden>
       <p class="acct-note">Войдите по почте — без пароля. Привычки будут храниться в Вашем аккаунте и синхронизироваться между телефоном и компьютером.</p>
       <form id="acctEmailForm" class="acct-form">
-        <input type="email" id="acctEmailInput" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="Почта" required>
+        <input type="email" id="acctEmailInput" enterkeyhint="send" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="Почта" required>
         <button type="submit" class="primary" id="acctSend">Получить ссылку</button>
       </form>
       <p class="acct-error acct-link-error" id="acctLinkError"></p>
@@ -598,7 +699,7 @@
     <div id="acct-code" hidden>
       <p class="acct-note">Письмо отправлено на <b class="acctSentTo"></b>. <span id="acctCodeHow">Нажмите ссылку в нём — вход произойдёт сам.</span></p>
       <form id="acctCodeForm" class="acct-form">
-        <input type="text" id="acctCode" autocomplete="one-time-code" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Код входа" aria-label="Код входа">
+        <input type="text" id="acctCode" enterkeyhint="done" autocomplete="one-time-code" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Код входа" aria-label="Код входа">
         <button type="button" id="acctPaste" hidden>Вставить</button>
         <button type="submit" class="primary" id="acctVerify">Войти</button>
       </form>
@@ -637,9 +738,38 @@
     <p class="cat-note">Категории помогают разложить привычки по темам. Например: «Здоровье» — вода, сон, витамины; «Спорт» — зарядка, бег, подтягивания; «Учёба» — английский, чтение. Чтобы главный экран делился на такие разделы, выберите вид списка «По категориям».</p>
     <div class="cat-list" id="catList"></div>
     <div class="new-cat">
-      <input type="text" id="catNewName" maxlength="40" placeholder="Новая категория">
+      <input type="text" id="catNewName" enterkeyhint="done" maxlength="40" placeholder="Новая категория">
       <button class="primary" id="catNewAdd">Добавить</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="delOv" hidden>
+  <div class="card sheet del-sheet" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+    <div class="sheet-head">
+      <h2 id="delTitle">Удалить аккаунт?</h2>
+      <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <p class="acct-note">Аккаунт и все данные в облаке будут удалены без возможности восстановления: привычки, отметки, заметки, категории и настройки напоминаний. На других устройствах синхронизация прекратится.</p>
+    <button type="button" class="del-export" id="delExport"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg>Сначала скачать копию данных</button>
+    <form class="del-form" id="delForm" novalidate>
+      <label class="del-label" for="delEmail">Чтобы подтвердить, введите свою почту: <b id="delAcctEmail"></b></label>
+      <input type="email" id="delEmail" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="done">
+      <label class="del-check"><input type="checkbox" id="delLocal"><span>Удалить также данные на этом устройстве</span></label>
+      <p class="del-hint">Если не отмечать, привычки останутся на этом устройстве, и приложением можно пользоваться без аккаунта.</p>
+      <button type="submit" class="danger-fill del-go" id="delGo">Удалить навсегда</button>
+    </form>
+    <p class="del-mail" id="delMail" hidden></p>
+  </div>
+</div>
+
+<div class="overlay" id="lockOv" hidden>
+  <div class="card sheet lock-sheet" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+    <div class="sheet-head">
+      <h2 id="lockTitle"></h2>
+      <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div id="lockBody"></div>
   </div>
 </div>
 
@@ -651,7 +781,7 @@
     </div>
     <p class="acct-note">Имя появится в приветствии на главном экране. Его всегда можно изменить в настройках.</p>
     <form class="name-form" id="nameForm">
-      <input type="text" id="nameInput" maxlength="40" autocomplete="given-name" autocapitalize="words" placeholder="Ваше имя" aria-label="Имя">
+      <input type="text" id="nameInput" enterkeyhint="done" maxlength="40" autocomplete="given-name" autocapitalize="words" placeholder="Ваше имя" aria-label="Имя">
       <div class="form-actions">
         <button type="button" id="nameSkip">Пропустить</button>
         <button type="submit" class="primary">Сохранить</button>
@@ -664,6 +794,7 @@
   <div class="card sheet" role="alertdialog" aria-modal="true" aria-labelledby="cTitle" aria-describedby="cText">
     <div class="sheet-head"><h2 id="cTitle"></h2></div>
     <p id="cText"></p>
+    <div class="c-choices" id="cChoices" hidden></div>
     <div class="form-actions">
       <button id="cNo">Отмена</button>
       <button class="danger-fill" id="cYes"></button>
@@ -678,6 +809,7 @@
 
 <div class="toast" id="toast"><span id="toastText"></span><button id="toastUndo">Отменить</button></div>
 
+<script nomodule src="legacy.js"></script>
 <script type="module" src="app.js?v=1.05a"></script>
 </body>
 </html>

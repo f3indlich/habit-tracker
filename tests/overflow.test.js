@@ -38,10 +38,12 @@ ok('day tooltip shows overflow', dayTip(w, parseKey(ago(2))).endsWith('12 из 8
 openForm('w'); await wait(400);
 $('target').value = 5; $('target').dispatchEvent(new Event('input', { bubbles: true }));
 $('submit').click(); await wait(400);
+closeConfirm(true); await wait(400);
 ok('lowering goal keeps recorded values', state.log[ago(2)].w === 12 && state.log[ago(1)].w === 9);
 openForm('w'); await wait(400);
 $('target').value = 8; $('target').dispatchEvent(new Event('input', { bubbles: true }));
 $('submit').click(); await wait(400);
+closeConfirm(true); await wait(400);
 hideToast();
 
 try { localStorage.removeItem(OVER_HINT); } catch {}

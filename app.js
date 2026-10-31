@@ -20,9 +20,12 @@ import * as pushMod from './js/push.js?v=1.05a';
 import * as summaryMod from './js/summary.js?v=1.05a';
 import * as tipsMod from './js/tips.js?v=1.05a';
 import * as guideMod from './js/guide.js?v=1.05a';
+import * as privacyMod from './js/privacy.js?v=1.05a';
+import * as lockMod from './js/lock.js?v=1.05a';
+import * as planMod from './js/plan.js?v=1.05a';
 
 if (TEST_MODE) {
-  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod]) {
+  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod, privacyMod, lockMod, planMod]) {
     for (const k of Object.keys(m)) {
       const set = typeof m[k] !== 'function' && m['set' + k[0].toUpperCase() + k.slice(1)];
       try { Object.defineProperty(window, k, { configurable: true, get: () => m[k], set: set || undefined }); } catch {}
@@ -39,6 +42,14 @@ document.body.dataset.icons = ICON_STYLES[getPref(ICON_STORE, 'color')] ? getPre
 setGroupMode(GROUPS[getPref(GROUP_STORE, 'time')] ? getPref(GROUP_STORE, 'time') : 'time');
 render();
 if (!TEST_MODE) requestAnimationFrame(() => ensureEmojiFont());
+if (!CSS.supports('color', 'color-mix(in srgb, red 50%, blue)') || !CSS.supports('height', '100dvh')) {
+  const bar = document.createElement('div');
+  bar.className = 'legacy soft';
+  bar.setAttribute('role', 'status');
+  bar.textContent = 'Ваш браузер устарел, часть оформления может отображаться неправильно. Обновите его, чтобы пользоваться трекером.';
+  bar.onclick = () => bar.remove();
+  document.body.append(bar);
+}
 
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
 if (LOCAL && 'serviceWorker' in navigator) {

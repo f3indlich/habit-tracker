@@ -118,15 +118,15 @@ const bestPcts = [...$('sHabits').querySelectorAll('.hr-pct')].map(e => parseInt
 ok('best sorted by percent', bestPcts.every((p, i) => !i || bestPcts[i - 1] >= p), bestPcts);
 const row0 = $('sHabits').querySelector('.hab-row');
 ok('row has icon, percent, label', !!row0.querySelector('.hicon') && /^\S.*: \d+%/.test(row0.getAttribute('aria-label')));
-ok('trend arrow with sign and text', [...$('sHabits').querySelectorAll('.trend')].filter(t => t.textContent).every(t => /^[↑↓→] (\+\d+%|−\d+%|0%)$/.test(t.textContent)) && $('sHabits').querySelectorAll('.trend').length > 0);
+ok('trend arrow with sign and text', [...$('sHabits').querySelectorAll('.trend')].filter(t => t.textContent).every(t => /^(↑ \+\d+%|↓ −\d+%|как было)$/.test(t.textContent)) && $('sHabits').querySelectorAll('.trend').length > 0);
 $('sFilter').querySelector('[data-f=attn]').click(); await wait(150);
 const attnRows = [...$('sHabits').querySelectorAll('.hab-row')];
 ok('attention filter lists only weak or dropping habits', pressed('sFilter') === 'attn' && (attnRows.length ? attnRows.every(r => { const p = parseInt(r.querySelector('.hr-pct').textContent), t = r.querySelector('.trend')?.textContent || ''; return p < 60 || /↓ −(1\d|[2-9]\d)%/.test(t); }) : $('sHabits').textContent === 'Все привычки выполняются стабильно'), attnRows.map(r => r.getAttribute('aria-label')));
 ok('observations hidden or short list', $('sObsWrap').hidden ? !$('sObs').children.length : $('sObs').children.length <= 3);
-$('sPrev').click(); await wait(250);
+$('sPrev').click(); await wait(450);
 ok('past month has no placeholders', futCells().length === 0 && $('sFutLg').hidden && /^В \S+ Вы выполнили/.test($('sSum').textContent));
 ok('past month streak note', /На конец периода/.test($('sTiles').textContent));
-$('sNext').click(); await wait(200);
+$('sNext').click(); await wait(450);
 const tilesEl = $('sTiles').firstElementChild;
 renderSummary(); await wait(100);
 ok('tiles not redrawn when values same', $('sTiles').firstElementChild === tilesEl);
@@ -148,7 +148,7 @@ await fresh({ habits: [{ id: 'e', name: 'Одна', icon: 'book', color: '#22c55
 openSummary(); await wait(400);
 $('sTabs').querySelector('[data-r=month]').click(); await wait(250);
 ok('one habit month works', $('sHabits').querySelectorAll('.hab-row').length === 1 && $('sMore').hidden && !$('sBody').hidden);
-$('sPrev').click(); await wait(250);
+$('sPrev').click(); await wait(450);
 ok('empty month says so', $('sSum').textContent === 'За этот период нет запланированных привычек' && $('sBody').hidden);
 closeOverlay($('sumOv')); await wait(400);
 ring.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await wait(400);

@@ -10,6 +10,8 @@ export const NOTIFY_STORE = NS + '-notify';
 export const OVER_HINT = NS + '-over-hint';
 export const ACCENT_STORE = NS + '-accent';
 export const DATA_STORE = NS + '-data';
+export const PRIVACY_EMAIL = '';
+export const viewportHeight = () => window.visualViewport?.height ?? innerHeight;
 export const VIEWS = {
   '7d': { id: '7d', short: 'Неделя', label: 'За последние 7 дней' },
   '30d': { id: '30d', short: 'Месяц', label: 'За последний месяц', head: 'Последние 30 дней', cells: 'days', days: 30 },
@@ -18,7 +20,9 @@ export const VIEWS = {
 };
 export const $ = id => document.getElementById(id);
 export const EASE = 'cubic-bezier(.22, 1, .36, 1)';
-export const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
+export let reducedMotion = motionQuery.matches;
+motionQuery.addEventListener?.('change', e => { reducedMotion = e.matches; });
 export const RING_C = 2 * Math.PI * 22;
 export const DAY_C = 2 * Math.PI * 15.5;
 export const HERO_C = 2 * Math.PI * 36;
@@ -56,7 +60,22 @@ export const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() 
 export const todayKey = () => key(new Date());
 export const isToday = d => key(d) === todayKey();
 export const weekday = d => (d.getDay() + 6) % 7;
-export const isDue = (h, d) => !h.days || h.days.includes(weekday(d));
+export const SCHED_TYPES = ['daily', 'weekdays', 'perWeek', 'everyNWeeks', 'monthly'];
+export const scheduleOf = h => h.schedule || (h.days ? { type: 'weekdays', days: h.days } : { type: 'daily' });
+export const monday = d => addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), -weekday(d));
+export const monthDays = d => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+export const domOn = (dom, d) => Math.min(dom, monthDays(d));
+export function weekIndex(anchor, d) {
+  return Math.round((monday(d) - monday(parseKey(anchor))) / (7 * 864e5));
+}
+export function schedDue(sc, d) {
+  switch (sc.type) {
+    case 'weekdays': return sc.days.includes(weekday(d));
+    case 'everyNWeeks': { const w = weekIndex(sc.anchor, d); return ((w % sc.every) + sc.every) % sc.every === 0 && sc.days.includes(weekday(d)); }
+    case 'monthly': return d.getDate() === domOn(sc.dom, d);
+    default: return true;
+  }
+}
 export const withYear = s => s.replace(/\s?г\.?$/, '') + ' г.';
 export const fmtLong = k => withYear(parseKey(k).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }));
 export const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -68,8 +87,18 @@ export function plural(n, one, few, many) {
 }
 export const days = n => `${n} ${plural(n, 'день', 'дня', 'дней')}`;
 export const ofDays = n => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'дня' : 'дней'}`;
-export const schedText = h => !h.days ? 'каждый день' : h.days.length === 5 && h.days.every(x => x < 5) ? 'по будням'
-  : h.days.length === 2 && h.days.every(x => x >= 5) ? 'по выходным' : h.days.map(x => WEEKDAYS[x]).join(', ');
+export const daysText = ds => ds.length === 7 ? 'каждый день' : ds.length === 5 && ds.every(x => x < 5) ? 'по будням'
+  : ds.length === 2 && ds.every(x => x >= 5) ? 'по выходным' : ds.map(x => WEEKDAYS[x]).join(', ');
+export function schedText(h) {
+  const sc = h.schedule || (h.days ? { type: 'weekdays', days: h.days } : { type: 'daily' });
+  switch (sc.type) {
+    case 'weekdays': return daysText(sc.days);
+    case 'perWeek': return `${sc.times} ${plural(sc.times, 'раз', 'раза', 'раз')} в неделю`;
+    case 'everyNWeeks': return `${sc.every === 2 ? 'раз в две недели' : `раз в ${sc.every} ${plural(sc.every, 'неделю', 'недели', 'недель')}`}: ${daysText(sc.days)}`;
+    case 'monthly': return `раз в месяц, ${sc.dom} числа`;
+    default: return 'каждый день';
+  }
+}
 
 export const EMOJI_FONT_URL = 'https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap';
 export function hasColorEmoji() {

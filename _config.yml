@@ -6,3 +6,5 @@ exclude:
   - README.md
   - CLAUDE.md
   - demo-data.json
+  - supabase-delete-account.sql
+  - docs

@@ -76,7 +76,7 @@ dcols[5].querySelector('.dot').click(); await wait(40);
 
 const menuItems = () => [...document.querySelectorAll('.menu button')].map(b => b.textContent.trim());
 card('p').querySelector('.more').click(); await wait(250);
-ok('menu step label', menuItems().some(t => t.startsWith('Убрать шаг (−5)')), menuItems());
+ok('menu step label', menuItems().some(t => t === 'Убрать 5'), menuItems());
 closeMenu(); await wait(250);
 
 openForm(); await wait(600);
@@ -91,7 +91,7 @@ ok('step sum', $('stepSum').textContent.includes('20'), $('stepSum').textContent
 ok('step viz 20', $('stepViz').querySelectorAll('i').length === 20);
 $('stepChips').querySelector('[data-v="25"]').click(); await wait(50);
 ok('chip sets step', $('step').value === '25' && $('stepSum').textContent.startsWith('4'), [$('step').value, $('stepSum').textContent]);
-ok('preview meta step', $('fpMeta').textContent.includes('шаг 25'), $('fpMeta').textContent);
+ok('preview meta step', $('fpMeta').textContent.includes('по 25 за нажатие'), $('fpMeta').textContent);
 $('tPlus').click(); await wait(30);
 ok('target plus by step', $('target').value === '125', $('target').value);
 $('tMinus').click(); $('tMinus').click(); await wait(30);

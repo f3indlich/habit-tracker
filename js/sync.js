@@ -1,10 +1,11 @@
-import { $, isIOS, isStandalone, NS, TEST_MODE } from './core.js?v=1.05a';
+import { $, isIOS, isStandalone, NS, PRIVACY_EMAIL, TEST_MODE } from './core.js?v=1.05a';
 import { findHabit, normalize, save, setState, state } from './storage.js?v=1.05a';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.05a';
 import { render } from './render.js?v=1.05a';
 import { pick } from './form.js?v=1.05a';
 import { hist, renderHistory, setHist } from './history.js?v=1.05a';
 import { pushDisable, pushRefresh, renderPush } from './push.js?v=1.05a';
+import { lockNow } from './lock.js?v=1.05a';
 
 export const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
 cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');
@@ -15,7 +16,7 @@ export const cloud = {
   sb: null, session: null, channel: null,
   status: 'off',
   lastSync: null, error: '',
-  pushing: false, again: false, timer: null, applying: false, sizeWarned: false,
+  pushing: false, again: false, timer: null, applying: false, sizeWarned: false, deleting: false, goneWarned: false,
 };
 export const SIZE_TOAST = 'Данные не помещаются в облако. Всё сохранено на устройстве — удалите старые заметки или архивные привычки.';
 export const SIZE_STATUS = 'Не синхронизировано: данных слишком много';
@@ -23,6 +24,11 @@ export const isSizeError = e => !!e && (String(e.code) === '23514' || e.status =
   && /habit_data_size_limit/.test([e.message, e.details, e.hint].join(' '));
 export const BASE_STORE = NS + '-sync-base';
 export const OWNER_STORE = NS + '-owner';
+export const GONE_TOAST = 'Аккаунт был удалён. Данные на этом устройстве сохранены, синхронизация выключена.';
+export const OFFLINE_TEXT = 'Нужно подключение к интернету';
+export const delFailText = () => 'Не удалось удалить аккаунт. Попробуйте ещё раз' + (PRIVACY_EMAIL ? ' или напишите на ' + PRIVACY_EMAIL : '');
+export const emailMatches = (input, email) => { const a = String(input ?? '').trim().toLowerCase(); return !!a && a === String(email ?? '').trim().toLowerCase(); };
+export const isAccountGone = e => !!e && (e.code === 'user_not_found' || String(e.code) === '23503' || /User from sub claim in JWT does not exist/i.test(e.message || ''));
 
 export const emptyState = () => ({ habits: [], categories: [], log: {}, skip: {}, notes: {} });
 export const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(n => [n, x[n]])) : x);
@@ -56,13 +62,29 @@ export function mergeStates(base, local, remote) {
     }
     return out;
   };
+  const byId = list => new Map((list || []).map(h => [h.id, h]));
+  const bh = byId(base.habits), lh = byId(local.habits), rh = byId(remote.habits);
+  const goalsOf = h => Object.fromEntries((Array.isArray(h?.goals) ? h.goals : []).map(g => [g.until, g]));
+  const mergeGoals = h => {
+    const b = goalsOf(bh.get(h.id)), l = goalsOf(lh.get(h.id)), r = goalsOf(rh.get(h.id));
+    const out = [];
+    for (const u of new Set([...Object.keys(b), ...Object.keys(l), ...Object.keys(r)])) {
+      const v = same(l[u], b[u]) ? r[u] : l[u];
+      if (v) out.push(v);
+    }
+    out.sort((x, y) => x.until < y.until ? -1 : 1);
+    if (out.length) return { ...h, goals: out };
+    const { goals, ...rest } = h;
+    return rest;
+  };
   return {
-    habits: mergeList(base.habits || [], local.habits || [], remote.habits || []),
+    habits: mergeList(base.habits || [], local.habits || [], remote.habits || []).map(mergeGoals),
     categories: mergeList(base.categories || [], local.categories || [], remote.categories || []),
     log: mergeDays(base.log || {}, local.log || {}, remote.log || {}),
     skip: mergeDays(base.skip || {}, local.skip || {}, remote.skip || {}),
     notes: mergeDays(base.notes || {}, local.notes || {}, remote.notes || {}),
     profile: same(local.profile, base.profile) ? remote.profile : local.profile,
+    smart: same(local.smart, base.smart) ? remote.smart : local.smart,
   };
 }
 
@@ -82,7 +104,7 @@ export function setSync(status, error = '') {
 }
 
 export function cloudQueue() {
-  if (!cloud.session || cloud.applying) return;
+  if (!cloud.session || cloud.applying || cloud.deleting) return;
   clearTimeout(cloud.timer);
   cloud.timer = setTimeout(cloudPush, 700);
   if (cloud.status !== 'syncing') setSync('syncing');
@@ -106,7 +128,7 @@ export async function cloudPull() {
 }
 
 export async function cloudPush() {
-  if (!cloud.session) return;
+  if (!cloud.session || cloud.deleting) return;
   if (cloud.pushing) { cloud.again = true; return; }
   cloud.pushing = true;
   setSync('syncing');
@@ -131,7 +153,8 @@ export async function cloudPush() {
     setSync('ok');
   } catch (e) {
     clearTimeout(cloud.timer);
-    if (isSizeError(e)) {
+    if (isAccountGone(e)) accountGone();
+    else if (isSizeError(e)) {
       setSync('error', SIZE_STATUS);
       if (!cloud.sizeWarned) { cloud.sizeWarned = true; toast(SIZE_TOAST, null, ''); }
     } else {
@@ -146,22 +169,22 @@ export async function cloudPush() {
 }
 
 export async function cloudCheck() {
-  if (!cloud.session || cloud.pushing || cloud.status === 'syncing') return;
+  if (!cloud.session || cloud.pushing || cloud.deleting || cloud.status === 'syncing') return;
   try {
     const { data: row, error } = await cloud.sb.from('habit_data').select('version').eq('user_id', cloud.session.user.id).maybeSingle();
     if (error) throw error;
     const base = loadBase();
     if (row?.version === base.version && same(state, base.data)) return;
-  } catch {}
+  } catch (e) { if (isAccountGone(e)) return accountGone(); }
   cloudSync();
 }
 
 export async function cloudSync() {
-  if (!cloud.session || cloud.pushing) return;
+  if (!cloud.session || cloud.pushing || cloud.deleting) return;
   try {
     setSync('syncing');
     if (await cloudPull()) await cloudPush(); else setSync('ok');
-  } catch (e) { console.warn('sync failed', e); setSync(navigator.onLine ? 'error' : 'offline', e?.message || String(e)); }
+  } catch (e) { if (isAccountGone(e)) return accountGone(); console.warn('sync failed', e); setSync(navigator.onLine ? 'error' : 'offline', e?.message || String(e)); }
 }
 
 export async function startSync() {
@@ -172,6 +195,7 @@ export async function startSync() {
     applyState(emptyState());
   }
   try { localStorage.setItem(OWNER_STORE, uid); } catch {}
+  try { const { error } = await cloud.sb.auth.getUser(); if (isAccountGone(error)) return accountGone(); } catch {}
   await cloudSync();
   pushRefresh();
   cloud.channel?.unsubscribe();
@@ -187,6 +211,53 @@ export function stopSync() {
   setSync('off');
 }
 
+function forgetAccount() {
+  for (const k of [BASE_STORE, OWNER_STORE]) try { localStorage.removeItem(k); } catch {}
+}
+async function leave() {
+  clearTimeout(cloud.timer);
+  await cloud.sb.auth.signOut({ scope: 'local' }).catch(() => {});
+  forgetAccount();
+  lockNow();
+  if (cloud.session) { cloud.session = null; stopSync(); }
+  authStep = 'email';
+  renderAccount();
+}
+export async function accountGone() {
+  if (!cloud.session) return;
+  await leave();
+  if (!cloud.goneWarned) { cloud.goneWarned = true; toast(GONE_TOAST, null, ''); }
+}
+export async function deleteAccount(wipe) {
+  if (cloud.deleting || !cloud.session) return false;
+  if (!navigator.onLine) { toast(OFFLINE_TEXT); return false; }
+  const btn = $('delGo');
+  cloud.deleting = true;
+  btn.disabled = true;
+  btn.textContent = 'Удаляем…';
+  try {
+    await pushDisable().catch(e => console.warn('push disable failed', e));
+    clearTimeout(cloud.timer);
+    cloud.again = false;
+    const { error } = await cloud.sb.rpc('delete_my_account');
+    if (error) { console.warn('account delete failed', error); toast(delFailText(), null, ''); return false; }
+    await leave();
+    if (wipe) applyState(emptyState());
+    closeOverlay($('delOv'));
+    toast(wipe ? 'Аккаунт и данные в облаке и на этом устройстве удалены' : 'Аккаунт и данные в облаке удалены', null, '');
+    return true;
+  } catch (e) {
+    console.warn('account delete failed', e);
+    toast(delFailText(), null, '');
+    return false;
+  } finally {
+    cloud.deleting = false;
+    btn.disabled = false;
+    btn.textContent = 'Удалить навсегда';
+    if (cloud.session) cloudQueue();
+  }
+}
+
 export async function initCloud(client) {
   if (!cloud.enabled && !client) { renderAccount(); return; }
   const fromLink = /access_token|refresh_token/.test(location.hash);
@@ -200,7 +271,7 @@ export async function initCloud(client) {
         s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.min.js';
         s.integrity = 'sha384-D3HBLJnDxXL59BXo26GFWjGTcyxip2IVM0I+EqfCMwOhTc5jUTZxISDtfdXFaUOm';
         s.crossOrigin = 'anonymous';
-        s.onload = res; s.onerror = () => rej(new Error('Не удалось загрузить библиотеку Supabase'));
+        s.onload = res; s.onerror = () => rej(new Error('Не удалось подключиться к синхронизации. Проверьте интернет'));
         document.head.append(s);
       });
       client = window.supabase.createClient(cloudCfg.supabaseUrl, cloudCfg.supabaseKey, {
@@ -213,7 +284,7 @@ export async function initCloud(client) {
       cloud.session = s;
       if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname + location.search);
       if (s && s.user.id !== was) startSync();
-      if (!s && was) stopSync();
+      if (!s && was) { stopSync(); lockNow(); }
       renderAccount();
     });
     const { data } = await cloud.sb.auth.getSession();
@@ -241,7 +312,7 @@ addEventListener('storage', async e => {
 export function sendErrorText(err) {
   const m = err?.message || String(err);
   if (/rate limit|too many|over_email_send_rate_limit/i.test(m + err?.code))
-    return 'Лимит писем исчерпан: бесплатный почтовый сервер Supabase отправляет лишь несколько писем в час. Попробуйте через час — или откройте ссылку из последнего полученного письма.';
+    return 'Слишком много писем за короткое время. Попробуйте через час — или откройте ссылку из последнего полученного письма.';
   if (/seconds/i.test(m)) return 'Слишком часто — подождите минуту и попробуйте снова';
   return 'Не удалось отправить письмо: ' + m;
 }
@@ -256,11 +327,12 @@ export const SYNC_TEXT = { off: 'Синхронизация выключена',
 export function renderAccount() {
   const btn = $('acctBtn');
   btn.dataset.sync = cloud.session ? cloud.status : 'none';
-  btn.title = !cloud.enabled && !cloud.sb ? 'Синхронизация не настроена' : 'Войти и синхронизировать';
+  btn.title = !cloud.enabled && !cloud.sb ? 'Синхронизация недоступна' : 'Войти и синхронизировать';
   btn.hidden = !!cloud.session;
   $('setBtn').dataset.sync = cloud.session ? cloud.status : 'none';
   $('setCloudIn').hidden = !cloud.session;
   $('setLogin').hidden = !!cloud.session || (!cloud.enabled && !cloud.sb);
+  $('setDelCard').hidden = !cloud.session;
   renderPush();
   if (cloud.session) {
     $('setEmail').textContent = cloud.session.user.email;
@@ -359,6 +431,7 @@ $('setSignOut').onclick = async () => {
   if (!ok) return;
   await pushDisable().catch(() => {});
   await cloud.sb.auth.signOut({ scope: 'local' });
+  lockNow();
   authStep = 'email';
   renderAccount();
 };

@@ -1,14 +1,15 @@
-import { $, esc, getPref, isToday, NS, reducedMotion, setPref, TEST_MODE, todayKey } from './core.js?v=1.05a';
+import { $, esc, getPref, isToday, NS, reducedMotion, setPref, TEST_MODE, todayKey, viewportHeight } from './core.js?v=1.05a';
 import { confirmResolve, menuEl, shownOverlays } from './ui.js?v=1.05a';
 import { reordering, viewDate } from './render.js?v=1.05a';
 import { state } from './storage.js?v=1.05a';
 import { cloud } from './sync.js?v=1.05a';
+import { visibleHabits } from './privacy.js?v=1.05a';
 
 export const TIPS_STORE = NS + '-tips';
 export const USED_STORE = NS + '-used';
 export const TIP_TEXT = {
   mark: { title: 'Отметьте первую привычку', text: 'Нажмите на кружок, когда выполните её. Нажмёте ещё раз — отметка снимется.' },
-  steps: { title: 'Как отмечать повторы', lines: [['Нажатие на кружок', ' — плюс один шаг.'], ['Удержание кружка', ' — сразу вся цель.'], ['Кнопка −', ' — убрать один шаг.']] },
+  steps: { title: 'Если цель — несколько раз', lines: [['Нажатие на кружок', ' — плюс один.'], ['Удержание кружка', ' — сразу вся цель.'], ['Кнопка −', ' — убрать последнее.']] },
   swipe: { bar: 'Смахните карточку вправо — выполнено. Влево — сбросить отметку.' },
   days: { title: 'Забыли отметить вчера?', text: 'Нажмите на день в полоске недели — список покажет привычки на этот день, их можно отметить. Кнопка «Сегодня» рядом с заголовком вернёт назад.' },
   order: { bar: 'Удерживайте карточку и тяните, чтобы поменять порядок привычек.' },
@@ -76,7 +77,7 @@ export async function showTip(id, target, opts = {}) {
   tip = { id, els, opts };
   let r = unionRect(els);
   if (!r) { tip = null; return false; }
-  const vh = innerHeight;
+  const vh = viewportHeight();
   if (r.top < 70 || r.bottom > vh - 150) {
     els[0].scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
     await new Promise(res => setTimeout(res, reducedMotion ? 30 : 450));
@@ -117,7 +118,7 @@ function place(r, bar) {
   const cx = (r.left + r.right) / 2, left = Math.max(16, Math.min(vw - 16 - w, cx - w / 2));
   box.style.width = w + 'px';
   box.style.left = left + 'px';
-  const bh = box.offsetHeight, below = innerHeight - (s.top + s.h) > bh + 30 || s.top < bh + 30;
+  const bh = box.offsetHeight, below = viewportHeight() - (s.top + s.h) > bh + 30 || s.top < bh + 30;
   box.style.top = below ? s.top + s.h + 14 + 'px' : '';
   box.style.bottom = below ? '' : innerHeight - s.top + 14 + 'px';
   box.classList.toggle('above', !below);
@@ -163,11 +164,11 @@ export function runTips() {
   if (!vis.length) return false;
   const cardOf = h => vis.find(e => e.dataset.id === h.id);
   if (!seen.mark) return showTip('mark', vis[0].querySelector('.check'));
-  const multi = state.habits.find(h => !h.archived && h.target > 1 && cardOf(h));
+  const multi = visibleHabits(state).find(h => !h.archived && h.target > 1 && cardOf(h));
   if (!seen.steps && multi) { const el = cardOf(multi); return showTip('steps', [el.querySelector('.step-minus:not(.idle)'), el.querySelector('.check')]); }
   const marked = Object.keys(state.log[todayKey()] || {}).length > 0;
   if (!seen.swipe && marked) return showTip('swipe', vis.find(e => !e.classList.contains('complete')) || vis[0], { nudge: true });
-  if (!seen.days && seen.swipe && state.habits.some(h => !h.archived && h.created < todayKey())) return showTip('days', $('days'));
+  if (!seen.days && seen.swipe && visibleHabits(state).some(h => !h.archived && h.created < todayKey())) return showTip('days', $('days'));
   if (!seen.order && seen.days && vis.length >= 3) return showTip('order', vis[1]);
   if (!seen.sync && seen.mark && usedDays.length >= 5 && (cloud.enabled || cloud.sb) && !cloud.session && !$('acctBtn').hidden) return showTip('sync', $('acctBtn'));
   return false;

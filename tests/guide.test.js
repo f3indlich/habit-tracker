@@ -140,7 +140,7 @@ ok('tap opens an article', !rows()[0].querySelector('.help-body').hidden && rows
 const q = $('helpQ');
 q.value = 'пропуск'; q.dispatchEvent(new Event('input')); await wait(50);
 ok('search finds the skip article', rows().some(r => r.dataset.id === 'sched') && rows().length < 10, rows().map(r => r.dataset.id || r.textContent));
-q.value = 'ЭКСПОРТ'; q.dispatchEvent(new Event('input')); await wait(50);
+q.value = 'СОХРАНИТЬ КОПИЮ'; q.dispatchEvent(new Event('input')); await wait(50);
 ok('search looks inside articles and opens them', rows().length === 1 && rows()[0].dataset.id === 'sync' && !rows()[0].querySelector('.help-body').hidden);
 q.value = 'ёлка-палка'; q.dispatchEvent(new Event('input')); await wait(50);
 ok('nothing found message', !rows().length && !$('helpEmpty').hidden);

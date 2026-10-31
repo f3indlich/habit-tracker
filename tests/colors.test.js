@@ -79,7 +79,7 @@ ok('unknown saved value falls back to defaults', colorPrefs().accent === 'cobalt
 localStorage.removeItem(ACCENT_STORE); localStorage.removeItem(DATA_STORE); applyColors();
 
 ok('habit palette has no indigo', !COLORS.includes('#4f46e5') && COLORS.includes('#2563eb') && TEMPLATES.find(t => t.name === 'Чтение').color === '#2563eb');
-const srcs = ['styles.css', ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide'].map(m => `js/${m}.js`)];
+const srcs = ['styles.css', ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide', 'privacy', 'lock', 'plan'].map(m => `js/${m}.js`)];
 const hits = [];
 for (const f of srcs) if (/#4f46e5|#8b85ff/i.test(await (await fetch(f + '?x=' + Date.now())).text())) hits.push(f);
 ok('no indigo in styles.css and js/', hits.length === 0, hits);
