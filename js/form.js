@@ -275,6 +275,15 @@ for (const [id, k] of [['remDFrom', 'dFrom'], ['remDTo', 'dTo']]) {
 $('remTimes').addEventListener('change', e => {
   const input = e.target.closest('input'), chip = input?.closest('.tchip');
   if (!chip || input.parentElement.classList.contains('editing')) return;
+  if (document.activeElement === input && !input._release) {
+    if (!input._held) input.addEventListener('blur', () => {
+      input._held = false; input._release = true;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input._release = false;
+    }, { once: true });
+    input._held = true;
+    return;
+  }
   const i = +chip.dataset.i, t = form.rem.times, v = input.value;
   const revert = () => { input.value = t[i]; input.parentElement.querySelector('b').textContent = t[i]; };
   if (!HHMM.test(v)) return revert();
