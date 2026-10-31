@@ -1,4 +1,4 @@
-const VERSION = '2.0';
+const VERSION = '2.1a';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const PREFS = 'prefs';

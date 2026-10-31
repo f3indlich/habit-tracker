@@ -1,5 +1,5 @@
-import { addDays, key, NS, parseKey, plural, weekday } from './core.js?v=2.0';
-import { goalOn, isDue, MAX_COUNT } from './storage.js?v=2.0';
+import { addDays, key, NS, parseKey, plural, weekday } from './core.js?v=2.1a';
+import { goalOn, isDue, MAX_COUNT } from './storage.js?v=2.1a';
 
 export const PLAN_STORE = NS + '-planwin';
 export const PLAN_WINDOWS = { week: { label: 'Неделя', days: 7 }, month: { label: 'Месяц', days: 30 }, all: { label: 'Всё время', days: 0 } };

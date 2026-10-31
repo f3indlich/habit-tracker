@@ -1,12 +1,12 @@
-import { $, isIOS, isStandalone, NS, PRIVACY_EMAIL, TEST_MODE } from './core.js?v=2.0';
-import { findHabit, normalize, save, setState, state } from './storage.js?v=2.0';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=2.0';
-import { render } from './render.js?v=2.0';
-import { pick } from './form.js?v=2.0';
-import { hist, renderHistory, setHist } from './history.js?v=2.0';
-import { pushDisable, pushRefresh, renderPush } from './push.js?v=2.0';
-import { lockNow } from './lock.js?v=2.0';
-import { mergeGoals as mergeGoalList } from './goals.js?v=2.0';
+import { $, isIOS, isStandalone, NS, PRIVACY_EMAIL, TEST_MODE } from './core.js?v=2.1a';
+import { findHabit, normalize, save, setState, state } from './storage.js?v=2.1a';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=2.1a';
+import { render } from './render.js?v=2.1a';
+import { pick } from './form.js?v=2.1a';
+import { hist, renderHistory, setHist } from './history.js?v=2.1a';
+import { pushDisable, pushRefresh, renderPush } from './push.js?v=2.1a';
+import { lockNow } from './lock.js?v=2.1a';
+import { mergeGoals as mergeGoalList } from './goals.js?v=2.1a';
 
 export const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
 cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');
