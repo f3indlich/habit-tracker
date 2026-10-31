@@ -138,7 +138,7 @@ closeOverlay($('histOv')); hist = null; await wait(400);
 
 renderSettings(); openOverlay($('setOv')); await wait(700);
 const ver = (document.querySelector('script[src*="app.js"]').src.match(/[?&]v=([^&#]+)/) || [])[1];
-ok('about version', /^\d+\.\d{2}[a-z]?$/.test(ver) && $('appVersion').textContent === `Версия ${ver}`, $('appVersion').textContent);
+ok('about version', /^\d+\.\d{1,2}[a-z]?$/.test(ver) && $('appVersion').textContent === `Версия ${ver}`, $('appVersion').textContent);
 ok('about updated date', !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} г\. в \d\d:\d\d$/.test($('appUpdated').textContent), $('appUpdated').textContent);
 ok('about note', $('setOv').querySelector('.about-txt small').textContent === 'Реализовано для удобства');
 ok('about is last in data block', $('importFile').nextElementSibling.classList.contains('app-about'));
