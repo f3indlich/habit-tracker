@@ -202,6 +202,10 @@
             <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6"/></svg></span>
             <span class="set-txt"><b>Синхронизировать сейчас</b></span>
           </button>
+          <button type="button" class="set-row" id="setSignOthers">
+            <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="12" height="9" rx="1.5"/><path d="M1.5 17h15"/><rect x="17" y="8" width="5.5" height="11" rx="1.2"/><path d="M19 16.5h1.5"/></svg></span>
+            <span class="set-txt"><b>Выйти на других устройствах</b><small>Это устройство останется в аккаунте</small></span>
+          </button>
           <button type="button" class="set-row danger" id="setSignOut">
             <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M14 4.5h3.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H14M10 16.5L5.5 12 10 7.5M5.5 12H15"/></svg></span>
             <span class="set-txt"><b>Выйти из аккаунта</b></span>
@@ -343,6 +347,10 @@
           <span class="set-txt"><b>Как пользоваться</b><small>Отметки, жесты, сводка и синхронизация</small></span>
           <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+        <div class="set-row static">
+          <span class="set-txt"><b id="tipsLbl">Обучающие подсказки</b><small>Всплывающие советы и анимации, которые показывают жесты</small></span>
+          <button type="button" class="switch" id="tipsSwitch" role="switch" aria-checked="true" aria-labelledby="tipsLbl"><span></span></button>
+        </div>
       </div>
     </section>
     <section class="set-group">

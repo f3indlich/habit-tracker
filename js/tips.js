@@ -7,6 +7,7 @@ import { visibleHabits } from './privacy.js?v=2.2b';
 
 export const TIPS_STORE = NS + '-tips';
 export const USED_STORE = NS + '-used';
+export const TIPS_ON_STORE = NS + '-tips-on';
 export const TIP_TEXT = {
   mark: { title: 'Отметьте первую привычку', text: 'Нажмите на кружок, когда выполните её. Нажмёте ещё раз — отметка снимется.' },
   steps: { title: 'Если цель — несколько раз', lines: [['Нажатие на кружок', ' — плюс один.'], ['Удержание кружка', ' — сразу вся цель.'], ['Кнопка −', ' — убрать последнее.']] },
@@ -28,6 +29,14 @@ export function markTip(id) { seen[id] = 1; saveSeen(); }
 export function resetTips() {
   seen = {}; shownThisRun = 0; saveSeen();
   closeTip(false);
+  setTipsOn(true);
+}
+export const tipsWanted = () => getPref(TIPS_ON_STORE, '1') !== '0';
+export function renderTipsSwitch() { $('tipsSwitch').setAttribute('aria-checked', tipsWanted()); }
+export function setTipsOn(on) {
+  setPref(TIPS_ON_STORE, on ? '1' : '0');
+  if (!on) { clearTimeout(timer); closeTip(false); }
+  renderTipsSwitch();
 }
 
 let usedDays = [];
@@ -37,7 +46,7 @@ if (!usedDays.includes(todayKey())) {
   try { localStorage.setItem(USED_STORE, JSON.stringify(usedDays)); } catch {}
 }
 
-export const tipsOn = () => !TEST_MODE || !!window.__tipsOn;
+export const tipsOn = () => (!TEST_MODE || !!window.__tipsOn) && tipsWanted();
 export let tip = null;
 let shownThisRun = 0, lastClose = 0, timer = 0, layer = null;
 
@@ -175,6 +184,9 @@ export function runTips() {
   if (!seen.sync && seen.mark && usedDays.length >= 5 && (cloud.enabled || cloud.sb) && !cloud.session && !$('acctBtn').hidden) return showTip('sync', $('acctBtn'));
   return false;
 }
+
+$('tipsSwitch').onclick = () => setTipsOn(!tipsWanted());
+renderTipsSwitch();
 
 export function hintPull(sheet) {
   if (!tipsOn() || seen.pull || !sheet.classList.contains('pull') || reducedMotion || !matchMedia('(pointer: coarse)').matches) return;

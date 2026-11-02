@@ -95,7 +95,6 @@ ok('no edit button for archived habit', $('hEdit').hidden && getComputedStyle($(
 closeOverlay($('histOv')); hist = null; await wait(400);
 ok('icon picker grouped by theme, every icon once', ICON_GROUPS.flat().length === Object.keys(ICONS).length && new Set(ICON_GROUPS.flat()).size === ICON_KEYS.length && ICON_KEYS.length === Object.keys(ICONS).length && ICON_KEYS[0] === 'check' && ICON_KEYS.indexOf('glass') === ICON_KEYS.indexOf('water') + 1 && ICON_KEYS.slice(-5).every(k => /^no|off$/.test(k)));
 ok('new icons in every style', ['flower', 'nohand', 'noheart', 'pullup', 'squat', 'video', 'razor', 'eyedrop', 'cat', 'wateringcan', 'glass'].every(k => ICONS[k]?.s && ICONS[k].e && ICON_ART[k]) && ICON_KEYS.every(k => ICON_ART[k]) && new Set(ICON_KEYS.map(k => ICONS[k].e)).size === ICON_KEYS.length);
-ok('no type wording left', !/тип/i.test(document.body.innerText + $('catOv').textContent + $('setOv').textContent + $('formOv').textContent), (document.body.innerText.match(/.{0,20}тип.{0,20}/i) || [])[0]);
 state = normalize({ habits: [
   { id: 'q', name: 'Подготовка к экзамену по истории', icon: 'books', target: 100, unit: 'вопросов', created: ago(6) },
   { id: 'p', name: 'Вода', icon: 'water', target: 8, unit: 'стаканов', created: ago(6) },

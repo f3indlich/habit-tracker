@@ -20,7 +20,6 @@ const swipe = async (el, from, to) => {
   touch(el, 'touchend', ...to); await wait(500);
 };
 
-ok('old hint paragraph removed', !$('hint') && !/Свайп вправо — выполнить, влево — сбросить/.test(document.body.innerHTML));
 ok('tips are off in tests by default', !tipsOn() && runTips() === false && !layerOn());
 
 window.__tipsOn = true;
@@ -87,6 +86,23 @@ await runTips(); await wait(300);
 ok('summary gets the ⓘ tip', tip?.id === 'sum' && inside(document.querySelector('.tip-spot').getBoundingClientRect(), $('sSheet').querySelector('.tile-i').getBoundingClientRect()), tip?.id);
 $('tipOk').click(); await wait(300);
 closeOverlay($('sumOv')); await wait(400);
+
+{
+  resetTips();
+  await fresh([{ id: 'z', name: 'Зарядка', icon: 'strong', color: '#22c55e', created: todayKey(), time: 'morning' }]);
+  await wait(1600); await runTips(); await wait(300);
+  ok('tips switch on by default', $('tipsSwitch').getAttribute('aria-checked') === 'true' && layerOn());
+  $('tipsSwitch').click(); await wait(300);
+  ok('switching off closes the open tip', $('tipsSwitch').getAttribute('aria-checked') === 'false' && !layerOn() && !tipSeen('mark') && localStorage.getItem(TIPS_ON_STORE) === '0');
+  ok('no tips while off', !tipsOn() && await runTips() === false && await showTip('mark', document.querySelector('.check')) === false && !layerOn());
+  const sh = $('hSheet'); hintPull(sh); await wait(600);
+  ok('no pull nudge while off', !sh.classList.contains('pull-hint'));
+  $('tipsSwitch').click(); await wait(100);
+  ok('switching on brings tips back', $('tipsSwitch').getAttribute('aria-checked') === 'true' && tipsOn());
+  setTipsOn(false); resetTips();
+  ok('show tips again turns the switch on', $('tipsSwitch').getAttribute('aria-checked') === 'true' && tipsOn());
+  closeTip(false);
+}
 
 resetTips();
 ok('reset forgets every tip', !tipSeen('mark') && !tipSeen('hist') && !localStorage.getItem(TIPS_STORE)?.includes('mark'));

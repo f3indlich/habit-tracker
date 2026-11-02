@@ -1,7 +1,7 @@
 import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=2.2b';
 import { setIcon } from './icons.js?v=2.2b';
 import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=2.2b';
-import { askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=2.2b';
+import { askConfirm, closeMenu, countTo, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=2.2b';
 import { catName, changeCount } from './render.js?v=2.2b';
 import { openForm } from './form.js?v=2.2b';
 import { queueTips } from './tips.js?v=2.2b';
@@ -83,7 +83,7 @@ export function shiftPeriod(dir) {
 }
 const histSlider = periodSlider({
   sheet: $('hSheet'), zone: '#hSheet .pnav, #hPer', track: $('hPerTrack'), prev: $('hPrev'), next: $('hNext'), tabs: $('hTabs'),
-  active: () => !!hist && hist.range !== 'all', get: () => hist.anchor, set: a => { hist.anchor = a; }, step: (a, s) => shiftAnchor(hist.range, a, s), render: renderHistory,
+  active: () => !!hist && hist.range !== 'all', get: () => hist.anchor, set: a => { hist.anchor = a; }, step: (a, s) => shiftAnchor(hist.range, a, s), render: renderHistory, paint: () => paintPeriod(),
 });
 
 export function periodDays() {
@@ -163,7 +163,13 @@ export function renderHistory() {
     tile('power', '💪', 'Сила', strength + '%', '', strength)];
   const box = $('hTiles');
   if (box._html?.length !== tiles.length) { box.innerHTML = tiles.join(''); box._html = tiles; }
-  else tiles.forEach((t, i) => { if (box._html[i] !== t) { box.children[i].outerHTML = t; box._html[i] = t; } });
+  else tiles.forEach((t, i) => {
+    if (box._html[i] === t) return;
+    const was = numOf(box.children[i].querySelector('.v').textContent);
+    box.children[i].outerHTML = t; box._html[i] = t;
+    const v = box.children[i].querySelector('.v'), now = numOf(v.textContent);
+    if (was != null && now != null) countTo(v, now, v.textContent.endsWith('%') ? '%' : '', { from: was });
+  });
   renderPlan(h, p);
   $('hTiles').onclick = e => {
     const b = e.target.closest('.tile-i');
@@ -203,7 +209,12 @@ export function renderHistory() {
   $('hLabel').textContent = all ? '' : periodLabel(ds);
   $('hPrev').disabled = all || key(ds[0]) <= h.created;
   $('hNext').disabled = all || key(ds[ds.length - 1]) >= lifeEnd(h);
+  paintPeriod(h, ds);
+}
 
+function paintPeriod(h = findHabit(hist.id), ds = periodDays()) {
+  if (!h) return;
+  const all = hist.range === 'all';
   const bucket = (dd, name) => {
     const md = dd.filter(d => inLife(h, key(d)) && counts(h, d));
     const fullM = md.filter(d => count(h, d) >= targetOn(h, d)).length;
@@ -263,8 +274,12 @@ export function renderPlan(h, p = planStats(h, state, period().start, period().e
     <div class="plan-lg"><span><i class="pb-dot pb-in"></i>В пределах нормы ${fmtNum(p.credited)}</span>${p.over ? `<span><i class="pb-dot pb-over"></i>Сверх нормы ${fmtNum(p.over)}</span>` : ''}</div>
     ${unitChanged(h, period().start) ? '<p class="plan-note">Единица измерения менялась — старые и новые числа могут не совпадать по смыслу</p>' : ''}`;
   }
+  const was = box._id === h.id ? numOf(box.querySelector('.plan-l1 b')?.textContent ?? '') : null;
+  box._id = h.id;
   box.innerHTML = body + (steps ? `<details class="plan-goals"><summary>История целей</summary><ul>${steps.map(s =>
       `<li>с ${fmtShort(s.from)} — ${s.target}${s.unit ? ' ' + esc(s.unit) : ''}</li>`).join('')}</ul></details>` : '');
+  const fact = box.querySelector('.plan-l1 b');
+  if (fact && was != null) countTo(fact, Math.round(p.fact), '', { from: was, fmt: fmtNum });
   box.querySelector('.plan-i').onclick = e => {
     if (menuEl?._anchor === e.currentTarget) return closeMenu();
     openPopover(e.currentTarget, `<div class="pop-title">Выполнение плана</div><p class="pop-lead">${PLAN_INFO}</p>`, h.color);

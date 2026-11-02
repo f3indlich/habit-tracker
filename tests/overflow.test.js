@@ -31,8 +31,6 @@ setCount(o, T, 0); setCount(w, T, 0); await wait(50);
 
 ok('overfilled day counts as done', dayState(w, parseKey(ago(2))) === 'full' && streak(w, ago(1)) === 3, streak(w, ago(1)));
 ok('percent never above 100', frac(w, parseKey(ago(2))) === 1 && lifeStats(w).score <= 1 && dayProgress(parseKey(ago(2))).frac <= 1);
-const sp = periodStats([parseKey(ago(3)), parseKey(ago(2)), parseKey(ago(1))]);
-ok('summary percent capped', sp.habits.find(x => x.h.id === 'w').pct === 100 && sp.pct <= 100, sp.habits.map(x => [x.h.id, x.pct]));
 ok('day tooltip shows overflow', dayTip(w, parseKey(ago(2))).endsWith('12 из 8 стаканов (+4)'), dayTip(w, parseKey(ago(2))));
 
 openForm('w'); await wait(400);

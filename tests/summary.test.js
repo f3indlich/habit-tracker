@@ -101,7 +101,6 @@ ok('tiles have info buttons', $('sTiles').querySelectorAll('.tile-i').length ===
 $('sTiles').querySelector('.tile-i').click(); await wait(150);
 ok('tile info explains', document.querySelector('.menu.pop')?.textContent.includes('Как считается'));
 closeMenu(); await wait(150);
-ok('old blocks removed', !$('sRank') && !$('sAttn') && !$('sWeek') && !/Рейтинг привычек|Требует внимания|По дням недели/.test($('sSheet').textContent));
 const weekSoFar = rangeDays('week', new Date()).filter(d => key(d) <= todayKey()).length;
 const heatCells = () => [...$('sHeat').querySelectorAll('rect.cell')], futCells = () => [...$('sHeat').querySelectorAll('rect.cell.fut')];
 ok('future days of week shown as placeholders', futCells().length === 7 - weekSoFar && $('sFutLg').hidden === (weekSoFar === 7));

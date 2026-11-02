@@ -429,6 +429,13 @@ $('acctResend').onclick = async () => {
 };
 $('acctBack').onclick = () => { authStep = 'email'; renderAccount(); };
 $('setSyncNow').onclick = () => cloudSync();
+$('setSignOthers').onclick = async () => {
+  const ok = await askConfirm('Выйти на других устройствах?', 'На телефонах и компьютерах, где Вы вошли в этот аккаунт, синхронизация остановится в течение часа. Привычки на них останутся. Это устройство останется в аккаунте.', 'Выйти на других');
+  if (!ok) return;
+  const { error } = await cloud.sb.auth.signOut({ scope: 'others' }).catch(e => ({ error: e }));
+  if (error) return toast(navigator.onLine ? 'Не удалось выйти на других устройствах. Попробуйте ещё раз' : 'Нет интернета. Подключитесь и попробуйте ещё раз', null, '');
+  toast('Готово. На других устройствах вход будет отменён в течение часа', null, '');
+};
 $('setSignOut').onclick = async () => {
   const ok = await askConfirm('Выйти из аккаунта?', 'Синхронизация остановится. Привычки останутся на этом устройстве, а в облаке — в Вашем аккаунте.', 'Выйти');
   if (!ok) return;

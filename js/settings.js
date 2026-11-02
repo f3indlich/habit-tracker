@@ -1,7 +1,7 @@
 import { $, ACCENT_STORE, DATA_STORE, esc, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, PRIVACY_EMAIL, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=2.2b';
 import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=2.2b';
 import { normalize, save, setState, state } from './storage.js?v=2.2b';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=2.2b';
+import { askConfirm, closeOverlay, morph, openOverlay, toast } from './ui.js?v=2.2b';
 import { cards, render, setWasAllDone } from './render.js?v=2.2b';
 import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=2.2b';
 import { hist, renderHistory } from './history.js?v=2.2b';
@@ -66,7 +66,7 @@ export function applyTheme(t) {
 $('themeSeg').onclick = e => {
   const b = e.target.closest('[data-t]');
   if (!b) return;
-  setPref(THEME_STORE, b.dataset.t); applyTheme(b.dataset.t);
+  setPref(THEME_STORE, b.dataset.t); morph(() => applyTheme(b.dataset.t));
 };
 
 export const PALETTES = {
@@ -135,8 +135,7 @@ $('swRow').onclick = e => {
   const b = e.target.closest('[data-c]');
   if (!b) return;
   setPref(COLOR_KINDS[colorKind][1], b.dataset.c);
-  applyColors();
-  $('swRow').querySelector(`[data-c="${b.dataset.c}"]`)?.focus({ preventScroll: true });
+  morph(() => { applyColors(); $('swRow').querySelector(`[data-c="${b.dataset.c}"]`)?.focus({ preventScroll: true }); });
 };
 
 export async function exportData() {

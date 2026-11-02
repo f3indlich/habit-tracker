@@ -41,7 +41,7 @@ const table = name => {
   };
   return q;
 };
-let authCb = null, session = null, rpcFail = null, rpcDelay = 0, userErr = null;
+let authCb = null, session = null, rpcFail = null, rpcDelay = 0, userErr = null, othersErr = null;
 const fake = {
   from: name => table(name),
   rpc: async name => {
@@ -56,7 +56,7 @@ const fake = {
     onAuthStateChange: cb => { authCb = cb; },
     getSession: async () => ({ data: { session } }),
     getUser: async () => userErr ? { data: { user: null }, error: userErr } : { data: { user: session?.user ?? null }, error: null },
-    signOut: async () => { db.ops.push('signOut'); session = null; authCb('SIGNED_OUT', null); },
+    signOut: async o => { if (o?.scope === 'others') { db.ops.push('signOut:others'); return { error: othersErr }; } db.ops.push('signOut'); session = null; authCb('SIGNED_OUT', null); },
     stopAutoRefresh() {},
   },
 };
@@ -72,6 +72,23 @@ ok('delete button hidden without account', $('setDelCard').hidden);
 await signIn('u1');
 ok('delete button visible when signed in', !$('setDelCard').hidden && $('setDelete').textContent.includes('Удалить аккаунт') && getComputedStyle($('setDelete')).color === getComputedStyle($('setSignOut')).color);
 ok('data uploaded before delete', db.rows.u1?.version === 1);
+
+{
+  openOverlay($('setOv')); renderSettings(); await wait(400);
+  const btn = $('setSignOthers');
+  ok('sign out others shown in account block', btn.offsetParent !== null && $('setCloudIn').contains(btn) && btn.nextElementSibling === $('setSignOut'));
+  btn.click(); await wait(300);
+  ok('sign out others asks first', $('cTitle').textContent === 'Выйти на других устройствах?' && !db.ops.includes('signOut:others'));
+  closeConfirm(false); await wait(300);
+  ok('cancel keeps other devices', !db.ops.includes('signOut:others'));
+  othersErr = { message: 'network' };
+  btn.click(); await wait(300); closeConfirm(true); await wait(300);
+  ok('failure is reported', toasts.some(t => /Не удалось выйти на других|Нет интернета/.test(t)) && !!cloud.session, toasts.slice(-2));
+  othersErr = null;
+  btn.click(); await wait(300); closeConfirm(true); await wait(300);
+  ok('other devices signed out, this one stays', db.ops.filter(x => x === 'signOut:others').length === 2 && !db.ops.includes('signOut') && cloud.session?.user.id === 'u1' && toasts.some(t => t.startsWith('Готово. На других устройствах')), db.ops);
+  closeOverlay($('setOv')); await wait(400);
+}
 
 openOverlay($('setOv')); renderSettings(); await wait(400);
 $('setDelete').click(); await wait(450);

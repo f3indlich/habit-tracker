@@ -327,6 +327,7 @@ export function changeCount(h, d, n, clearSkip = false, announce = false) {
   if (clearSkip && prevSkip) setMap(state.skip, key(d), h.id, 0);
   setCount(h, d, n);
   const wasDone = prev >= h.target, isDone = n >= h.target;
+  if (isDone && !wasDone && key(d) === key(viewDate)) glow(cards.get(h.id));
   navigator.vibrate?.(wasDone && isDone && n > prev ? 6 : n > prev ? 12 : [6, 40, 6]);
   if (announce || wasDone !== isDone || (n === 0 && prev > 1)) {
     const dayNote = isToday(d) ? '' : ` (${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })})`;
@@ -546,6 +547,17 @@ export function renderLegend() {
     <span><i class="lgs"></i>пропуск</span>${v.cells ? '' : '<span><i class="lgo"></i>не в плане</span>'}`;
 }
 
+export function glow(el) {
+  if (reducedMotion || !el?.isConnected) return;
+  el.querySelector(':scope > .glow')?.remove();
+  const g = document.createElement('i');
+  g.className = 'glow';
+  g.setAttribute('aria-hidden', 'true');
+  el.append(g);
+  g.animate([{ backgroundPosition: '130% 0', opacity: 0 }, { opacity: 1, offset: .15 }, { backgroundPosition: '-30% 0', opacity: 1, offset: .8 }, { backgroundPosition: '-30% 0', opacity: 0 }],
+    { duration: 820, easing: 'cubic-bezier(.35, .6, .3, 1)' }).onfinish = () => g.remove();
+}
+
 export function removeCard(el) {
   el.classList.add('leaving');
   if (reducedMotion) return el.remove();
@@ -559,6 +571,7 @@ export function removeCard(el) {
 
 export let wasAllDone = null;
 export let firstRender = true, entering = 0;
+let lastOrder = '', lastDayKey = '';
 export function render() {
   const now = new Date(), hr = now.getHours();
   const uname = userName();
@@ -586,6 +599,11 @@ export function render() {
   const defs = sectionDefs();
   const bySection = Object.fromEntries(defs.map(s => [s.id, []]));
   for (const h of habits) (bySection[sectionOf(h)] ?? bySection.off).push(h);
+
+  const order = defs.map(s => s.id + ':' + bySection[s.id].map(h => h.id).join()).join('|'), dayK = key(viewDate);
+  const before = !firstRender && !reducedMotion && !reordering && order !== lastOrder && dayK === lastDayKey
+    ? new Map([...cards].filter(([, el]) => el.isConnected && !el.classList.contains('leaving') && el.offsetParent).map(([id, el]) => [id, el.getBoundingClientRect().top])) : null;
+  lastOrder = order; lastDayKey = dayK;
 
   const box = $('sections');
   let prevSec = null;
@@ -621,6 +639,12 @@ export function render() {
     sec.hidden = true;
     if (!sec.querySelector('.habit')) { sec.remove(); sectionEls.delete(id); }
   }
+  if (before) for (const [id, top] of before) {
+    const el = cards.get(id);
+    if (!el?.isConnected || el.classList.contains('leaving') || !el.offsetParent) continue;
+    const dy = top - el.getBoundingClientRect().top;
+    if (Math.abs(dy) > 1) el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 420, easing: EASE });
+  }
   renderPrivate(privLive, priv.filter(h => h.archived));
 
   renderHero();
@@ -640,7 +664,11 @@ function fillWeek(el, vd) {
     b.querySelector('.prog').style.strokeDashoffset = DAY_C * (1 - p.frac);
     b.classList.toggle('sel', k === key(vd));
     b.classList.toggle('today', k === tk);
-    b.classList.toggle('perfect', p.total > 0 && p.done === p.total);
+    const was = b._k === k && b.classList.contains('perfect'), perfect = p.total > 0 && p.done === p.total;
+    b.classList.toggle('perfect', perfect);
+    if (perfect && !was && b._k === k && el.id === 'days' && !reducedMotion)
+      b.querySelector('.dr').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.2)', offset: .35 }, { transform: 'scale(1)' }], { duration: 560, easing: 'cubic-bezier(.3, .7, .3, 1)' });
+    b._k = k;
     b.disabled = k > tk;
     b.title = d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) + (p.total ? ` — ${p.done} из ${p.total}` : '');
     b.onclick = () => { if (k !== key(viewDate)) goTo(d); };
@@ -857,9 +885,9 @@ export const firstHabitDay = () => [...visibleHabits(state), ...privateHabits(st
   let start = null, dx = 0, dragging = false, swiped = false, pts = [], off = 0, peeks = {}, anim = null, after = null;
   const page = () => strip.offsetWidth + GAP;
   const target = s => {
-    const d = addDays(viewDate, 7 * s), first = firstHabitDay();
+    const d = addDays(weekStart(viewDate), s < 0 ? -1 : 7), first = firstHabitDay();
     if (s < 0) return first && key(d) < first ? parseKey(first) : d;
-    return key(d) > todayKey() ? new Date() : d;
+    return key(weekStart(d)) === key(weekStart(new Date())) || key(d) > todayKey() ? new Date() : d;
   };
   const move = x => { off = x; track.style.transform = x ? `translateX(${x}px)` : ''; };
   const peek = (s, d) => {

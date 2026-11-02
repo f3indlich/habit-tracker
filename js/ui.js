@@ -1,4 +1,4 @@
-import { $, esc, isIOS, isStandalone, reducedMotion, RING_C, viewportHeight } from './core.js?v=2.2b';
+import { $, esc, isIOS, isStandalone, reducedMotion, RING_C, TEST_MODE, viewportHeight } from './core.js?v=2.2b';
 import { IC } from './icons.js?v=2.2b';
 import { reordering, setReorder } from './render.js?v=2.2b';
 import { setHist } from './history.js?v=2.2b';
@@ -58,18 +58,46 @@ export function paintSegments(svg, filled, animate) {
     }
   });
 }
-export function countTo(el, to, suffix = '') {
-  const from = parseInt(el.textContent) || 0;
+export const numOf = s => { const n = parseInt(String(s).replace(/[\s ]/g, '')); return isNaN(n) ? null : n; };
+export function countTo(el, to, suffix = '', { from = numOf(el.textContent) ?? 0, fmt = String } = {}) {
   cancelAnimationFrame(el._raf);
-  if (from === to || reducedMotion || !el.isConnected || !el.offsetParent) { el.textContent = to + suffix; return; }
-  const t0 = performance.now(), dur = 450;
+  if (from === to || reducedMotion || !el.isConnected || !el.offsetParent) { el.textContent = fmt(to) + suffix; return; }
+  const t0 = performance.now(), dur = Math.min(700, 380 + Math.abs(to - from) * 6);
   const step = now => {
     const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(from + (to - from) * e) + suffix;
+    el.textContent = fmt(Math.round(from + (to - from) * e)) + suffix;
     if (p < 1) el._raf = requestAnimationFrame(step);
   };
   el._raf = requestAnimationFrame(step);
 }
+export function morph(fn) {
+  if (reducedMotion || TEST_MODE || !document.startViewTransition || document.hidden) return fn();
+  document.startViewTransition(fn);
+}
+const SEGS = '.seg, .pseg, .mini-seg';
+const picked = box => box.querySelector(':scope > [aria-pressed=true], :scope > [aria-checked=true]');
+export function slidePick(box, from) {
+  const el = picked(box);
+  if (!el || !box.isConnected || reducedMotion) return;
+  const to = el.getBoundingClientRect(), b = box.getBoundingClientRect();
+  if (!to.width || (Math.abs(to.left - from.left) < 1 && Math.abs(to.top - from.top) < 1)) return;
+  const cs = getComputedStyle(el), g = document.createElement('i');
+  g.className = 'seg-ghost';
+  g.setAttribute('aria-hidden', 'true');
+  Object.assign(g.style, { left: to.left - b.left - box.clientLeft + 'px', top: to.top - b.top - box.clientTop + 'px', width: to.width + 'px', height: to.height + 'px',
+    background: cs.backgroundColor, boxShadow: cs.boxShadow, borderRadius: cs.borderRadius });
+  box.querySelectorAll(':scope > .seg-ghost').forEach(x => x.remove());
+  box.prepend(g);
+  el.classList.add('seg-under');
+  const a = g.animate([{ transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})` }, { transform: 'none' }],
+    { duration: 340, easing: 'cubic-bezier(.3, .9, .3, 1)' });
+  a.onfinish = a.oncancel = () => { g.remove(); el.classList.remove('seg-under'); };
+}
+document.addEventListener('click', e => {
+  const box = e.target.closest?.(SEGS);
+  const from = box && !reducedMotion && picked(box)?.getBoundingClientRect();
+  if (from) setTimeout(() => slidePick(box, from));
+}, true);
 export function flash(el) {
   el.animate([{ opacity: .22, transform: 'scale(.72)' }, { opacity: 0, transform: 'scale(1)' }],
     { duration: 420, easing: 'cubic-bezier(.2, .8, .2, 1)' });
@@ -101,6 +129,26 @@ const keepFieldInView = () => {
   const el = document.activeElement;
   if (el?.matches('input:not([type=checkbox]), textarea') && el.closest('.overlay')?._shown) el.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
 };
+document.addEventListener('click', e => {
+  const s = e.target.closest?.('details > summary');
+  const d = s?.parentElement;
+  if (!d || reducedMotion || e.defaultPrevented || !d.isConnected) return;
+  e.preventDefault();
+  d._anim?.cancel();
+  const from = d.offsetHeight, closing = d.open;
+  if (!closing) d.open = true;
+  const to = closing ? s.offsetHeight : d.offsetHeight;
+  d.style.overflow = 'hidden';
+  const a = d._anim = d.animate({ height: [from + 'px', to + 'px'] }, { duration: closing ? 260 : 340, easing: 'cubic-bezier(.3, .8, .3, 1)' });
+  if (!closing) [...d.children].filter(c => c !== s).forEach(c => c.animate({ opacity: [0, 1], transform: ['translateY(-4px)', 'none'] }, { duration: 300, delay: 60, easing: 'ease-out', fill: 'backwards' }));
+  a.onfinish = () => { if (closing) d.open = false; d.style.overflow = ''; d._anim = null; };
+  a.oncancel = () => { d.style.overflow = ''; };
+});
+function cascade(sheet) {
+  const items = [...sheet.children].filter(e => !e.hidden && e.offsetParent !== null && !e.matches('[data-close], .tip-layer')).slice(0, 9);
+  items.forEach((e, i) => e.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }],
+    { duration: 320, delay: 70 + i * 32, easing: 'cubic-bezier(.2, .8, .2, 1)', fill: 'backwards' }));
+}
 export function openOverlay(ov) {
   const fresh = !ov._shown;
   if (!shownOverlays().length) window.visualViewport?.addEventListener('resize', keepFieldInView);
@@ -112,6 +160,7 @@ export function openOverlay(ov) {
   requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); }));
   const sheet = ov.querySelector('.sheet');
   if (fresh) { sheet.scrollTop = 0; hintPull(sheet); }
+  if (fresh && !reducedMotion && !ov.classList.contains('page')) cascade(sheet);
   sheet.tabIndex = -1;
   sheet.focus({ preventScroll: true });
 }
@@ -232,7 +281,7 @@ export function addPullDown(ov) {
   });
 }
 
-export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get, set, step, render }) {
+export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get, set, step, render, paint = render }) {
   const vp = track.parentElement, GAP = 16;
   let peeks = {}, off = 0, anim = null, after = null;
   const page = () => vp.offsetWidth + GAP;
@@ -244,10 +293,10 @@ export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get
     const a = get();
     track.classList.add('no-anim');
     set(step(a, s));
-    render();
+    paint();
     const p = track.cloneNode(true);
     set(a);
-    render();
+    paint();
     p.querySelectorAll('.per-peek').forEach(e => e.remove());
     [p, ...p.querySelectorAll('[id]')].forEach(e => e.removeAttribute('id'));
     p.className = 'per-track per-peek no-anim';
