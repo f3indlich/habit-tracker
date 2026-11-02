@@ -1,11 +1,11 @@
-import { $, getPref, HHMM, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=2.2c';
-import { count, findHabit, goalRemindOf, normGoalRemind, normSmart, save, smartOf, state, targetOn } from './storage.js?v=2.2c';
-import { closeOverlay, openOverlay, toast } from './ui.js?v=2.2c';
-import { changeCount, render, setViewDate, viewDate } from './render.js?v=2.2c';
-import { form } from './form.js?v=2.2c';
-import { renderSettings } from './settings.js?v=2.2c';
-import { cloud, cloudCfg, renderAccount } from './sync.js?v=2.2c';
-import { isPrivate, unlocked, visibleHabits } from './privacy.js?v=2.2c';
+import { $, getPref, HHMM, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=2.3a';
+import { count, findHabit, goalRemindOf, normGoalRemind, normSmart, save, smartOf, state, targetOn } from './storage.js?v=2.3a';
+import { closeOverlay, openOverlay, toast } from './ui.js?v=2.3a';
+import { changeCount, render, setViewDate, viewDate } from './render.js?v=2.3a';
+import { form } from './form.js?v=2.3a';
+import { renderSettings } from './settings.js?v=2.3a';
+import { cloud, cloudCfg, renderAccount } from './sync.js?v=2.3a';
+import { isPrivate, unlocked, visibleHabits } from './privacy.js?v=2.3a';
 
 export const push = {
   supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,

@@ -1,10 +1,10 @@
-import { $, addDays, COLORS, days, HHMM, isToday, key, monday, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=2.2c';
-import { EMOJI_TO_ICON, ICONS } from './icons.js?v=2.2c';
-import { toast } from './ui.js?v=2.2c';
-import { render } from './render.js?v=2.2c';
-import { cloud, cloudQueue } from './sync.js?v=2.2c';
-import { visibleHabits } from './privacy.js?v=2.2c';
-import { normGoals } from './goals.js?v=2.2c';
+import { $, addDays, COLORS, days, HHMM, isToday, key, monday, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=2.3a';
+import { EMOJI_TO_ICON, ICONS } from './icons.js?v=2.3a';
+import { toast } from './ui.js?v=2.3a';
+import { render } from './render.js?v=2.3a';
+import { cloud, cloudQueue } from './sync.js?v=2.3a';
+import { visibleHabits } from './privacy.js?v=2.3a';
+import { normGoals } from './goals.js?v=2.3a';
 
 export let state;
 export function load() {

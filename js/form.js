@@ -1,11 +1,11 @@
-import { $, addDays, COLORS, days, esc, scheduleOf, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=2.2c';
-import { guessIcon, IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=2.2c';
-import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=2.2c';
-import { findHabit, goalOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=2.2c';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=2.2c';
-import { catName, render } from './render.js?v=2.2c';
-import { hist, renderHistory } from './history.js?v=2.2c';
-import { renderRemindHint } from './push.js?v=2.2c';
+import { $, addDays, COLORS, days, esc, scheduleOf, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=2.3a';
+import { guessIcon, IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=2.3a';
+import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=2.3a';
+import { findHabit, goalOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=2.3a';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=2.3a';
+import { catName, render } from './render.js?v=2.3a';
+import { hist, renderHistory } from './history.js?v=2.3a';
+import { renderRemindHint } from './push.js?v=2.3a';
 
 export let editingId = null;
 export const form = {
