@@ -1,4 +1,4 @@
-﻿param([int]$Port = 8766, [int]$TimeoutSec = 900, [string]$App = '')
+﻿param([int]$Port = 8766, [int]$TimeoutSec = 900, [string]$App = '', [string]$Only = '')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $browser = @(
@@ -17,6 +17,7 @@ try {
   Start-Sleep -Seconds 2
   $page = "http://localhost:$Port/tests/?auto"
   $extra = @()
+  if ($Only) { $page += '&only=' + [Uri]::EscapeDataString($Only) }
   if ($App) { $page += '&app=' + [Uri]::EscapeDataString($App); $extra = @('--disable-web-security', '--disable-site-isolation-trials', '--disable-features=IsolateOrigins,site-per-process') }
   $proc = Start-Process $browser -PassThru -ArgumentList ($extra + @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     '--disable-background-timer-throttling', '--disable-renderer-backgrounding', "--user-data-dir=$prof",

@@ -150,8 +150,10 @@ export const historyDays = () => {
   return n;
 };
 
+const JUST_STARTED = { week: 'Неделя только началась', month: 'Месяц только начался', year: 'Год только начался' };
+export const emptyText = (range, ds, today) => key(ds[0]) === today && JUST_STARTED[range] || 'За этот период нет запланированных привычек';
 export const trendWord = d => d == null ? '' : d > 0 ? `выше прошлого периода на ${d}%` : d < 0 ? `ниже прошлого периода на ${-d}%` : 'как в прошлом периоде';
-export const planLine = p => p?.plannedDays ? `Засчитано ${planPct(p)}%${p.over ? ` · +${p.over} сверх` : ''}` : '';
+export const planLine = p => p?.plannedDays ? `Норма ${planPct(p)}%${p.over ? ` · +${p.over} сверх нормы` : ''}` : '';
 export const rowLabel = x => `${x.h.name}: ${x.pct}%${x.delta == null ? '' : `, ${trendWord(x.delta)}`}`;
 
 export const HOW = [
@@ -166,7 +168,7 @@ const TILE_INFO = {
   done: ['Выполнено', 'Сколько из запланированного Вы сделали за период.', HOW[1][1]],
   full: ['Полных дней', 'Дни, когда сделано всё, что было запланировано.', HOW[2][1]],
   streak: ['Лучшая серия', 'Самая длинная череда полных дней за период.', HOW[3][1]],
-  over: ['Сверх плана', 'Сколько раз за период цель «несколько раз в день» была перевыполнена.', 'Считаются дни, когда по привычке с целью больше одного раза сделано больше цели этого дня. Каждая привычка учитывается отдельно, суммы разных единиц не складываются. На процент выполнения перевыполнение не влияет и пропуски в другие дни не закрывает.'],
+  over: ['Дней сверх нормы', 'Сколько дней за период цель «несколько раз в день» была перевыполнена.', 'Считаются дни, когда по привычке с целью больше одного раза сделано больше цели этого дня. Каждая привычка учитывается отдельно, суммы разных единиц не складываются. На процент выполнения перевыполнение не влияет и пропуски в другие дни не закрывает.'],
 };
 
 export let summaryView = null;
@@ -210,7 +212,7 @@ function drawSummary() {
   $('sBody').hidden = starting || empty;
   $('sSum').classList.toggle('muted', starting || empty);
   if (starting || empty) {
-    $('sSum').textContent = starting ? 'Сводка появится через несколько недель отметок' : 'За этот период нет запланированных привычек';
+    $('sSum').textContent = starting ? 'Сводка появится через несколько недель отметок' : emptyText(range, ds, today);
     return;
   }
   const parts = summaryParts(range, ds, cur, prev);
@@ -224,7 +226,7 @@ function drawSummary() {
     tileHTML('done', '✅', 'Выполнено', cur.pct + '%', 'из запланированного') +
     tileHTML('full', '📅', 'Полных дней', `${cur.full}<small> из ${cur.days}</small>`, 'всё запланированное сделано') +
     tileHTML('streak', '🔥', 'Лучшая серия', st.best, 'дней подряд без пропусков', esc(streakNote(st, live))) +
-    (quant.length ? tileHTML('over', '🎯', 'Сверх плана', overDays, `${plural(overDays, 'день', 'дня', 'дней')} с перевыполнением цели`) : ''));
+    (quant.length ? tileHTML('over', '🎯', 'Дней сверх нормы', overDays, `${plural(overDays, 'день', 'дня', 'дней')} с перевыполнением цели`) : ''));
 
   (range === 'year' ? heatmap : calendarHeat)($('sHeat'), ds, dayCell);
   $('sFutLg').hidden = range === 'year' || key(ds[ds.length - 1]) <= today;

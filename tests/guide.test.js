@@ -68,7 +68,7 @@ ok('no more than three tips per launch', await runTips() === false && !layerOn()
 resetTips();
 ['mark', 'steps', 'swipe', 'days'].forEach(markTip);
 await fresh([{ id: 'v', name: 'Вода', icon: 'water', color: '#3b82f6', target: 8, created: ago(20) }],
-  Object.fromEntries(Array.from({ length: 20 }, (_, i) => [ago(i + 1), { v: 8 }])));
+  Object.fromEntries(Array.from({ length: 21 }, (_, i) => [ago(i), { v: 8 }])));
 renderSettings(); openOverlay($('setOv')); await wait(500);
 ok('no tips over another page', await runTips() === false && !layerOn());
 closeOverlay($('setOv')); await wait(400);

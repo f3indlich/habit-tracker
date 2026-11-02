@@ -1,11 +1,11 @@
 import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=2.1a';
 import { setIcon } from './icons.js?v=2.1a';
-import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, streak, targetOn } from './storage.js?v=2.1a';
+import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=2.1a';
 import { askConfirm, closeMenu, menuEl, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=2.1a';
-import { catName } from './render.js?v=2.1a';
+import { catName, changeCount } from './render.js?v=2.1a';
 import { openForm } from './form.js?v=2.1a';
 import { queueTips } from './tips.js?v=2.1a';
-import { overText, PLAN_STORE, PLAN_WINDOWS, planPct, planStats, unitChanged, windowRange } from './plan.js?v=2.1a';
+import { fmtNum, HIST_RANGES, HIST_STORE, planBar, planStats, unitChanged } from './plan.js?v=2.1a';
 
 export let hist = null;
 export const IC_I = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg>';
@@ -24,14 +24,14 @@ export const STAT_INFO = {
   },
   done: {
     icon: '✅', title: 'Выполнено',
-    lead: 'Доля запланированных дней, когда цель выполнена полностью.',
-    how: 'Полностью выполненные дни делятся на все запланированные с момента создания. Частичное выполнение не засчитывается, пропуски и дни вне расписания не учитываются, сегодняшний день — только после выполнения. Если цель менялась, день сравнивается с целью, действовавшей в тот день.',
+    lead: 'Доля запланированных дней выбранного периода, когда норма выполнена полностью.',
+    how: 'Считается за период, выбранный внизу: неделю, месяц, год или всё время. Полностью выполненные дни делятся на запланированные. Частичное выполнение не засчитывается, пропуски и дни вне расписания не учитываются, сегодняшний день — после первой отметки. Если цель менялась, день сравнивается с целью, действовавшей в тот день.',
     why: 'Честная общая картина регулярности: один срыв почти не меняет процент, а долгие перерывы заметно его снижают.',
   },
   power: {
     icon: '💪', title: 'Сила',
     lead: 'Насколько прочно привычка закрепилась именно сейчас.',
-    how: 'Учитывается каждый запланированный день, частичное выполнение — частично. Последние дни важнее давних: день двухнедельной давности влияет вдвое меньше вчерашнего.',
+    how: 'Учитывается каждый запланированный день за всю историю, частичное выполнение — частично. Последние дни важнее давних: день двухнедельной давности влияет вдвое меньше вчерашнего. От периода, выбранного внизу, не зависит.',
     why: 'В отличие от серии, один пропуск лишь немного снижает силу, а не обнуляет её. Регулярность в последние недели поднимает шкалу быстрее всего.',
   },
 };
@@ -43,9 +43,10 @@ export const fact = (icon, l, v, sub = '') => `<div class="fact"><span class="fi
     <span class="fv">${esc(v)}${sub ? `<small>${esc(sub)}</small>` : ''}</span></div>`;
 export const goalText = g => (g.target > 1 ? `${g.target} ${g.unit || 'раз'} в день` : '1 раз в день') + (g.step > 1 ? ` · по ${g.step} за нажатие` : '');
 
+export const savedRange = () => { try { const v = localStorage.getItem(HIST_STORE); return HIST_RANGES.includes(v) ? v : 'week'; } catch { return 'week'; } };
 export function openHistory(id) {
   const h = findHabit(id);
-  hist = { id, range: hist?.range || 'week', anchor: parseKey(lifeEnd(h)) };
+  hist = { id, range: savedRange(), anchor: parseKey(lifeEnd(h)) };
   $('hTiles')._html = null;
   histSlider.reset();
   renderHistory();
@@ -69,6 +70,8 @@ $('hTabs').onclick = e => {
   const r = e.target.closest('button')?.dataset.r;
   if (!r || !hist || r === hist.range) return;
   hist.range = r;
+  hist.anchor = parseKey(lifeEnd(findHabit(hist.id)));
+  try { localStorage.setItem(HIST_STORE, r); } catch {}
   renderHistory();
 };
 export const shiftAnchor = (range, a, dir) => range === 'week' ? addDays(a, 7 * dir)
@@ -80,10 +83,19 @@ export function shiftPeriod(dir) {
 }
 const histSlider = periodSlider({
   sheet: $('hSheet'), zone: '#hSheet .pnav, #hPer', track: $('hPerTrack'), prev: $('hPrev'), next: $('hNext'), tabs: $('hTabs'),
-  active: () => !!hist, get: () => hist.anchor, set: a => { hist.anchor = a; }, step: (a, s) => shiftAnchor(hist.range, a, s), render: renderHistory,
+  active: () => !!hist && hist.range !== 'all', get: () => hist.anchor, set: a => { hist.anchor = a; }, step: (a, s) => shiftAnchor(hist.range, a, s), render: renderHistory,
 });
 
-export const periodDays = () => rangeDays(hist.range, hist.anchor);
+export function periodDays() {
+  if (hist.range !== 'all') return rangeDays(hist.range, hist.anchor);
+  const h = findHabit(hist.id), out = [];
+  for (let d = parseKey(h.created), end = lifeEnd(h); key(d) <= end; d = addDays(d, 1)) out.push(d);
+  return out;
+}
+export function period() {
+  const ds = periodDays();
+  return { kind: hist.range, start: key(ds[0]), end: key(ds[ds.length - 1]) };
+}
 export function rangeDays(range, a) {
   let start, n;
   if (range === 'week') { start = addDays(a, -weekday(a)); n = 7; }
@@ -136,20 +148,23 @@ export function renderHistory() {
   $('hWhy').hidden = !h.why;
   $('hWhy').innerHTML = `<b>Зачем мне это</b>${esc(h.why)}`;
 
-  const pct = ls.due ? Math.round(ls.full / ls.due * 100) : 0, strength = Math.round(ls.score * 100);
+  const today = todayKey(), per = period(), p = planStats(h, state, per.start, per.end, today);
+  const pct = p.plannedDays ? Math.round(p.daysDone / p.plannedDays * 100) : 0, strength = Math.round(ls.score * 100);
   const unitWord = n => isWeekly(h, parseKey(lifeEnd(h))) ? plural(n, 'неделя', 'недели', 'недель') : plural(n, 'день', 'дня', 'дней');
   const tile = (k, icon, l, v, sub, bar) => `<div class="tile">
     <div class="l"><span>${icon}</span>${l}</div><div class="v">${v}</div>
     ${bar != null ? `<div class="bar"><i style="width:${bar}%"></i></div>` : `<div class="s">${sub}</div>`}
     <button class="tile-i" data-k="${k}" aria-label="Что значит «${l}»" aria-haspopup="dialog">${IC_I}</button></div>`;
-  const tiles =
+  const tiles = [
     tile('streak', '🔥', 'Серия', cur, cur ? `${unitWord(cur)} подряд`
-      : h.archived ? 'в архиве' : isDue(h, new Date()) ? 'начните сегодня' : 'пока нет серии') +
-    tile('best', '🏆', 'Рекорд', ls.best, unitWord(ls.best)) +
-    tile('done', '✅', 'Выполнено', pct + '%', `${ls.full} из ${ofDays(ls.due)}`) +
-    tile('power', '💪', 'Сила', strength + '%', '', strength);
-  if ($('hTiles')._html !== tiles) { $('hTiles').innerHTML = tiles; $('hTiles')._html = tiles; }
-  renderPlan(h);
+      : h.archived ? 'в архиве' : isDue(h, new Date()) ? 'начните сегодня' : 'пока нет серии'),
+    tile('best', '🏆', 'Рекорд', ls.best, unitWord(ls.best)),
+    tile('done', '✅', 'Выполнено', p.plannedDays ? pct + '%' : '—', p.plannedDays ? `${p.daysDone} из ${ofDays(p.plannedDays)}` : 'нет данных за период'),
+    tile('power', '💪', 'Сила', strength + '%', '', strength)];
+  const box = $('hTiles');
+  if (box._html?.length !== tiles.length) { box.innerHTML = tiles.join(''); box._html = tiles; }
+  else tiles.forEach((t, i) => { if (box._html[i] !== t) { box.children[i].outerHTML = t; box._html[i] = t; } });
+  renderPlan(h, p);
   $('hTiles').onclick = e => {
     const b = e.target.closest('.tile-i');
     if (!b) return;
@@ -183,71 +198,73 @@ export function renderHistory() {
 
   for (const b of $('hTabs').children) b.setAttribute('aria-pressed', b.dataset.r === hist.range);
 
-  const ds = periodDays();
-  $('hLabel').textContent = periodLabel(ds);
-  $('hPrev').disabled = key(ds[0]) <= h.created;
-  $('hNext').disabled = key(ds[ds.length - 1]) >= lifeEnd(h);
+  const ds = periodDays(), all = hist.range === 'all';
+  $('hSheet').querySelector('.pnav').hidden = all;
+  $('hLabel').textContent = all ? '' : periodLabel(ds);
+  $('hPrev').disabled = all || key(ds[0]) <= h.created;
+  $('hNext').disabled = all || key(ds[ds.length - 1]) >= lifeEnd(h);
 
-  const live = ds.filter(d => inLife(h, key(d)) && counts(h, d) && !(isToday(d) && count(h, d) < targetOn(h, d)));
-  const full = live.filter(d => count(h, d) >= targetOn(h, d)).length;
-  const avg = live.length ? live.reduce((s, d) => s + frac(h, d), 0) / live.length : 0;
-  $('hStats').innerHTML = live.length
-    ? `Выполнено <b>${full}</b> из ${ofDays(live.length)} · средний прогресс <b>${Math.round(avg * 100)}%</b>`
-    : 'В этот период данных нет';
-
+  const bucket = (dd, name) => {
+    const md = dd.filter(d => inLife(h, key(d)) && counts(h, d));
+    const fullM = md.filter(d => count(h, d) >= targetOn(h, d)).length;
+    const v = md.length ? Math.round(md.reduce((s, d) => s + frac(h, d), 0) / md.length * 100) : 0;
+    return { value: v, active: md.length > 0, tip: md.length ? `${name}: ${v}% · выполнено ${fullM} из ${ofDays(md.length)}` : `${name}: нет данных` };
+  };
   if (hist.range === 'year') {
-    const months = Array.from({ length: 12 }, (_, m) => {
-      const md = ds.filter(d => d.getMonth() === m && inLife(h, key(d)) && counts(h, d));
-      const fullM = md.filter(d => count(h, d) >= targetOn(h, d)).length;
-      const pct = md.length ? Math.round(md.reduce((s, d) => s + frac(h, d), 0) / md.length * 100) : 0;
-      return {
-        value: pct, active: md.length > 0, label: MONTHS_SHORT[m],
-        tip: md.length ? `${MONTHS[m]}: ${pct}% · выполнено ${fullM} из ${ofDays(md.length)}` : `${MONTHS[m]}: нет данных`,
-      };
-    });
+    const months = Array.from({ length: 12 }, (_, m) => ({ ...bucket(ds.filter(d => d.getMonth() === m), MONTHS[m]), label: MONTHS_SHORT[m] }));
     barChart($('hChart'), months, { yMax: 100, ticks: [0, 50, 100], fmt: v => v + '%' });
     $('hHeatWrap').hidden = false;
     heatmap($('hHeat'), ds, d => ({ live: inLife(h, key(d)), f: frac(h, d), tip: dayTip(h, d) }));
+  } else if (all) {
+    const byQ = new Set(ds.map(d => d.getFullYear() * 12 + d.getMonth())).size > 24, groups = new Map();
+    for (const d of ds) {
+      const id = byQ ? `${d.getFullYear()}-q${Math.floor(d.getMonth() / 3)}` : `${d.getFullYear()}-${d.getMonth()}`;
+      if (!groups.has(id)) groups.set(id, { d, list: [] });
+      groups.get(id).list.push(d);
+    }
+    const gs = [...groups.values()], many = byQ || gs.length > 12;
+    const items = gs.map(({ d, list }, i) => {
+      const name = byQ ? `${Math.floor(d.getMonth() / 3) + 1}-й квартал ${d.getFullYear()} г.` : `${MONTHS[d.getMonth()]} ${d.getFullYear()} г.`;
+      const newYear = i === 0 || d.getFullYear() !== gs[i - 1].d.getFullYear();
+      return { ...bucket(list, name), label: !many ? MONTHS_SHORT[d.getMonth()] : newYear ? String(d.getFullYear()) : '' };
+    });
+    barChart($('hChart'), items, { yMax: 100, ticks: [0, 50, 100], fmt: v => v + '%' });
+    $('hHeatWrap').hidden = true;
   } else {
     $('hChart').innerHTML = (hist.range === 'week' ? weekView(h, ds) : monthView(h, ds)) + '<div class="tip"></div>';
     $('hHeatWrap').hidden = true;
   }
 }
 
-export let planWin = (() => { try { const v = localStorage.getItem(PLAN_STORE); return PLAN_WINDOWS[v] ? v : 'week'; } catch { return 'week'; } })();
-export const PLAN_INFO = 'Засчитано — по каждому дню не больше цели. Перевыполнение считается отдельно и не закрывает пропущенные дни. Сегодняшний день попадает в расчёт, когда в нём появится отметка. Пропуски и дни вне расписания не учитываются.';
+export const PLAN_INFO = 'Сделано — всё, что Вы отметили за период. Полоса показывает норму и то, что сверх неё. Норма считается по каждому дню: перевыполнение в один день не закрывает пропуск в другой.';
 const fmtShort = k => { const d = parseKey(k); return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`; };
 export function goalSteps(h) {
   const gs = h.goals || [];
   return [{ from: gs.length ? key(addDays(parseKey(gs[gs.length - 1].until), 1)) : h.created, target: h.target, unit: h.unit },
     ...gs.map((g, i) => ({ from: i ? key(addDays(parseKey(gs[i - 1].until), 1)) : h.created, target: g.target, unit: g.unit })).reverse()];
 }
-export function renderPlan(h) {
+export function renderPlan(h, p = planStats(h, state, period().start, period().end, todayKey())) {
   const box = $('hPlan');
   box.hidden = !isQuant(h);
   if (box.hidden) { box.innerHTML = ''; return; }
-  const today = todayKey(), { from, to } = windowRange(h, planWin, today);
-  const p = planStats(h, state, from, to, today), pct = planPct(p), unit = h.unit ? ' ' + esc(h.unit) : '';
-  const overW = p.plan ? Math.min(50, p.over / p.plan * 100) : 0, scale = Math.max(100, pct + overW);
-  const steps = h.goals?.length ? goalSteps(h) : null;
-  box.innerHTML = `<div class="plan-head"><div class="seg plan-seg" role="group" aria-label="Период">${Object.entries(PLAN_WINDOWS).map(([id, w]) =>
-      `<button type="button" data-w="${id}" aria-pressed="${id === planWin}">${w.label.replace(' время', '<span class="plan-long"> время</span>')}</button>`).join('')}</div>
-      <button type="button" class="tile-i plan-i" aria-label="Как считается выполнение плана" aria-haspopup="dialog">${IC_I}</button></div>
-    ${!p.plannedDays ? '<p class="plan-empty">Пока нет данных</p>' : `
-    <div class="plan-l1">Засчитано <b>${p.credited}</b> из ${p.plan}${unit} (${pct}%)</div>
-    ${p.over ? `<div class="plan-l2">${overText(p)}</div>` : ''}
-    <div class="plan-l3">Цель достигнута в ${p.daysDone} из ${ofDays(p.plannedDays)}</div>
-    <div class="plan-bar" aria-hidden="true"><span style="width:${100 / scale * 100}%"><i style="width:${pct}%"></i></span>${overW ? `<b style="width:${overW / scale * 100}%"></b>` : ''}</div>
-    ${unitChanged(h, from) ? '<p class="plan-note">Единица измерения менялась — старые и новые числа могут не совпадать по смыслу</p>' : ''}`}
-    ${steps ? `<details class="plan-goals"><summary>История целей</summary><ul>${steps.map(s =>
-      `<li>с ${fmtShort(s.from)} — ${s.target}${s.unit ? ' ' + esc(s.unit) : ''}</li>`).join('')}</ul></details>` : ''}`;
-  box.querySelector('.plan-seg').onclick = e => {
-    const w = e.target.closest('[data-w]')?.dataset.w;
-    if (!w || w === planWin) return;
-    planWin = w;
-    try { localStorage.setItem(PLAN_STORE, w); } catch {}
-    renderPlan(h);
-  };
+  const unit = h.unit ? ' ' + esc(h.unit) : '', steps = h.goals?.length ? goalSteps(h) : null;
+  const info = `<button type="button" class="tile-i plan-i" aria-label="Как считается выполнение плана" aria-haspopup="dialog">${IC_I}</button>`;
+  let body;
+  if (!p.plannedDays) body = `<div class="plan-top"><p class="plan-empty">В этом периоде данных нет</p>${info}</div>`;
+  else {
+    const pct = Math.round(p.fact / p.plan * 100), bar = planBar(p);
+    const markPos = bar.mark == null ? '' : bar.mark > 85 ? 'end' : bar.mark < 15 ? 'start' : 'mid';
+    body = `<div class="plan-top"><div class="plan-l1">Сделано <b>${fmtNum(p.fact)}</b> из ${fmtNum(p.plan)}${unit} (${pct}%)</div>${info}</div>
+    <div class="plan-l2">Норма выполнена в ${p.daysDone} из ${ofDays(p.plannedDays)}${pct >= 100 && p.daysDone < p.plannedDays ? ', но не во все дни' : ''}</div>
+    <div class="plan-meter${bar.mark == null ? '' : ' marked'}">
+      ${bar.mark == null ? '' : `<span class="pb-mark pb-${markPos}" style="left:${bar.mark}%"><span>план ${fmtNum(p.plan)}</span></span>`}
+      <div class="plan-bar" role="img" aria-label="Сделано ${fmtNum(p.fact)} из ${fmtNum(p.plan)}${p.over ? `, из них сверх нормы ${fmtNum(p.over)}` : ''}"><i class="pb-in" style="width:${bar.inW}%"></i>${p.over ? `<i class="pb-over" style="width:${bar.overW}%"></i>` : ''}</div>
+    </div>
+    <div class="plan-lg"><span><i class="pb-dot pb-in"></i>В пределах нормы ${fmtNum(p.credited)}</span>${p.over ? `<span><i class="pb-dot pb-over"></i>Сверх нормы ${fmtNum(p.over)}</span>` : ''}</div>
+    ${unitChanged(h, period().start) ? '<p class="plan-note">Единица измерения менялась — старые и новые числа могут не совпадать по смыслу</p>' : ''}`;
+  }
+  box.innerHTML = body + (steps ? `<details class="plan-goals"><summary>История целей</summary><ul>${steps.map(s =>
+      `<li>с ${fmtShort(s.from)} — ${s.target}${s.unit ? ' ' + esc(s.unit) : ''}</li>`).join('')}</ul></details>` : '');
   box.querySelector('.plan-i').onclick = e => {
     if (menuEl?._anchor === e.currentTarget) return closeMenu();
     openPopover(e.currentTarget, `<div class="pop-title">Выполнение плана</div><p class="pop-lead">${PLAN_INFO}</p>`, h.color);
@@ -289,7 +306,7 @@ export function weekView(h, ds) {
     <div class="wk-day${isToday(d) ? ' today' : ''}${dayAttrs(h, d)}>
       <div class="wk-wd">${WEEKDAYS[weekday(d)]}</div>
       ${dayRing(h, d, i, 46)}
-      <div class="wk-val s-${dayState(h, d)}">${val(d)}</div>
+      <div class="wk-val s-${dayState(h, d)}">${val(d)}</div>${count(h, d) > targetOn(h, d) && inLife(h, key(d)) ? `<div class="wk-over">+${fmtNum(count(h, d) - targetOn(h, d))}</div>` : ''}
     </div>`).join('')}</div>${legend()}`;
 }
 
@@ -336,7 +353,52 @@ export function renderDay() {
   const s = streak(h, key(d));
   $('dFacts').innerHTML = fact(IC_GOAL, 'Цель', goalText(g)) + fact(IC_DONE, 'Выполнение', done, sub) +
     fact(IC_FIRE, 'Серия', s ? streakText(h, s) : 'Нет', s ? 'подряд на этот день' : '');
+  markUi(h, d);
 }
+function markUi(h, d) {
+  const g = at(h, d), c = count(h, d), skipped = isSkipped(h, d);
+  const skip = skipped || (isDue(h, d) && !c && !isWeekly(h, d))
+    ? `<button type="button" class="d-btn" data-m="skip">${skipped ? 'Отменить пропуск' : 'Пропустить день'}</button>` : '';
+  if (g.target === 1) {
+    $('dMark').innerHTML = `<div class="d-toggle${skipped ? ' off' : ''}"><span id="dDoneLbl">Выполнено</span>
+      <button type="button" class="switch" data-m="toggle" role="switch" aria-checked="${c > 0}" aria-labelledby="dDoneLbl"${skipped ? ' disabled' : ''}><span></span></button></div>
+      ${skip ? `<div class="d-row">${skip}</div>` : ''}`;
+    return;
+  }
+  const b = planBar({ plan: g.target, fact: c, credited: Math.min(c, g.target), over: Math.max(0, c - g.target) });
+  const unit = g.unit || 'раз', step = g.step && g.step > 1 ? g.step : 1;
+  $('dMark').innerHTML = `<div class="d-step">
+      <button type="button" class="d-rb" data-m="minus" aria-label="Убрать ${step}"${c ? '' : ' disabled'}><svg class="ic" viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+      <div class="d-val" aria-live="polite"><b>${fmtNum(c)}</b><span>из ${fmtNum(g.target)} ${esc(unit)}</span></div>
+      <button type="button" class="d-rb" data-m="plus" aria-label="Добавить ${step}"><svg class="ic" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></button>
+    </div>
+    <div class="plan-bar d-bar"><i class="pb-in" style="width:${b.inW}%"></i><i class="pb-over" style="width:${b.overW}%"></i></div>
+    <div class="d-row">${c < g.target ? '<button type="button" class="primary d-btn" data-m="full">Выполнить полностью</button>' : ''}${c ? '<button type="button" class="d-btn" data-m="reset">Сбросить</button>' : ''}</div>
+    ${skip ? `<div class="d-row">${skip}</div>` : ''}`;
+}
+function markChanged() {
+  renderDay();
+  if (hist) renderHistory();
+}
+$('dMark').addEventListener('click', e => {
+  const m = e.target.closest('[data-m]')?.dataset.m, h = findHabit(day?.id);
+  if (!m || !h) return;
+  const d = day.d, g = at(h, d), c = count(h, d), past = !isToday(d);
+  if (m === 'skip') {
+    const was = isSkipped(h, d);
+    setSkip(h, d, !was);
+    if (past) toast(was ? 'Пропуск отменён' : 'День пропущен', () => {
+      if (!findHabit(h.id)) return;
+      setSkip(h, d, was);
+      if (day?.id === h.id && key(day.d) === key(d)) renderDay();
+      if (hist) renderHistory();
+    });
+  } else {
+    const n = { plus: stepUp(g, c), minus: stepDown(g, c), full: g.target, reset: 0, toggle: c ? 0 : 1 }[m];
+    changeCount(h, d, n, m === 'reset', past);
+  }
+  markChanged();
+});
 function noteUi() {
   const h = findHabit(day.id), v = $('dNote').value;
   $('dNoteDel').hidden = !noteOf(h, day.d);
@@ -473,7 +535,7 @@ export function bindTips(box) {
     tip.style.top = (t.classList.contains('hit') ? 10 : r.top - b.top) + 'px';
     tip.classList.add('show');
   };
-  box.addEventListener('pointermove', show);
+  box.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') show(e); });
   box.addEventListener('click', show);
   box.addEventListener('pointerleave', () => {
     on?.classList.remove('on'); on = null;

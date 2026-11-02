@@ -93,7 +93,7 @@ closeOverlay($('histOv')); hist = null; await wait(400);
 openHistory('n'); await wait(400);
 ok('no edit button for archived habit', $('hEdit').hidden && getComputedStyle($('hEdit')).display === 'none');
 closeOverlay($('histOv')); hist = null; await wait(400);
-ok('new icons in every style', ['flower', 'nohand', 'noheart', 'pullup'].every(k => ICONS[k]?.s && ICONS[k].e && ICON_ART[k]) && ICON_KEYS.every(k => ICON_ART[k]) && new Set(ICON_KEYS.map(k => ICONS[k].e)).size === ICON_KEYS.length);
+ok('new icons in every style', ['flower', 'nohand', 'noheart', 'pullup', 'squat', 'video', 'razor', 'eyedrop', 'cat', 'wateringcan', 'glass'].every(k => ICONS[k]?.s && ICONS[k].e && ICON_ART[k]) && ICON_KEYS.every(k => ICON_ART[k]) && new Set(ICON_KEYS.map(k => ICONS[k].e)).size === ICON_KEYS.length);
 ok('no type wording left', !/тип/i.test(document.body.innerText + $('catOv').textContent + $('setOv').textContent + $('formOv').textContent), (document.body.innerText.match(/.{0,20}тип.{0,20}/i) || [])[0]);
 state = normalize({ habits: [
   { id: 'q', name: 'Подготовка к экзамену по истории', icon: 'books', target: 100, unit: 'вопросов', created: ago(6) },

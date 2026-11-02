@@ -487,6 +487,7 @@
       <button data-r="week">Неделя</button>
       <button data-r="month">Месяц</button>
       <button data-r="year">Год</button>
+      <button data-r="all">Всё<span class="t-long"> время</span></button>
     </div>
     <div class="pnav">
       <button class="ghost icon-btn" id="hPrev" title="Раньше"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
@@ -494,7 +495,6 @@
       <button class="ghost icon-btn" id="hNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
     <div class="per-vp" id="hPer"><div class="per-track" id="hPerTrack">
-      <div class="pstats" id="hStats"></div>
       <div class="chart" id="hChart"></div>
       <div id="hHeatWrap" hidden>
         <div class="heat-title">Каждый день года</div>
@@ -515,6 +515,7 @@
       </div>
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
+    <div class="d-mark" id="dMark"></div>
     <div class="facts" id="dFacts"></div>
     <label class="d-lbl" for="dNote">Заметка</label>
     <textarea id="dNote" rows="4" maxlength="500" placeholder="Как прошёл день? Что помогло или помешало?"></textarea>

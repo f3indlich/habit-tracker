@@ -26,7 +26,7 @@ $('hTabs').querySelector('[data-r=week]').click(); await wait(200);
 const cell = k => $('hChart').querySelector(`[data-day="${k}"]`);
 const inWeek = n => periodDays().some(d => key(d) === ago(n));
 ok('past days are tappable, future are not', !!cell(todayKey()) && !$('hChart').querySelector(`[data-day="${key(addDays(new Date(), 1))}"]`));
-if (!inWeek(2)) { $('hPrev').click(); await wait(200); }
+if (!inWeek(2)) { $('hPrev').click(); await wait(500); }
 ok('day with note is marked', cell(ago(1)) ? cell(ago(1)).classList.contains('note') && !cell(ago(2)).classList.contains('note') : true);
 
 cell(ago(2)).click(); await wait(450);
@@ -61,7 +61,7 @@ if (inWeek(1) || cell(ago(1))) {
   $('dSheet').querySelector('[data-close]').click(); await wait(400);
 }
 $('hTabs').querySelector('[data-r=month]').click(); await wait(250);
-if (!cell(ago(3))) { $('hPrev').click(); await wait(250); }
+if (!cell(ago(3))) { $('hPrev').click(); await wait(500); }
 cell(ago(3)).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await wait(400);
 ok('month day opens by keyboard', $('dayOv')._shown && facts().includes('Полностью') && facts().includes('2 дня'), facts());
 $('dSheet').querySelector('[data-close]').click(); await wait(400);
@@ -262,6 +262,64 @@ ok('hidden notification has no names or numbers', h1.title === 'Трекер п�
 ok('hidden group notification only counts', h2.body === 'Пора отметить привычки: 2' && !/Бег|Вода/.test(h2.title + h2.body) && !h2.done, h2);
 ok('missing mode falls back to showing', notifyView(one, undefined).title === 'Бег');
 ok('service worker keeps setting across versions', /k !== PREFS/.test(swSrc) && swSrc.includes("__prefs/notify'"));
+
+{
+  if (shownOverlays().length) { shownOverlays().forEach(closeOverlay); await wait(400); }
+  state = normalize({ habits: [
+    { id: 'mq', name: 'ПДД', icon: 'car', target: 100, step: 10, unit: 'вопросов', created: ago(10) },
+    { id: 'mb', name: 'Чтение', icon: 'book', created: ago(10) },
+  ], log: { [ago(2)]: { mq: 140 } } });
+  render(); await wait(200);
+  const mk = () => $('dMark').innerText.replace(/[ \t\n]+/g, ' ').trim(), btn = m => $('dMark').querySelector(`[data-m=${m}]`);
+  openDay('mq', dAgo(2)); await wait(350);
+  ok('day sheet shows counter', /^140 из 100 вопросов/.test(mk()) && btn('plus') && btn('minus') && btn('reset') && !btn('full'), mk());
+  const bw = [...$('dMark').querySelectorAll('.plan-bar i')].map(i => parseFloat(i.style.width).toFixed(1)).join('|');
+  ok('day sheet bar splits norm and over', bw === '71.4|28.6', bw);
+  btn('minus').click(); await wait(60);
+  ok('minus uses habit step on past day', state.log[ago(2)]?.mq === 130 && /^130 из 100/.test(mk()), state.log[ago(2)]);
+  const tt = document.querySelector('.toast')?.innerText.replace(/[ \t\n]+/g, ' ') || '';
+  ok('past day change shows exact count with undo', /ПДД \(.+\): 130 из 100/.test(tt) && /Отменить/.test(tt) && !/Нажмите ещё раз/.test(tt), tt);
+  [...document.querySelectorAll('.toast button')].find(b => /Отменить/.test(b.textContent))?.click(); await wait(80);
+  ok('undo restores count and sheet', state.log[ago(2)]?.mq === 140 && /^140 из 100/.test(mk()), [state.log[ago(2)], mk()]);
+  btn('reset').click(); await wait(60);
+  ok('reset clears day and offers full and skip', !state.log[ago(2)]?.mq && /^0 из 100/.test(mk()) && btn('full') && btn('skip'), mk());
+  btn('full').click(); await wait(60);
+  ok('full sets target', state.log[ago(2)]?.mq === 100 && /Полностью/.test($('dFacts').textContent));
+  closeOverlay($('dayOv')); await wait(400);
+
+  openHistory('mq'); await wait(450);
+  $('hChart').querySelector(`[data-day="${todayKey()}"]`).click(); await wait(400);
+  btn('plus').click(); btn('plus').click(); await wait(80);
+  const l1 = document.querySelector('#hSheet .plan-l1')?.textContent.replace(/[ \t\n]+/g, ' ') || '';
+  ok('change in day sheet updates habit sheet', /Сделано 20 из 100/.test(l1) && $('hChart').querySelector('.wk-day.today .wk-val')?.textContent === '20/100', l1);
+  ok('change in day sheet updates main card', [...document.querySelectorAll('.habit .meta')].some(m => /20 \/ 100/.test(m.textContent)));
+  closeOverlay($('dayOv')); await wait(350); closeOverlay($('histOv')); setHist(null); await wait(400);
+
+  openDay('mb', new Date()); await wait(350);
+  const sw = $('dMark').querySelector('.switch');
+  ok('yes/no habit gets a switch and skip', sw?.getAttribute('aria-checked') === 'false' && !!btn('skip'));
+  sw.click(); await wait(60);
+  ok('switch marks the day', state.log[todayKey()]?.mb === 1 && $('dMark').querySelector('.switch').getAttribute('aria-checked') === 'true' && !btn('skip'));
+  $('dMark').querySelector('.switch').click(); await wait(60);
+  btn('skip').click(); await wait(60);
+  ok('skip disables switch', state.skip[todayKey()]?.mb === 1 && $('dMark').querySelector('.switch').disabled && /Отменить пропуск/.test(mk()));
+  btn('skip').click(); await wait(60);
+  ok('skip can be undone', !state.skip[todayKey()]?.mb && !$('dMark').querySelector('.switch').disabled);
+  closeOverlay($('dayOv')); await wait(400);
+  openDay('mb', addDays(new Date(), 2));
+  ok('future days still not openable', !$('dayOv')._shown);
+}
+
+{
+  openHistory('mq'); await wait(450);
+  const cell = $('hChart').querySelector('[data-day]');
+  cell.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'touch' }));
+  ok('touch move does not pop day tip', !$('hChart').querySelector('.tip.show') && !cell.classList.contains('on'));
+  cell.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse' }));
+  ok('mouse hover still shows day tip', !!$('hChart').querySelector('.tip.show') && cell.classList.contains('on'));
+  ok('swipe zone allows only vertical browser pan', getComputedStyle($('hPer')).touchAction === 'pan-y');
+  closeOverlay($('histOv')); setHist(null); await wait(400);
+}
 
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

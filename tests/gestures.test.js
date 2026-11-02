@@ -52,7 +52,7 @@ await swipe(head, [W / 2, 200], [W / 2, 240], 4, 90);
 ok('small pull snaps back', $('histOv')._shown && hs.style.transform === '' && !hs.classList.contains('pulling'));
 hs.scrollTop = 200; await wait(50);
 const scrolled = hs.scrollTop > 0;
-if (scrolled) await swipe(hs.querySelector('#hStats'), [W / 2, 300], [W / 2, 650]);
+if (scrolled) await swipe(hs.querySelector('#hChart'), [W / 2, 300], [W / 2, 650]);
 ok('pull ignored when sheet is scrolled', !scrolled || $('histOv')._shown, hs.scrollTop);
 hs.scrollTop = 0; await wait(50);
 
@@ -63,7 +63,7 @@ ok('swipe left on current week does nothing', $('hLabel').textContent === lbl0 &
 await swipe($('hChart'), [W * .15, 420], [W * .8, 425]);
 const lbl1 = $('hLabel').textContent;
 ok('swipe right shows previous week', lbl1 !== lbl0 && !$('hNext').disabled, [lbl0, lbl1]);
-await swipe($('hStats'), [W * .15, 380], [W * .85, 380]);
+await swipe($('hChart'), [W * .15, 380], [W * .85, 380]);
 ok('swipe works on period stats too', $('hLabel').textContent !== lbl1);
 await swipe($('hChart'), [W * .8, 420], [W * .15, 425]);
 await swipe($('hChart'), [W * .8, 420], [W * .15, 425]);

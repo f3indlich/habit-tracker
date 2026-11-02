@@ -3,7 +3,7 @@ import { IC, setIcon } from './icons.js?v=2.1a';
 import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=2.1a';
 import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=2.1a';
 import { openCats, openForm } from './form.js?v=2.1a';
-import { dayTip, hist, openDay, openHistory, renderHistory, setHist } from './history.js?v=2.1a';
+import { day, dayTip, hist, openDay, openHistory, renderDay, renderHistory, setHist } from './history.js?v=2.1a';
 import { userName } from './settings.js?v=2.1a';
 import { queueTips } from './tips.js?v=2.1a';
 import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=2.1a';
@@ -319,7 +319,7 @@ export function addSwipe(el, id) {
   el.addEventListener('pointercancel', end);
 }
 
-export function changeCount(h, d, n, clearSkip = false) {
+export function changeCount(h, d, n, clearSkip = false, announce = false) {
   h = at(h, d);
   const prev = count(h, d), prevSkip = isSkipped(h, d);
   n = Math.max(0, Math.min(countCap(h.target), n));
@@ -328,16 +328,18 @@ export function changeCount(h, d, n, clearSkip = false) {
   setCount(h, d, n);
   const wasDone = prev >= h.target, isDone = n >= h.target;
   navigator.vibrate?.(wasDone && isDone && n > prev ? 6 : n > prev ? 12 : [6, 40, 6]);
-  if (wasDone !== isDone || (n === 0 && prev > 1)) {
+  if (announce || wasDone !== isDone || (n === 0 && prev > 1)) {
     const dayNote = isToday(d) ? '' : ` (${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })})`;
-    let text = `${h.name}${dayNote}: ${isDone ? 'выполнено' : n ? `${n} из ${h.target}` : 'отметка снята'}`;
-    if (isDone && h.target > 1 && getPref(OVER_HINT, '') !== '1') { setPref(OVER_HINT, '1'); text = 'Цель выполнена! Нажмите ещё раз, чтобы записать сверх плана'; }
+    let text = `${h.name}${dayNote}: ${isDone && !(announce && h.target > 1) ? 'выполнено' : n ? `${n} из ${h.target}` : 'отметка снята'}`;
+    if (isDone && !wasDone && h.target > 1 && getPref(OVER_HINT, '') !== '1') { setPref(OVER_HINT, '1'); text = 'Цель выполнена! Нажмите ещё раз, чтобы записать сверх плана'; }
     if (isPrivate(h) && text.startsWith(h.name)) text = 'Привычка' + text.slice(h.name.length);
     toast(text, () => {
       if (!findHabit(h.id)) return;
       setMap(state.log, key(d), h.id, prev);
       if (prevSkip) setMap(state.skip, key(d), h.id, 1);
       save(); render();
+      if (day?.id === h.id && key(day.d) === key(d)) renderDay();
+      if (hist) renderHistory();
     });
   }
 }

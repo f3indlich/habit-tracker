@@ -105,5 +105,30 @@ closeConfirm(true); await wait(500);
 ok('confirm closes form', !$('formOv')._shown && !shownOverlays().length);
 
 fe.style.maxWidth = ''; fe.style.width = w0; fe.style.height = h0; await wait(150); render(); await wait(200);
+{
+  const vg = o => viewportGap({ ios: true, standalone: true, typing: false, inner: 588, full: 874, ...o });
+  ok('stuck iOS viewport after keyboard is measured', vg({}) === 286);
+  ok('no shift while typing, in Safari, on Android or for status bar', vg({ typing: true }) === 0 && vg({ standalone: false }) === 0 && vg({ ios: false }) === 0 && vg({ inner: 812 }) === 0);
+  const root = document.documentElement, fab = $('fab'), ov = $('histOv');
+  root.style.setProperty('--vgap', '200px');
+  ok('button, sheets and toast follow the shift', getComputedStyle(fab).bottom === '-182px' && getComputedStyle(ov).bottom === '-200px' && getComputedStyle($('dayOv')).bottom === '-200px');
+  root.style.removeProperty('--vgap');
+  ok('no shift by default', getComputedStyle(fab).bottom === '18px' && getComputedStyle(ov).bottom === '0px');
+  fixViewport();
+  ok('desktop browser gets no shift', !root.style.getPropertyValue('--vgap'));
+}
+
+{
+  const ago2 = n => key(addDays(new Date(), -n));
+  state = normalize({ habits: [{ id: 'sq', name: 'Приседания', icon: 'squat', target: 100, step: 10, unit: 'приседаний', created: ago2(14) }],
+    log: Object.fromEntries(Array.from({ length: 9 }, (_, j) => [ago2(j + 5), { sq: 100 }])) });
+  viewDate = new Date(); cards.forEach(e => e.remove()); cards.clear(); render(); await wait(700);
+  const meta = document.querySelector('.habit .meta'), lead = meta?.querySelector('.m-lead'), warn = meta?.querySelector('.m-warn.on');
+  ok('stale badge shown next to counter', !!warn && /дней назад/.test(warn.textContent), meta?.textContent);
+  ok('counter not cut by badge', lead && lead.scrollWidth <= lead.clientWidth + 1, lead && [lead.scrollWidth, lead.clientWidth]);
+  ok('badge ends with ellipsis when tight', warn && (warn.scrollWidth <= warn.clientWidth + 1 || getComputedStyle(warn).textOverflow === 'ellipsis'));
+  ok('badge stays inside meta', warn && warn.getBoundingClientRect().right <= meta.getBoundingClientRect().right + 1);
+}
+
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

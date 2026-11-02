@@ -58,7 +58,8 @@ async function run() {
   btn.disabled = true; out.textContent = ''; sum.textContent = 'Идёт проверка…'; sum.className = '';
   let pass = 0, fail = 0;
   const lines = [];
-  for (const [title, file] of SUITES) {
+  const only = (new URLSearchParams(location.search).get('only') || '').split(',').filter(Boolean);
+  for (const [title, file] of SUITES.filter(([, f]) => !only.length || only.some(o => f.startsWith(o + '.')))) {
     line(title, 'h');
     try {
       await loadApp();

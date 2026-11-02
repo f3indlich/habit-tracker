@@ -7,7 +7,8 @@ const ago = n => key(addDays(new Date(), -n));
 const T = todayKey();
 const show = s => { state = s; viewDate = new Date(); cards.forEach(e => e.remove()); cards.clear(); render(); };
 
-ok('default plan window is week', planWin === 'week' && PLAN_STORE === NS + '-planwin');
+try { localStorage.removeItem(HIST_STORE); } catch {}
+ok('default period is week, stored as hist-period', savedRange() === 'week' && HIST_STORE === NS + '-hist-period' && HIST_RANGES.join() === 'week,month,year,all');
 const h0 = { id: 'x', target: 8, created: ago(30) };
 ok('targetOn without history is current goal', targetOn(h0, parseKey(ago(5))) === 8 && targetOn(h0, new Date()) === 8);
 const hg = normalize({ habits: [{ id: 'g', name: 'G', target: 8, created: ago(60), goals: [{ until: ago(20), target: 4 }, { until: ago(10), target: 6 }] }], log: {} }).habits[0];
@@ -67,7 +68,8 @@ ok('today with zero does not count', planStats(ex, S, ago(6), T, T).plannedDays 
 const withToday = { ...exLog, [T]: { e: 3 } };
 const pt = planStats(ex, { habits: [ex], log: withToday, skip: {} }, ago(6), T, T);
 ok('today with a mark counts', pt.plannedDays === 7 && pt.daysPartial === 4 && pt.plan === 56, pt);
-ok('windows: week 7 days, month 30, all from creation', windowRange(ex, 'week', T).from === ago(6) && windowRange(ex, 'month', T).from === ago(29) && windowRange(ex, 'all', T).from === ex.created);
+ok('numbers use non-breaking thousands', fmtNum(12450) === '12\u00a0450' && fmtNum(600) === '600');
+ok('bar math without overflow', JSON.stringify(planBar({ plan: 600, fact: 600, credited: 600, over: 0 })) === JSON.stringify({ inW: 100, overW: 0, mark: null }));
 const gx = { ...ex, target: 8, goals: [{ until: ago(4), target: 4 }] };
 const gp = planStats(gx, { habits: [gx], log: exLog, skip: {} }, ago(7), T, T);
 ok('plan uses goal of each day', gp.plan === 4 * 4 + 8 * 3 && gp.daysDone === 6, gp);
@@ -115,28 +117,14 @@ $('submit').click(); await wait(500);
 ok('unit change asks nothing', !$('confirm')._shown && !$('formOv')._shown && w.unit === 'кружек');
 w.unit = 'стаканов'; delete w.goals; save();
 
-try { localStorage.removeItem(PLAN_STORE); } catch {}
-openHistory('w'); await wait(600);
-ok('plan block shown for quantity habit', !$('hPlan').hidden && $('hPlan').textContent.includes('Засчитано'));
-ok('plan block shows the chosen window', $('hPlan').querySelector('[aria-pressed=true]').dataset.w === planWin);
-const hitOk = [...$('hPlan').querySelectorAll('.plan-seg button, .plan-l1, .plan-bar')].every(b => {
-  const r = b.getBoundingClientRect(), at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-  return at && !at.closest('.plan-i');
-});
-ok('info button does not cover the window switch', hitOk);
-const weekText = $('hPlan').querySelector('.plan-l1').textContent;
-$('hPlan').querySelector('[data-w=all]').click(); await wait(200);
-ok('window switch changes numbers', $('hPlan').querySelector('.plan-l1').textContent !== weekText && planWin === 'all', [weekText, $('hPlan').querySelector('.plan-l1').textContent]);
-ok('window choice remembered', localStorage.getItem(PLAN_STORE) === 'all');
-ok('text is neutral, no percent above 100', !/рекорд|!/.test($('hPlan').textContent) && !/1[0-9]{2}%/.test($('hPlan').textContent));
-$('hPlan').querySelector('[data-w=week]').click(); await wait(200);
 closeOverlay($('histOv')); hist = null; await wait(400);
 setCount(w, parseKey(ago(1)), 12);
 w.goals = [{ until: ago(20), target: 6, unit: 'стаканов' }]; save();
 openHistory('w'); await wait(600);
-ok('overflow line shown', $('hPlan').textContent.includes('Сверх плана +4 за 1 день'), $('hPlan').textContent);
-ok('bar has overflow layer within box', !!$('hPlan').querySelector('.plan-bar b') && $('hPlan').querySelector('.plan-bar').scrollWidth <= $('hPlan').querySelector('.plan-bar').clientWidth + 1);
+shiftPeriod(-1); await wait(100);
+ok('plan block shown for quantity habit', !$('hPlan').hidden && $('hPlan').textContent.includes('Сделано'));
 ok('goal history list', $('hPlan').querySelector('.plan-goals').textContent.includes('— 8') && $('hPlan').querySelector('.plan-goals').textContent.includes('— 6'));
+ok('no old period switch in block', !$('hPlan').querySelector('.plan-seg, [data-w]'));
 closeOverlay($('histOv')); hist = null; await wait(400);
 openHistory('b'); await wait(600);
 ok('plan block hidden for yes/no habit', $('hPlan').hidden && !$('hPlan').textContent);
@@ -147,10 +135,113 @@ const card = cards.get('w');
 ok('card +N badge unchanged', card.querySelector('.over').textContent === '+2' && card.querySelector('.check').classList.contains('overdone'));
 ok('day ring unchanged by overflow', $('heroDone').textContent === '1' && $('heroTotal').textContent === '2');
 openSummary(); await wait(900);
-ok('summary has overflow tile', $('sTiles').textContent.includes('Сверх плана'));
-ok('summary row shows credited and overflow', [...$('sHabits').querySelectorAll('.hr-sub')].some(s => /^Засчитано \d+%( · \+\d+ сверх)?$/.test(s.textContent)));
+ok('summary tile counts days over norm', $('sTiles').textContent.includes('Дней сверх нормы') && !$('sTiles').textContent.includes('Сверх плана'));
+ok('summary row shows norm and overflow', [...$('sHabits').querySelectorAll('.hr-sub')].some(s => /^Норма \d+%( · \+\d+ сверх нормы)?$/.test(s.textContent)));
 ok('yes/no habit row has no plan line', !$('sHabits').querySelector('[data-id=b] .hr-sub'));
 closeOverlay($('sumOv')); await wait(400);
+
+const mon0 = monday(new Date()), wk = n => addDays(mon0, -7 * n), dk = (n, i) => key(addDays(wk(n), i));
+const plog = {};
+[20, 45, 0, 65, 140, 105].forEach((v, i) => { plog[dk(1, i)] = { q: v }; });
+[150, 150, 150, 100, 0, 90].forEach((v, i) => { plog[dk(2, i)] = { q: v }; });
+[100, 100, 100, 100, 100, 100].forEach((v, i) => { plog[dk(3, i)] = { q: v }; });
+const qdays = [0, 1, 2, 3, 4, 5];
+show(normalize({ habits: [
+  { id: 'q', name: 'Изучение ПДД', icon: 'car', target: 100, unit: 'вопросов', created: dk(5, 0), days: qdays, schedule: { type: 'weekdays', days: qdays } },
+  { id: 'b', name: 'Чтение', icon: 'books', created: dk(5, 0) },
+], log: plog }));
+await wait(300);
+try { localStorage.removeItem(HIST_STORE); } catch {}
+const q = findHabit('q');
+const blk = () => $('hPlan').textContent.replace(/[ \t\n]+/g, ' ').trim();
+const l1 = () => $('hPlan').querySelector('.plan-l1')?.textContent.replace(/[ \t\n]+/g, ' ').trim();
+const l2 = () => $('hPlan').querySelector('.plan-l2')?.textContent.trim();
+const wpct = sel => parseFloat($('hPlan').querySelector(sel)?.style.width);
+const same = () => {
+  const ds = periodDays(), per = period(), days = [...$('hChart').querySelectorAll('[data-day]')].map(e => e.dataset.day);
+  return per.start === key(ds[0]) && per.end === key(ds[ds.length - 1]) && (hist.range === 'all' || $('hLabel').textContent === rangeLabel(hist.range, ds))
+    && days.every(d => d >= per.start && d <= per.end);
+};
+const blockMatches = () => {
+  const per = period(), pp = planStats(q, state, per.start, per.end, T);
+  return pp.plannedDays ? l1() === `Сделано ${fmtNum(pp.fact)} из ${fmtNum(pp.plan)} вопросов (${Math.round(pp.fact / pp.plan * 100)}%)` : !$('hPlan').querySelector('.plan-bar');
+};
+
+openHistory('q'); await wait(600);
+ok('opens on current week', hist.range === 'week' && period().start === key(mon0), period());
+const p7 = planStats(q, state, ago(6), T, T);
+ok('block shows current week, not last 7 days', (!p7.fact || !blk().includes(`Сделано ${fmtNum(p7.fact)}`)) && blockMatches(), [blk(), p7.fact]);
+ok('next arrow off on current period', $('hNext').disabled);
+shiftPeriod(-1); await wait(100);
+ok('previous week: done line', l1() === 'Сделано 375 из 600 вопросов (63%)', l1());
+ok('previous week: norm line', l2() === 'Норма выполнена в 2 из 6 дней', l2());
+ok('previous week: bar parts 55% and 7.5%', Math.abs(wpct('.plan-bar .pb-in') - 55) < .01 && Math.abs(wpct('.plan-bar .pb-over') - 7.5) < .01 && Math.abs(wpct('.plan-bar .pb-in') + wpct('.plan-bar .pb-over') - 62.5) < .01);
+ok('previous week: legend', $('hPlan').querySelector('.plan-lg').textContent.replace(/\s+/g, ' ').includes('В пределах нормы 330') && $('hPlan').querySelector('.plan-lg').textContent.includes('Сверх нормы 45'));
+ok('previous week: no plan mark when under plan', !$('hPlan').querySelector('.pb-mark'));
+ok('bar is an image with label', $('hPlan').querySelector('.plan-bar').getAttribute('role') === 'img' && $('hPlan').querySelector('.plan-bar').getAttribute('aria-label') === 'Сделано 375 из 600, из них сверх нормы 45');
+ok('day marks +40 and +5', [...$('hChart').querySelectorAll('.wk-over')].map(e => e.textContent).join() === '+40,+5');
+ok('label, calendar and block share one period', same() && blockMatches());
+const tileDone = () => $('hTiles').querySelectorAll('.tile')[2].querySelector('.s').textContent;
+ok('done tile matches norm line', tileDone() === '2 из 6 дней', tileDone());
+shiftPeriod(-1); await wait(100);
+ok('overflow week: done line', l1() === 'Сделано 640 из 600 вопросов (107%)', l1());
+ok('overflow week: not every day', l2() === 'Норма выполнена в 4 из 6 дней, но не во все дни', l2());
+const mk = $('hPlan').querySelector('.pb-mark');
+ok('overflow week: scaled by fact with plan mark at 93.75%', !!mk && Math.abs(parseFloat(mk.style.left) - 93.75) < .01 && mk.textContent.includes('план 600') && Math.abs(wpct('.plan-bar .pb-in') - 490 / 640 * 100) < .01 && Math.abs(wpct('.plan-bar .pb-over') - 150 / 640 * 100) < .01);
+const mr = mk?.querySelector('span').getBoundingClientRect(), br = $('hPlan').getBoundingClientRect();
+ok('plan mark label stays inside', !!mr && mr.right <= br.right + 1 && mr.left >= br.left - 1);
+shiftPeriod(-1); await wait(100);
+ok('exact plan: one color, no overflow legend', l1() === 'Сделано 600 из 600 вопросов (100%)' && !$('hPlan').querySelector('.plan-bar .pb-over') && $('hPlan').querySelectorAll('.plan-lg span').length === 1 && Math.abs(wpct('.plan-bar .pb-in') - 100) < .01, blk());
+ok('no overflow: no day marks', !$('hChart').querySelector('.wk-over'));
+shiftPeriod(-1); await wait(100);
+ok('zero done: empty bar', l1() === 'Сделано 0 из 600 вопросов (0%)' && wpct('.plan-bar .pb-in') === 0, blk());
+for (let i = 0; i < 3; i++) shiftPeriod(-1);
+await wait(100);
+ok('before creation: no data, no bar, no numbers', blk().startsWith('В этом периоде данных нет') && !$('hPlan').querySelector('.plan-bar, .plan-l1'), blk());
+hist.anchor = addDays(mon0, 7); renderHistory(); await wait(100);
+ok('future week: no data, no bar, no numbers', blk().startsWith('В этом периоде данных нет') && !$('hPlan').querySelector('.plan-bar, .plan-l1') && same(), blk());
+hist.anchor = new Date(); renderHistory(); await wait(100);
+for (let i = 0; i < 4; i++) $('hPrev').click();
+await wait(1200);
+ok('fast arrow taps end on the right period', period().start === key(wk(4)) && same() && blockMatches(), [period(), $('hLabel').textContent, l1()]);
+
+$('hTabs').querySelector('[data-r=month]').click(); await wait(300);
+ok('month follows the same state', period().kind === 'month' && period().start === key(new Date(new Date().getFullYear(), new Date().getMonth(), 1)) && same() && blockMatches());
+shiftPeriod(-1); await wait(100);
+ok('month paging changes block', same() && blockMatches());
+$('hTabs').querySelector('[data-r=year]').click(); await wait(300);
+ok('year follows the same state', period().kind === 'year' && period().start === `${new Date().getFullYear()}-01-01` && same() && blockMatches());
+$('hTabs').querySelector('[data-r=all]').click(); await wait(300);
+const pa = planStats(q, state, q.created, T, T);
+ok('all time: from start of data to today', period().start === q.created && period().end === T && l1() === `Сделано ${fmtNum(pa.fact)} из ${fmtNum(pa.plan)} вопросов (${Math.round(pa.fact / pa.plan * 100)}%)`, [period(), l1()]);
+ok('all time: arrows hidden, overview chart shown', $('hSheet').querySelector('.pnav').hidden && !!$('hChart').querySelector('svg') && $('hHeatWrap').hidden);
+ok('period choice remembered', localStorage.getItem(HIST_STORE) === 'all');
+closeOverlay($('histOv')); hist = null; await wait(400);
+openHistory('q'); await wait(500);
+ok('reopen keeps mode, shows current period', hist.range === 'all' && period().end === T);
+$('hTabs').querySelector('[data-r=week]').click(); await wait(300);
+shiftPeriod(-1); await wait(100);
+
+const prefs = colorPrefs();
+const bg = sel => getComputedStyle($('hPlan').querySelector(sel)).backgroundColor;
+const rootColor = v => { const t = document.createElement('i'); t.style.color = `var(${v})`; document.body.append(t); const c = getComputedStyle(t).color; t.remove(); return c; };
+applyColors({ accent: 'emerald', data: 'amber' }); await wait(50);
+const c1 = [bg('.plan-bar .pb-in'), bg('.plan-bar .pb-over')];
+ok('bar colors come from settings', c1[0] === rootColor('--accent') && c1[1] === rootColor('--data'), [c1, rootColor('--accent'), rootColor('--data')]);
+ok('day marks use data color', getComputedStyle($('hChart').querySelector('.wk-over')).color === rootColor('--data'));
+applyColors({ accent: 'cobalt', data: 'sea' }); await wait(50);
+ok('changing colors repaints bar', bg('.plan-bar .pb-in') !== c1[0] && bg('.plan-bar .pb-over') !== c1[1] && bg('.plan-bar .pb-in') === rootColor('--accent'));
+applyColors({ accent: 'red', data: 'red' }); await wait(50);
+ok('same accent and data: overflow part stays distinct', bg('.plan-bar .pb-over') !== bg('.plan-bar .pb-in'), [bg('.plan-bar .pb-in'), bg('.plan-bar .pb-over')]);
+applyColors(prefs); await wait(50);
+ok('info text', PLAN_INFO === 'Сделано — всё, что Вы отметили за период. Полоса показывает норму и то, что сверх неё. Норма считается по каждому дню: перевыполнение в один день не закрывает пропуск в другой.');
+ok('strength info says it ignores period', STAT_INFO.power.how.includes('От периода') && STAT_INFO.done.how.includes('период'));
+ok('old wording gone', !/Засчитано|Сверх плана \+|средний прогресс/.test(document.body.innerHTML + PLAN_INFO), (document.body.innerHTML.match(/.{0,30}(Засчитано|Сверх плана \+|средний прогресс).{0,30}/) || [])[0]);
+closeOverlay($('histOv')); hist = null; await wait(400);
+openHistory('b'); await wait(500);
+ok('yes/no habit: no plan block in new period too', $('hPlan').hidden && !$('hPlan').textContent);
+closeOverlay($('histOv')); hist = null; await wait(400);
+try { localStorage.removeItem(HIST_STORE); } catch {}
 
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

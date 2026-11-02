@@ -1,13 +1,9 @@
-import { addDays, key, NS, parseKey, plural, weekday } from './core.js?v=2.1a';
+import { addDays, key, NS, parseKey, weekday } from './core.js?v=2.1a';
 import { goalOn, isDue, MAX_COUNT } from './storage.js?v=2.1a';
 
-export const PLAN_STORE = NS + '-planwin';
-export const PLAN_WINDOWS = { week: { label: 'Неделя', days: 7 }, month: { label: 'Месяц', days: 30 }, all: { label: 'Всё время', days: 0 } };
-
-export function windowRange(h, win, today) {
-  const n = PLAN_WINDOWS[win]?.days;
-  return { from: n ? key(addDays(parseKey(today), 1 - n)) : h.created, to: today };
-}
+export const HIST_STORE = NS + '-hist-period';
+export const HIST_RANGES = ['week', 'month', 'year', 'all'];
+export const fmtNum = n => Math.round(n).toLocaleString('ru-RU').replace(/\s/g, '\u00a0');
 
 export function planStats(h, s, from, to, today) {
   const out = { plannedDays: 0, plan: 0, fact: 0, credited: 0, over: 0, daysDone: 0, daysOver: 0, daysPartial: 0, daysMissed: 0 };
@@ -54,4 +50,7 @@ export function overWeekday(habits, s, from, to, today) {
   return { wd, total };
 }
 
-export const overText = p => `Сверх плана +${p.over} за ${p.daysOver} ${plural(p.daysOver, 'день', 'дня', 'дней')}`;
+export function planBar(p) {
+  const scale = Math.max(p.plan, p.fact) || 1;
+  return { inW: p.credited / scale * 100, overW: p.over / scale * 100, mark: p.fact > p.plan ? p.plan / scale * 100 : null };
+}

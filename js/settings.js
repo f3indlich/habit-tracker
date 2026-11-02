@@ -94,6 +94,7 @@ export function applyColors({ accent, data } = colorPrefs()) {
   document.documentElement.toggleAttribute('data-ui-red', RED_UI.includes(accent));
   document.documentElement.dataset.accent = accent;
   document.documentElement.dataset.data = data;
+  document.documentElement.toggleAttribute('data-same-color', accent === data);
   syncThemeColor(accent);
   renderColors();
 }

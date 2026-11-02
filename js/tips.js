@@ -121,7 +121,7 @@ function place(r, bar) {
   box.style.left = left + 'px';
   const bh = box.offsetHeight, below = viewportHeight() - (s.top + s.h) > bh + 30 || s.top < bh + 30;
   box.style.top = below ? s.top + s.h + 14 + 'px' : '';
-  box.style.bottom = below ? '' : innerHeight - s.top + 14 + 'px';
+  box.style.bottom = below ? '' : innerHeight + (parseFloat(document.documentElement.style.getPropertyValue('--vgap')) || 0) - s.top + 14 + 'px';
   box.classList.toggle('above', !below);
   arrow.style.left = Math.max(16, Math.min(w - 30, cx - left - 7)) + 'px';
 }

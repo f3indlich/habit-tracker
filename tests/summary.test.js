@@ -78,12 +78,16 @@ ok('legend levels match heatmap', heatLv(true, 0) === 'lv0' && heatLv(true, .49)
 await fresh({ habits: [{ id: 'n', name: 'Новая', icon: 'book', created: ago(2) }], log: {} });
 openSummary(); await wait(500);
 ok('too little history shows waiting text', $('sSum').textContent === 'Сводка появится через несколько недель отметок' && $('sBody').hidden);
+const wk0 = rangeDays('week', parseKey('2026-11-02')), mo0 = rangeDays('month', parseKey('2026-11-01'));
+ok('just started period text', emptyText('week', wk0, '2026-11-02') === 'Неделя только началась' && emptyText('month', mo0, '2026-11-01') === 'Месяц только начался'
+  && emptyText('week', wk0, '2026-11-03') === 'За этот период нет запланированных привычек' && emptyText('week', wk0, '2026-11-10') === 'За этот период нет запланированных привычек');
 closeOverlay($('sumOv')); await wait(400);
 
 const evil = '<img src=x onerror="window.__xss=1">Йога';
 const names = ['Вода', 'Бег', 'Чтение', 'Сон', 'Медитация', 'Зарядка', evil];
 await fresh({ habits: names.map((name, i) => ({ id: 'h' + i, name, icon: 'book', color: '#22c55e', created: ago(70) })),
   log: Object.fromEntries(Array.from({ length: 70 }, (_, i) => [ago(i + 1), Object.fromEntries(names.map((_, j) => ['h' + j, (i + j) % (j + 2) ? 1 : 0]))])) });
+if (key(rangeDays('week', new Date())[0]) === todayKey()) { state.log[todayKey()] = Object.fromEntries(names.map((_, j) => ['h' + j, 1])); render(); await wait(250); }
 const ring = document.querySelector('.hero-ring');
 ok('ring is a button', ring.getAttribute('role') === 'button' && ring.tabIndex === 0 && getComputedStyle(ring).cursor === 'pointer');
 ring.click(); await wait(600);
@@ -102,7 +106,7 @@ const weekSoFar = rangeDays('week', new Date()).filter(d => key(d) <= todayKey()
 const heatCells = () => [...$('sHeat').querySelectorAll('rect.cell')], futCells = () => [...$('sHeat').querySelectorAll('rect.cell.fut')];
 ok('future days of week shown as placeholders', futCells().length === 7 - weekSoFar && $('sFutLg').hidden === (weekSoFar === 7));
 ok('numbered legend', [...document.querySelectorAll('#sBody .legend-num > span:not(.lg-fut)')].map(s => s.textContent).join('|') === '0%|до 50%|50–75%|75–99%|100%');
-const tipCell = heatCells().find(c => !c.classList.contains('fut') && c.classList.contains('lvx') === false && c.dataset.tip && !c.classList.contains('today'));
+const tipCells = heatCells().filter(c => !c.classList.contains('fut') && !c.classList.contains('lvx') && c.dataset.tip), tipCell = tipCells.find(c => !c.classList.contains('today')) || tipCells[0];
 ok('day tip names missed habits', /^\d+ \S+: \d+ из 7 привычек, (не выполнено: .+|всё выполнено)$/.test(tipCell?.dataset.tip || ''), tipCell?.dataset.tip);
 tipCell?.dispatchEvent(new MouseEvent('click', { bubbles: true })); await wait(100);
 ok('tap on day shows tip', $('sHeat').querySelector('.tip').classList.contains('show') && $('sHeat').querySelector('.tip').textContent === tipCell?.dataset.tip);

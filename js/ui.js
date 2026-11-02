@@ -1,4 +1,4 @@
-import { $, esc, reducedMotion, RING_C, viewportHeight } from './core.js?v=2.1a';
+import { $, esc, isIOS, isStandalone, reducedMotion, RING_C, viewportHeight } from './core.js?v=2.1a';
 import { IC } from './icons.js?v=2.1a';
 import { reordering, setReorder } from './render.js?v=2.1a';
 import { setHist } from './history.js?v=2.1a';
@@ -73,6 +73,26 @@ export function countTo(el, to, suffix = '') {
 export function flash(el) {
   el.animate([{ opacity: .22, transform: 'scale(.72)' }, { opacity: 0, transform: 'scale(1)' }],
     { duration: 420, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+}
+
+export const VGAP_MIN = 120;
+export const viewportGap = ({ ios, standalone, typing, inner, full }) => ios && standalone && !typing && full - inner >= VGAP_MIN ? Math.round(full - inner) : 0;
+const typingNow = () => !!document.activeElement?.matches('input:not([type=checkbox]):not([type=radio]):not([type=range]), textarea, [contenteditable=true]');
+export function fixViewport() {
+  const full = innerHeight >= innerWidth ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+  const gap = viewportGap({ ios: isIOS, standalone: isStandalone(), typing: typingNow(), inner: innerHeight, full });
+  const v = gap + 'px', root = document.documentElement;
+  if (root.style.getPropertyValue('--vgap') !== v) gap ? root.style.setProperty('--vgap', v) : root.style.removeProperty('--vgap');
+}
+if (isIOS) {
+  let raf = 0;
+  const later = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fixViewport); };
+  for (const ev of ['resize', 'orientationchange', 'pageshow']) addEventListener(ev, later);
+  addEventListener('scroll', later, { passive: true });
+  window.visualViewport?.addEventListener('resize', later);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { later(); setTimeout(fixViewport, 500); } });
+  document.addEventListener('focusout', () => setTimeout(fixViewport, 400));
+  fixViewport();
 }
 
 export const shownOverlays = () => [...document.querySelectorAll('.overlay')].filter(o => o._shown);
@@ -275,6 +295,8 @@ export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get
       if (!g.lock) {
         if (Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) {
           g.lock = 'x';
+          sheet.querySelectorAll('.tip.show').forEach(t => t.classList.remove('show'));
+          sheet.querySelectorAll('[data-tip].on').forEach(t => t.classList.remove('on'));
           if (!reducedMotion) [-1, 1].forEach(peek);
         } else if (Math.abs(g.dy) > 12) return false;
         else return;
