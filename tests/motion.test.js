@@ -94,5 +94,12 @@ await wait(1500);
   d.remove();
 }
 
+{
+  const got = [];
+  Object.defineProperty(navigator, 'vibrate', { value: p => { got.push(p); return true; }, configurable: true });
+  celebrate(); await wait(50);
+  ok('finished day vibrates with its own pattern', got.length === 1 && JSON.stringify(got[0]) === JSON.stringify(CHEER) && CHEER.length > 3);
+  document.querySelectorAll('.confetti').forEach(x => x.remove());
+}
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

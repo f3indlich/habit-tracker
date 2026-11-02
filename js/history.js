@@ -1,4 +1,4 @@
-import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=2.2c';
+import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=2.2c';
 import { setIcon } from './icons.js?v=2.2c';
 import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=2.2c';
 import { askConfirm, closeMenu, countTo, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=2.2c';
@@ -46,7 +46,9 @@ export const goalText = g => (g.target > 1 ? `${g.target} ${g.unit || 'раз'} 
 export const savedRange = () => { try { const v = localStorage.getItem(HIST_STORE); return HIST_RANGES.includes(v) ? v : 'week'; } catch { return 'week'; } };
 export function openHistory(id) {
   const h = findHabit(id);
-  hist = { id, range: savedRange(), anchor: parseKey(lifeEnd(h)) };
+  hist = { id, range: savedRange(), anchor: parseKey(lifeEnd(h)), back: null };
+  const past = lifeEnd(h) === todayKey() && startAnchor(hist.range, h.created);
+  if (past) Object.assign(hist, { anchor: past.anchor, back: past.start });
   $('hTiles')._html = null;
   histSlider.reset();
   renderHistory();
@@ -77,6 +79,22 @@ $('hTabs').onclick = e => {
 export const shiftAnchor = (range, a, dir) => range === 'week' ? addDays(a, 7 * dir)
   : range === 'month' ? new Date(a.getFullYear(), a.getMonth() + dir, 1)
   : new Date(a.getFullYear() + dir, 0, 1);
+const PAST = { week: ['Итоги прошлой недели', 'Эта неделя →'], month: ['Итоги прошлого месяца', 'Этот месяц →'], year: ['Итоги прошлого года', 'Этот год →'] };
+export function startAnchor(range, first, today = new Date()) {
+  if (TEST_MODE && !window.__pastStart || !PAST[range] || !first || key(rangeDays(range, today)[0]) !== key(today)) return null;
+  const anchor = shiftAnchor(range, today, -1), ds = rangeDays(range, anchor);
+  return first <= key(ds[ds.length - 1]) ? { anchor, start: key(ds[0]) } : null;
+}
+export function paintBack(box, view, range, ds, onCurrent) {
+  const on = !!view.back && view.back === key(ds[0]) && !!PAST[range];
+  if (!on) view.back = null;
+  box.hidden = !on;
+  if (!on) return;
+  box.querySelector('span').textContent = PAST[range][0];
+  const b = box.querySelector('button');
+  b.textContent = PAST[range][1];
+  b.onclick = () => { view.back = null; onCurrent(); };
+}
 export function shiftPeriod(dir) {
   hist.anchor = shiftAnchor(hist.range, hist.anchor, dir);
   renderHistory();
@@ -209,6 +227,7 @@ export function renderHistory() {
   $('hLabel').textContent = all ? '' : periodLabel(ds);
   $('hPrev').disabled = all || key(ds[0]) <= h.created;
   $('hNext').disabled = all || key(ds[ds.length - 1]) >= lifeEnd(h);
+  paintBack($('hBack'), hist, hist.range, ds, () => { hist.anchor = parseKey(lifeEnd(h)); renderHistory(); });
   paintPeriod(h, ds);
 }
 

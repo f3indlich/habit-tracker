@@ -151,7 +151,7 @@ function showSetup() {
   sheet('setup', 'Личные привычки', `
     ${note(cloudOnes ? 'На этом устройстве нужно задать PIN. Личные привычки из облака откроются после этого.' : `Привычки, которые не видно при обычном просмотре. Открываются по PIN${isIOS ? ', Face ID или Touch ID' : ' или отпечатку пальца'}.`)}
     <form class="lock-form" id="lockForm" novalidate>
-      ${pinField('lockPin', 'Придумайте PIN: от 4 до 6 цифр', true)}
+      ${pinField('lockPin', 'Придумайте PIN: от 4 до 6 цифр. Лучше 6 цифр', true)}
       ${pinField('lockPin2', 'Повторите PIN')}
       <p class="lock-err" id="lockErr" role="alert" hidden></p>
       <button type="submit" class="primary lock-go">Создать PIN</button>
@@ -296,7 +296,7 @@ export function openLockSettings() {
 function showChange() {
   sheet('change', 'Новый PIN', `
     <form class="lock-form" id="lockForm" novalidate>
-      ${pinField('lockPin', 'Новый PIN: от 4 до 6 цифр', true)}
+      ${pinField('lockPin', 'Новый PIN: от 4 до 6 цифр. Лучше 6 цифр', true)}
       ${pinField('lockPin2', 'Повторите PIN')}
       <p class="lock-err" id="lockErr" role="alert" hidden></p>
       <button type="submit" class="primary lock-go">Сохранить</button>

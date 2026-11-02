@@ -10,7 +10,11 @@ export const NOTIFY_STORE = NS + '-notify';
 export const OVER_HINT = NS + '-over-hint';
 export const ACCENT_STORE = NS + '-accent';
 export const DATA_STORE = NS + '-data';
-export const PRIVACY_EMAIL = '';
+export const LEGEND_STORE = NS + '-legend-off';
+export const PRIVACY_EMAIL = 'flatterhaft.rus@gmail.com';
+export const framedByOther = w => {
+  try { return w.self !== w.top && w.top.location.origin !== w.location.origin; } catch { return true; }
+};
 export const viewportHeight = () => window.visualViewport?.height ?? innerHeight;
 export const VIEWS = {
   '7d': { id: '7d', short: 'Неделя', label: 'За последние 7 дней' },

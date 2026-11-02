@@ -86,7 +86,7 @@
     <div class="top-actions">
       <button class="ghost icon-btn" id="viewBtn"></button>
       <button class="ghost icon-btn" id="goalsBtn" aria-label="Цели" title="Цели"><svg class="ic" viewBox="0 0 24 24"><path d="M5.5 21V4.5M5.5 4.5h11.5l-2.5 4.25 2.5 4.25H5.5"/></svg></button>
-      <button class="ghost icon-btn acct-btn" id="acctBtn" data-sync="none" aria-label="Аккаунт и синхронизация">
+      <button class="ghost icon-btn acct-btn" id="acctBtn" data-sync="none" aria-label="Аккаунт и синхронизация" title="Аккаунт и синхронизация">
         <svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg>
         <span class="sync-dot"></span>
       </button>
@@ -123,6 +123,8 @@
     <b>Начните с одной привычки</b>
     <p>Маленькие шаги каждый день — большие перемены.</p>
     <button class="primary" id="emptyAdd">Добавить привычку</button>
+    <p class="empty-or">или начните с готовой</p>
+    <div class="empty-tpl" id="emptyTpl"></div>
   </div>
 
   <div class="goal-strip" id="goalStrip" hidden>
@@ -188,7 +190,7 @@
       <div class="pseg pseg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
     </section>
     <section class="set-group" id="setAcctGroup">
-      <h3>Аккаунт</h3>
+      <h3>Профиль</h3>
       <div class="set-card">
         <button type="button" class="set-row" id="setName">
           <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.3-3.6 4.2-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/></svg></span>
@@ -213,7 +215,7 @@
         </div>
         <button type="button" class="set-row" id="setLogin">
           <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg></span>
-          <span class="set-txt"><b>Войти и синхронизировать</b><small>Привычки на телефоне и компьютере</small></span>
+          <span class="set-txt"><b>Аккаунт и синхронизация</b><small>Вход по почте, привычки на всех устройствах</small></span>
           <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
         </button>
       </div>
@@ -449,6 +451,7 @@
       <div class="plabel" id="sLabel"></div>
       <button class="ghost icon-btn" id="sNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
+    <div class="pback" id="sBack" hidden><span></span><button type="button" class="link-btn"></button></div>
     <div class="per-vp" id="sPer"><div class="per-track" id="sPerTrack">
     <p class="s-sum" id="sSum" aria-live="polite"></p>
     <div id="sBody">
@@ -502,6 +505,7 @@
       <div class="plabel" id="hLabel"></div>
       <button class="ghost icon-btn" id="hNext" title="Позже"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
+    <div class="pback" id="hBack" hidden><span></span><button type="button" class="link-btn"></button></div>
     <div class="per-vp" id="hPer"><div class="per-track" id="hPerTrack">
       <div class="chart" id="hChart"></div>
       <div id="hHeatWrap" hidden>
@@ -558,6 +562,7 @@
       <div class="field">
         <span class="lbl">Иконка</span>
         <div class="emoji-grid" id="emojis"></div>
+        <button type="button" class="link-btn icons-more" id="iconsMore" aria-controls="emojis" aria-expanded="false">Все иконки</button>
       </div>
       <div class="field">
         <span class="lbl">Цвет</span>
@@ -693,7 +698,7 @@
       </div>
       <div class="field">
         <span class="lbl">Зачем мне это? <span style="font-weight:400">— необязательно</span></span>
-        <input type="text" id="why" enterkeyhint="done" maxlength="120" placeholder="Например: хочу больше энергии по утрам">
+        <input type="text" id="why" enterkeyhint="done" maxlength="120" placeholder="Например: больше энергии">
       </div>
       <div class="form-actions">
         <button type="button" data-close>Отмена</button>

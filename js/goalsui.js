@@ -316,20 +316,30 @@ $('gMore').onclick = e => {
   openMenu(e.currentTarget, items);
 };
 
+const goalWas = g => ({ status: g.status, completedAt: g.completedAt, closedAt: g.closedAt });
+function undoGoal(g, was) {
+  const x = findGoal(g.id);
+  if (!x) return;
+  for (const [k, v] of Object.entries(was)) v === undefined ? delete x[k] : x[k] = v;
+  touchGoal(x);
+}
 export function finishGoal(g) {
+  const was = goalWas(g);
   g.status = 'done';
   g.completedAt = todayKey();
   delete g.closedAt;
   gv.id = g.id;
   touchGoal(g);
   $('gSheet').scrollTop = 0;
+  toast('Цель выполнена', () => undoGoal(g, was));
 }
 export function closeGoal(g) {
+  const was = goalWas(g);
   g.status = 'closed';
   g.closedAt = todayKey();
   delete g.completedAt;
   touchGoal(g);
-  toast('Цель закрыта');
+  toast('Цель закрыта', () => undoGoal(g, was));
 }
 function reopenGoal(g) {
   if (shownGoals().filter(isActive).length >= GOAL_LIM.active && (state.goals || []).filter(isActive).length >= GOAL_LIM.active) return toast(`Можно вести до ${GOAL_LIM.active} целей одновременно`);

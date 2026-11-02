@@ -1,5 +1,5 @@
 import { $, addDays, COLORS, days, esc, scheduleOf, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=2.2c';
-import { IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=2.2c';
+import { guessIcon, IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=2.2c';
 import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=2.2c';
 import { findHabit, goalOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=2.2c';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=2.2c';
@@ -13,9 +13,33 @@ export const form = {
   rem: { on: false, touched: false, mode: 'times', times: ['09:00'], repeat: 0, repeatN: 1, from: '09:00', to: '21:00', days: null, dates: false, dFrom: '', dTo: '' },
 };
 
+let iconsOpen = false;
+export const ICON_ROWS = 2;
+export function fitIcons() {
+  const box = $('emojis'), btns = [...box.children];
+  if (!btns.length) return;
+  const cols = Math.max(1, getComputedStyle(box).gridTemplateColumns.split(' ').filter(Boolean).length);
+  const n = cols * ICON_ROWS, sel = btns.findIndex(b => b.dataset.v === form.icon), cut = !iconsOpen && btns.length > n;
+  btns.forEach((b, i) => { b.hidden = cut && i >= n && i !== sel; });
+  if (cut && sel >= n) btns[n - 1].hidden = true;
+  $('iconsMore').hidden = btns.length <= n;
+  $('iconsMore').textContent = iconsOpen ? 'Свернуть' : 'Все иконки';
+  $('iconsMore').setAttribute('aria-expanded', iconsOpen);
+}
+$('iconsMore').onclick = () => { iconsOpen = !iconsOpen; fitIcons(); };
+new ResizeObserver(() => fitIcons()).observe($('emojis'));
+new ResizeObserver(([e]) => $('formOv').querySelector('.sheet').style.setProperty('--dock-h', Math.ceil(e.target.getBoundingClientRect().height) + 'px')).observe(document.querySelector('#formOv .prev-dock'));
 export function drawIconPickers() {
   $('emojis').innerHTML = ICON_KEYS.map(k => `<button type="button" data-v="${k}" title="${k}"><span class="hicon">${iconHTML(k)}</span></button>`).join('');
-  $('templates').innerHTML = TEMPLATES.map((t, i) => `<button type="button" data-i="${i}"><span class="hicon ti" style="--c:${t.color}">${iconHTML(t.icon)}</span>${esc(t.name)}</button>`).join('');
+  $('templates').innerHTML = TEMPLATES.map((t, i) => tplBtn(i)).join('');
+}
+const tplBtn = i => `<button type="button" data-i="${i}"><span class="hicon ti" style="--c:${TEMPLATES[i].color}">${iconHTML(TEMPLATES[i].icon)}</span>${esc(TEMPLATES[i].name)}</button>`;
+export const EMPTY_TPL = [0, 1, 3, 2];
+export function drawEmptyTpl() {
+  const style = document.body.dataset.icons || '';
+  if ($('emptyTpl').dataset.s === style && $('emptyTpl').children.length) return;
+  $('emptyTpl').dataset.s = style;
+  $('emptyTpl').innerHTML = EMPTY_TPL.map(tplBtn).join('');
 }
 $('colors').innerHTML = COLORS.map(c => `<button type="button" data-v="${c}" style="--sw:${c}" aria-label="Цвет ${c}"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>`).join('');
 $('weekdays').innerHTML = WEEKDAYS.map((w, i) => `<button type="button" data-v="${i}">${w}</button>`).join('');
@@ -315,6 +339,7 @@ $('remTimes').addEventListener('click', e => {
 export function syncForm() {
   const press = (box, fn) => box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', fn(b.dataset.v)));
   press($('emojis'), v => v === form.icon);
+  fitIcons();
   press($('colors'), v => v === form.color);
   press($('goalSeg'), v => v === form.goal);
   press($('schedSeg'), v => v === form.sched);
@@ -346,7 +371,7 @@ export function syncForm() {
   syncPreview();
 }
 export const pick = (box, fn) => box.onclick = e => { const b = e.target.closest('button'); if (b) { fn(b.dataset.v); syncForm(); } };
-pick($('emojis'), v => form.icon = v);
+pick($('emojis'), v => { form.icon = v; form.iconPicked = true; });
 pick($('colors'), v => form.color = v);
 pick($('goalSeg'), v => form.goal = v);
 pick($('schedSeg'), v => {
@@ -387,15 +412,22 @@ pick($('weekdays'), v => {
 });
 $('templates').onclick = e => {
   const b = e.target.closest('button');
+  if (b) applyTemplate(TEMPLATES[b.dataset.i]);
+};
+$('emptyTpl').onclick = e => {
+  const b = e.target.closest('button');
   if (!b) return;
-  const t = TEMPLATES[b.dataset.i];
+  openForm();
+  applyTemplate(TEMPLATES[b.dataset.i]);
+};
+function applyTemplate(t) {
   $('name').value = t.name;
-  Object.assign(form, { icon: t.icon, color: t.color, time: t.time, goal: t.step ? 'step' : t.target > 1 ? 'multi' : 'once' });
+  Object.assign(form, { icon: t.icon, iconPicked: true, color: t.color, time: t.time, goal: t.step ? 'step' : t.target > 1 ? 'multi' : 'once' });
   if (t.target > 1) $('target').value = t.target;
   if (t.step) $('step').value = t.step;
   $('unit').value = t.unit || '';
   syncForm();
-};
+}
 export const clampTarget = v => Math.max(2, Math.min(form.goal === 'step' ? 10000 : 100, parseInt(v) || 2));
 export const clampStep = v => Math.max(1, Math.min(clampTarget($('target').value), parseInt(v) || 1));
 export const goalInput = () => { renderStep(); renderRem(); syncPreview(); };
@@ -460,21 +492,27 @@ export function syncPrivRow() {
   privRow.querySelector('.switch').setAttribute('aria-checked', form.priv);
 }
 
+export const nextColor = () => {
+  const last = [...state.habits].sort((a, b) => (a.created < b.created ? -1 : a.created > b.created ? 1 : 0)).at(-1);
+  const i = last ? COLORS.indexOf(last.color) : -1;
+  return COLORS[i < 0 ? visibleHabits(state).length % COLORS.length : (i + 1) % COLORS.length];
+};
 export function openForm(id = null, priv = false) {
   const h = id && findHabit(id);
   editingId = h ? id : null;
+  iconsOpen = false;
   form.priv = unlocked && (h ? isPrivate(h) : priv);
   syncPrivRow();
   $('form').reset();
   $('formTitle').textContent = h ? 'Изменить привычку' : 'Новая привычка';
   $('submit').innerHTML = h
     ? '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Сохранить'
-    : '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Добавить привычку';
+    : '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Добавить';
   $('tplField').hidden = !!h;
   Object.assign(form, h
     ? { icon: h.icon, color: h.color, goal: h.step ? 'step' : h.target > 1 ? 'multi' : 'once', sched: h.days ? 'days' : 'daily', days: h.days ? [...h.days] : [0, 1, 2, 3, 4], time: h.time, cat: h.cat }
-    : { icon: 'check', color: COLORS[visibleHabits(state).length % COLORS.length], goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null },
-    { newCat: false });
+    : { icon: 'check', color: nextColor(), goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null },
+    { newCat: false, iconPicked: !!h });
   const sc = h ? scheduleOf(h) : { type: 'daily' }, FORM_OF_SCHED = { daily: 'daily', weekdays: 'days', perWeek: 'perWeek', everyNWeeks: 'everyNWeeks', monthly: 'monthly' };
   Object.assign(form, { sched: FORM_OF_SCHED[sc.type], days: sc.days ? [...sc.days] : [0, 1, 2, 3, 4], times: sc.times || 3, every: sc.every || 2, anchor: sc.anchor || todayKey(), dom: sc.dom || new Date().getDate() });
   $('newCatName').value = '';
@@ -592,7 +630,7 @@ $('form').onsubmit = async e => {
   }
   const target = formTarget(), step = form.goal === 'step' ? formStep() : 0;
   const data = {
-    name, target, icon: form.icon, color: form.color, time: form.time,
+    name, target, icon: form.iconPicked ? form.icon : guessIcon(name) || form.icon, color: form.color, time: form.time,
     unit: form.goal !== 'once' ? $('unit').value.trim() : '',
     days: form.sched === 'days' && form.days.length < 7 ? [...form.days] : null,
     why: $('why').value.trim(),
@@ -632,4 +670,9 @@ $('form').onsubmit = async e => {
   if (moved) toast(priv ? 'Перенесено в личное' : 'Перенесено в обычные', null, '');
 };
 
-$('name').addEventListener('input', () => $('name').removeAttribute('aria-invalid'));
+$('name').addEventListener('input', () => {
+  $('name').removeAttribute('aria-invalid');
+  if (form.iconPicked) return;
+  const icon = guessIcon($('name').value) || 'check';
+  if (icon !== form.icon) { form.icon = icon; syncForm(); }
+});

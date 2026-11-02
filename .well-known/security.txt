@@ -1,0 +1,4 @@
+Contact: mailto:flatterhaft.rus@gmail.com
+Expires: 2027-11-02T00:00:00.000Z
+Preferred-Languages: ru, en
+Canonical: https://f3indlich.github.io/habit-tracker/.well-known/security.txt

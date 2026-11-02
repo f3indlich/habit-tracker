@@ -330,5 +330,21 @@ await imp({ habits: [{ id: 'o', name: 'Старая' }], log: {} });
 ok('import of old file without goals', state.habits.length === 1 && Array.isArray(state.goals) && state.goals.length === 0);
 ok('empty state has goals', Array.isArray(emptyState().goals));
 
+{
+  const saved = state.goals;
+  state.goals = [G({ id: 'u1', title: 'Отмена', due: fwd(10), start: ago(5) }), G({ id: 'u2', title: 'Отмена 2', due: fwd(10), start: ago(5) })];
+  save(); renderGoals();
+  closeGoal(findGoal('u1'));
+  ok('closing a goal offers undo', findGoal('u1').status === 'closed' && !$('toastUndo').hidden && $('toastText').textContent === 'Цель закрыта');
+  $('toastUndo').click();
+  const u1 = findGoal('u1');
+  ok('undo returns a closed goal', u1.status === 'active' && !('closedAt' in u1) && !('completedAt' in u1), u1);
+  finishGoal(findGoal('u2'));
+  ok('finishing a goal offers undo', findGoal('u2').status === 'done' && !$('toastUndo').hidden && $('toastText').textContent === 'Цель выполнена');
+  $('toastUndo').click();
+  const u2 = findGoal('u2');
+  ok('undo returns a finished goal', u2.status === 'active' && !('completedAt' in u2), u2);
+  state.goals = saved; save(); renderGoals();
+}
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

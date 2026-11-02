@@ -1,10 +1,10 @@
-import { ensureEmojiFont, getPref, GROUP_STORE, ICON_STORE, setPref, TEST_MODE, THEME_STORE, VIEW_STORE } from './js/core.js?v=2.2c';
+import { ensureEmojiFont, framedByOther, getPref, GROUP_STORE, ICON_STORE, setPref, TEST_MODE, THEME_STORE, VIEW_STORE } from './js/core.js?v=2.2c';
 import { ICON_STYLES } from './js/icons.js?v=2.2c';
-import { load, setState } from './js/storage.js?v=2.2c';
+import { load, setState, state } from './js/storage.js?v=2.2c';
 import { shownOverlays, toast } from './js/ui.js?v=2.2c';
 import { applyView, GROUPS, render, setGroupMode } from './js/render.js?v=2.2c';
 import { openForm } from './js/form.js?v=2.2c';
-import { applyColors, applyTheme, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=2.2c';
+import { applyColors, applyTheme, keepOldDataColor, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=2.2c';
 import { cloud, initCloud } from './js/sync.js?v=2.2c';
 import { markDoneFromPush } from './js/push.js?v=2.2c';
 import * as core from './js/core.js?v=2.2c';
@@ -26,6 +26,18 @@ import * as planMod from './js/plan.js?v=2.2c';
 import * as goalsMod from './js/goals.js?v=2.2c';
 import * as goalsUi from './js/goalsui.js?v=2.2c';
 
+if (framedByOther(window)) {
+  const app = document.createElement('div');
+  app.hidden = true;
+  app.inert = true;
+  app.append(...document.body.childNodes);
+  const msg = document.createElement('p');
+  msg.className = 'framed';
+  const link = Object.assign(document.createElement('a'), { href: location.href, target: '_top', rel: 'noopener', textContent: 'Откройте приложение по прямой ссылке' });
+  msg.append(link);
+  document.body.replaceChildren(msg, app);
+}
+
 if (TEST_MODE) {
   for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod, privacyMod, lockMod, planMod, goalsMod, goalsUi]) {
     for (const k of Object.keys(m)) {
@@ -36,6 +48,7 @@ if (TEST_MODE) {
 }
 
 setState(load());
+keepOldDataColor(state.habits.length > 0);
 
 applyTheme(getPref(THEME_STORE, 'auto'));
 applyColors();
@@ -74,9 +87,9 @@ if (LOCAL && 'serviceWorker' in navigator) {
 }
 
 updateInstallBtn();
-if (new URLSearchParams(location.search).get('action') === 'new') {
-  history.replaceState(null, '', location.pathname);
-  setTimeout(() => openForm(), 300);
+{
+  const open = { new: () => openForm(), goals: () => goalsUi.openGoals(), summary: () => summaryMod.openSummary() }[new URLSearchParams(location.search).get('action')];
+  if (open) { history.replaceState(null, '', location.pathname); setTimeout(open, 300); }
 }
 navigator.storage?.persist?.().catch(() => {});
 {

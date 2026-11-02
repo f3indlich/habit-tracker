@@ -84,10 +84,14 @@ export const PALETTES = {
   fuchsia: ['Фуксия', '#be185d', '#f472b6', '#ffffff', '#3a0a1e'],
 };
 export const RED_UI = ['red', 'cherry', 'coral'];
+export const OLD_DATA = 'red';
 export const colorPrefs = () => {
-  const a = getPref(ACCENT_STORE, 'cobalt'), d = getPref(DATA_STORE, 'red');
-  return { accent: PALETTES[a] ? a : 'cobalt', data: PALETTES[d] ? d : 'red' };
+  const a = getPref(ACCENT_STORE, 'cobalt'), d = getPref(DATA_STORE, ''), accent = PALETTES[a] ? a : 'cobalt';
+  return { accent, data: PALETTES[d] ? d : accent };
 };
+export function keepOldDataColor(hasHabits) {
+  if (hasHabits && !getPref(DATA_STORE, '')) setPref(DATA_STORE, OLD_DATA);
+}
 export function applyColors({ accent, data } = colorPrefs()) {
   const st = document.documentElement.style, [, al, ad, ail, aid] = PALETTES[accent], [, dl, dd, dil, did] = PALETTES[data];
   for (const [k, v] of Object.entries({ 'accent-l': al, 'accent-d': ad, 'accent-ink-l': ail, 'accent-ink-d': aid, 'data-l': dl, 'data-d': dd, 'data-ink-l': dil, 'data-ink-d': did })) st.setProperty('--' + k, v);

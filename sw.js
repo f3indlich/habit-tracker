@@ -2,6 +2,7 @@ const VERSION = '2.2c';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const PREFS = 'prefs';
+const noCache = path => path.includes('/tests/') || path.endsWith('.ts') || path.endsWith('/sw.js');
 const LOCAL = ['localhost', '127.0.0.1'].includes(self.location.hostname);
 const SHELL_FILES = [
   './',
@@ -49,7 +50,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (LOCAL || req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.pathname.includes('/tests/') || url.pathname.endsWith('.ts')) return;
+  if (noCache(url.pathname)) return;
 
   if (req.mode === 'navigate') {
     const root = new URL('./', self.location).pathname;

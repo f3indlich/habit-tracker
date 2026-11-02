@@ -1,4 +1,5 @@
 window.wait = ms => new Promise(r => setTimeout(r, ms));
+window.waitFor = async (cond, timeout = 3000) => { const t = Date.now(); while (!cond()) { if (Date.now() - t > timeout) return false; await wait(30); } return true; };
 window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
@@ -20,8 +21,10 @@ const pd = card('p').querySelector('.dots').getBoundingClientRect(), pc = card('
 ok('week strip clear of controls', pd.right <= pc.left, { dots: pd.right, ctl: pc.left });
 
 const lg = $('viewLegend');
+lg.hidden = false;
 ok('legend single line', lg.getBoundingClientRect().height < 22 && lg.scrollWidth <= lg.clientWidth + 1, { h: lg.getBoundingClientRect().height, sw: lg.scrollWidth, cw: lg.clientWidth });
 ok('legend items', [...lg.children].map(s => s.textContent).join(',') === 'выполнено,частично,пропуск,не в плане', lg.textContent);
+renderLegend();
 
 toast('Проверка', () => {}); await wait(450);
 const tt = $('toast'), r0 = tt.getBoundingClientRect();
@@ -51,7 +54,7 @@ ok('fab visible at top', !document.body.classList.contains('fab-away'));
 
 renderSettings(); openOverlay($('setOv')); await wait(500);
 const order = [...$('setOv').querySelectorAll('.set-group > h3')].map(h => h.textContent);
-ok('settings order', order.join(',') === 'Тема,Аккаунт,Напоминания,Привычки,Цели,Цвета,Иконки привычек,Помощь,Данные', order);
+ok('settings order', order.join(',') === 'Тема,Профиль,Напоминания,Привычки,Цели,Цвета,Иконки привычек,Помощь,Данные', order);
 ok('theme compact', $('themeSeg').querySelector('button').getBoundingClientRect().height <= 36);
 ok('account group visible without login', !$('setAcctGroup').hidden && !$('setName').hidden && $('setCloudIn').hidden);
 ok('name shows not set', $('setNameVal').textContent === 'Не указано', $('setNameVal').textContent);
@@ -120,26 +123,30 @@ ok('info button on every stat', ibs.length === 4 && ibs.every(b => { const t = b
 const symmetric = el => { const r = el.getBoundingClientRect(); return Math.abs(r.left - (innerWidth - r.right)) <= 1 && r.top >= 0 && r.bottom <= innerHeight; };
 const titles = [];
 for (const b of ibs) {
-  b.click(); await wait(300);
+  b.click(); await waitFor(() => menuEl?._anchor === b && symmetric(menuEl) && menuEl.querySelectorAll('.pop-sec').length === 2 && !menuEl.getAnimations().length);
   titles.push(menuEl?.querySelector('.pop-title')?.textContent.trim());
   ok('stat info centered: ' + b.dataset.k, menuEl && symmetric(menuEl) && menuEl.querySelectorAll('.pop-sec').length === 2, menuEl?.getBoundingClientRect());
 }
 ok('stat info titles', titles.join() === '🔥 Серия,🏆 Рекорд,✅ Выполнено,💪 Сила', titles);
-ibs[3].click(); await wait(250);
+ibs[3].click(); await waitFor(() => !menuEl);
 ok('second tap closes stat info', !menuEl);
-$('hInfo').click(); await wait(300);
+$('hInfo').click(); await waitFor(() => menuEl && symmetric(menuEl) && !menuEl.getAnimations().length);
 ok('habit info popover centered', menuEl && symmetric(menuEl) && menuEl.querySelector('.facts'), menuEl?.getBoundingClientRect());
 const arrowX = menuEl && parseFloat(menuEl.style.getPropertyValue('--ax')) + menuEl.getBoundingClientRect().left;
 const hr = $('hInfo').getBoundingClientRect();
 ok('popover arrow points at button', Math.abs(arrowX - (hr.left + hr.width / 2)) < 2, { arrowX, btn: hr.left + hr.width / 2 });
-$('hInfo').click(); await wait(250);
+$('hInfo').click(); await waitFor(() => !menuEl);
 ok('second tap closes habit info', !menuEl);
 closeOverlay($('histOv')); hist = null; await wait(400);
 
 renderSettings(); openOverlay($('setOv')); await wait(700);
 const ver = (document.querySelector('script[src*="app.js"]').src.match(/[?&]v=([^&#]+)/) || [])[1];
 ok('about version', /^\d+\.\d{1,2}[a-z]?$/.test(ver) && $('appVersion').textContent === `Версия ${ver}`, $('appVersion').textContent);
-ok('about updated date', !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} г\. в \d\d:\d\d$/.test($('appUpdated').textContent), $('appUpdated').textContent);
+{
+  const lm = await fetch(APP_SRC).then(r => r.headers.get('last-modified')).catch(() => null);
+  if (lm) await waitFor(() => !$('appUpdated').hidden);
+  ok('about updated date', lm ? !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} г\. в \d\d:\d\d$/.test($('appUpdated').textContent) : $('appUpdated').hidden, [lm, $('appUpdated').textContent]);
+}
 ok('about note', $('setOv').querySelector('.about-txt small').textContent === 'Реализовано для удобства');
 ok('about is last in data block', $('importFile').nextElementSibling.classList.contains('app-about'));
 closeOverlay($('setOv')); await wait(400);
@@ -180,5 +187,38 @@ ok('reminder time picker stays open while changing', tIn.isConnected && document
 tIn.blur(); tIn.dispatchEvent(new FocusEvent('blur')); await wait(150);
 ok('reminder time applied after picker closes', form.rem.times.includes('07:35') && document.querySelector('#remTimes b').textContent === '07:35', form.rem.times);
 closeOverlay($('formOv')); await wait(400);
+{
+  const saved = state, calls = [];
+  const stub = (k, f) => Object.defineProperty(navigator, k, { value: f, configurable: true });
+  stub('setAppBadge', n => { calls.push(n); return Promise.resolve(); });
+  stub('clearAppBadge', () => { calls.push(0); return Promise.resolve(); });
+  setState(normalize({ habits: [
+    { id: 'b1', name: 'Один', icon: 'book', created: c0 },
+    { id: 'b2', name: 'Два', icon: 'book', created: c0 },
+  ], log: {} }));
+  viewDate = new Date(); setBadge(-1); calls.length = 0;
+  cards.forEach(e => e.remove()); cards.clear(); render(); await wait(300);
+  ok('app badge shows habits left today', calls.at(-1) === 2 && badgeLeft() === 2, calls);
+  setCount(state.habits[0], new Date(), 1); render(); await wait(300);
+  ok('app badge counts down after a mark', calls.at(-1) === 1, calls);
+  const n = calls.length; render(); await wait(100);
+  ok('app badge not reset when unchanged', calls.length === n, calls);
+  setCount(state.habits[1], new Date(), 1); render(); await wait(300);
+  ok('app badge cleared when day is done', calls.at(-1) === 0, calls);
+
+  setState(normalize({ habits: [], log: {} }));
+  cards.forEach(e => e.remove()); cards.clear(); render(); await wait(300);
+  const tb = [...$('emptyTpl').children];
+  ok('empty screen offers four templates', !$('empty').hidden && tb.length === 4 && tb.map(b => b.textContent).join() === EMPTY_TPL.map(i => TEMPLATES[i].name).join(), tb.map(b => b.textContent));
+  const w = tb.map(b => Math.round(b.getBoundingClientRect().width)), top = tb.map(b => Math.round(b.getBoundingClientRect().top));
+  ok('empty templates sit in an even grid', new Set(w).size === 1 && top[0] === top[1] && top[2] === top[3] && top[2] > top[0], { w, top });
+  tb[1].click(); await wait(400);
+  ok('empty template opens a prefilled form', $('formOv')._shown && $('name').value === TEMPLATES[EMPTY_TPL[1]].name && form.icon === TEMPLATES[EMPTY_TPL[1]].icon && !$('tplField').hidden);
+  closeOverlay($('formOv')); await wait(400);
+  setState(saved); cards.forEach(e => e.remove()); cards.clear(); render(); await wait(300);
+
+  const man = await fetch('manifest.webmanifest').then(r => r.json());
+  ok('home screen shortcuts for new habit, goals and summary', man.shortcuts.map(s => s.url).join() === './?action=new,./?action=goals,./?action=summary' && man.shortcuts.every(s => s.name && s.icons?.length), man.shortcuts);
+}
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

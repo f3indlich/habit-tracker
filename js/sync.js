@@ -334,7 +334,7 @@ export function renderAccount() {
   btn.hidden = !!cloud.session;
   $('setBtn').dataset.sync = cloud.session ? cloud.status : 'none';
   $('setCloudIn').hidden = !cloud.session;
-  $('setLogin').hidden = !!cloud.session || (!cloud.enabled && !cloud.sb);
+  $('setLogin').hidden = !!cloud.session;
   $('setDelCard').hidden = !cloud.session;
   renderPush();
   if (cloud.session) {

@@ -30,6 +30,20 @@
       "description": "Сразу открыть форму новой привычки",
       "url": "./?action=new",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Цели",
+      "short_name": "Цели",
+      "description": "Открыть список целей",
+      "url": "./?action=goals",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Сводка",
+      "short_name": "Сводка",
+      "description": "Открыть сводку по всем привычкам",
+      "url": "./?action=summary",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "screenshots": [

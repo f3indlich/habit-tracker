@@ -1,4 +1,5 @@
 window.wait = ms => new Promise(r => setTimeout(r, ms));
+window.waitFor = async (cond, timeout = 3000) => { const t = Date.now(); while (!cond()) { if (Date.now() - t > timeout) return false; await wait(30); } return true; };
 window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
@@ -50,18 +51,18 @@ const warn = id => card(id).querySelector('.m-warn');
 ok('card shows soft badge text', warn('f').classList.contains('on') && mb('f').texts.includes(warn('f').textContent), warn('f').textContent);
 ok('stale badge marked tappable', warn('s').classList.contains('stale') && !warn('f').classList.contains('stale') && getComputedStyle(warn('s')).cursor === 'pointer');
 
-warn('s').click(); await wait(350);
+warn('s').click(); await waitFor(() => menuEl?.querySelector('.pop-actions') && !menuEl.getAnimations().length);
 ok('stale tap opens archive offer, not history', menuEl?.querySelector('.pop-actions') && !$('histOv')._shown && menuEl.textContent.includes('3 недели назад'), menuEl?.textContent);
 const pr = menuEl?.getBoundingClientRect();
 ok('archive offer centered', pr && Math.abs(pr.left - (innerWidth - pr.right)) <= 1 && pr.bottom <= innerHeight, pr);
-menuEl.querySelector('[data-a=keep]').click(); await wait(250);
+menuEl.querySelector('[data-a=keep]').click(); await waitFor(() => !menuEl);
 ok('keep closes offer', !menuEl && !findHabit('s').archived);
 warn('s').click(); await wait(350);
 warn('s').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); warn('s').click(); await wait(250);
 ok('second tap on badge closes offer', !menuEl);
-warn('n').click(); await wait(350);
+warn('n').click(); await waitFor(() => menuEl?.querySelector('.pop-lead')?.textContent.includes('ещё ни разу'));
 ok('never-done offer text', menuEl?.querySelector('.pop-lead')?.textContent.includes('ещё ни разу не выполнялась'), menuEl?.textContent);
-menuEl.querySelector('[data-a=arch]').click(); await wait(600);
+menuEl.querySelector('[data-a=arch]').click(); await waitFor(() => !!findHabit('n').archived && !card('n'));
 ok('archive from offer', !!findHabit('n').archived && !card('n'), findHabit('n').archived);
 hideToast();
 
@@ -102,7 +103,7 @@ state = normalize({ habits: [
   { id: 'l', name: 'Чтение', icon: 'books', created: ago(30) },
 ], log: { [ago(3)]: { p: 3, l: 1 }, [ago(25)]: {} } });
 cards.forEach(e => e.remove()); cards.clear(); render(); await wait(400);
-ok('partial days without full show partial badge', mb('p').texts[0] === 'Пока частично' && mb('p').texts.includes('Частично') && mb('p').calm && !mb('p').stale && mb('p').title === 'Полностью привычка ещё не выполнялась, но вы уже начали', mb('p'));
+ok('partial days without full show partial badge', mb('p').texts[0] === 'Пока частично' && mb('p').texts.includes('Частично') && mb('p').calm && !mb('p').stale && mb('p').title === 'Полностью привычка ещё не выполнялась, но Вы уже начали', mb('p'));
 ok('no marks at all shows never done', mb('e').texts[0] === 'Ещё не выполнялась', mb('e'));
 ok('short text says Был', mb('l').texts[1] === 'Был 3 дня назад' && mb('l').texts[0] === 'Последний раз 3 дня назад', mb('l'));
 const fw = frameElement.style.width;

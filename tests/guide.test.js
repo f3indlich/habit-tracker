@@ -26,6 +26,12 @@ window.__tipsOn = true;
 resetTips();
 await fresh([{ id: 'z', name: 'Зарядка', icon: 'strong', color: '#22c55e', created: todayKey(), time: 'morning' }]);
 await runTips(); await wait(300);
+{
+  const heads = ['viewBtn', 'goalsBtn', 'setBtn'].map($), lines = [...$('tipBody').querySelectorAll('b')].map(b => b.textContent);
+  ok('first habit starts with the header icons tip', layerOn() && tip.id === 'head' && ['Календарь', 'Флажок', 'Шестерёнка'].every(t => lines.includes(t)) && heads.every(h => tip.els.includes(h)), [tip?.id, lines]);
+  ok('header icons have names for screen readers', ['viewBtn', 'goalsBtn', 'acctBtn', 'setBtn'].every(id => $(id).getAttribute('aria-label') && $(id).title));
+  $('tipOk').click(); await wait(1700); await runTips(); await wait(300);
+}
 const zc = document.querySelector('.habit[data-id="z"] .check');
 ok('first habit gets the mark tip', layerOn() && tip.id === 'mark' && $('tipTitle').textContent === 'Отметьте первую привычку', tip?.id);
 const spot = document.querySelector('.tip-spot').getBoundingClientRect(), box = document.querySelector('.tip-box').getBoundingClientRect();

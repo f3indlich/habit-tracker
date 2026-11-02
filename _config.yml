@@ -1,3 +1,5 @@
+include:
+  - .well-known
 exclude:
   - tests
   - supabase
@@ -7,4 +9,5 @@ exclude:
   - CLAUDE.md
   - demo-data.json
   - supabase-delete-account.sql
+  - supabase-size-limit.sql
   - docs

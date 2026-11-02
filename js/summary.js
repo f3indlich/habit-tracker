@@ -6,7 +6,7 @@ import { queueTips } from './tips.js?v=2.2c';
 import { visibleHabits } from './privacy.js?v=2.2c';
 import { overWeekday, planPct, planStats } from './plan.js?v=2.2c';
 import { renderSumGoals } from './goalsui.js?v=2.2c';
-import { bindTips, calendarHeat, heatmap, IC_I, openHistory, rangeDays, rangeLabel, shiftAnchor } from './history.js?v=2.2c';
+import { bindTips, calendarHeat, heatmap, IC_I, openHistory, paintBack, rangeDays, rangeLabel, shiftAnchor, startAnchor } from './history.js?v=2.2c';
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
 export const MONTHS_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
@@ -179,7 +179,9 @@ const tileHTML = (k, icon, l, v, sub, sub2 = '') => `<div class="tile"><span cla
 const arrow = d => d == null ? '<span class="trend" aria-hidden="true"></span>' : `<span class="trend ${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}" aria-hidden="true">${d > 0 ? `↑ ${fmtTrend(d)}` : d < 0 ? `↓ ${fmtTrend(d)}` : 'как было'}</span>`;
 
 export function openSummary() {
-  summaryView = { range: summaryView?.range || 'week', anchor: new Date(), filter: 'best', all: false };
+  summaryView = { range: summaryView?.range || 'week', anchor: new Date(), filter: 'best', all: false, back: null };
+  const past = startAnchor(summaryView.range, visibleHabits(state).map(h => h.created).sort()[0]);
+  if (past) Object.assign(summaryView, { anchor: past.anchor, back: past.start });
   for (const id of ['sTiles', 'sHabits', 'sObs']) $(id)._html = null;
   sumSlider.reset();
   openOverlay($('sumOv'));
@@ -206,6 +208,7 @@ function drawSummary() {
   const first = visibleHabits(state).map(h => h.created).sort()[0];
   $('sPrev').disabled = !first || key(ds[0]) <= first;
   $('sNext').disabled = key(ds[ds.length - 1]) >= today;
+  paintBack($('sBack'), summaryView, range, ds, () => { summaryView.anchor = new Date(); renderSummary(); });
 
   const cur = periodStats(ds), prev = periodStats(rangeDays(range, shiftAnchor(range, summaryView.anchor, -1)));
   const starting = historyDays() < LIMITS.startDays, empty = !starting && cur.pct == null;
@@ -251,6 +254,7 @@ $('sTabs').onclick = e => {
   const r = e.target.closest('button')?.dataset.r;
   if (!r || !summaryView || r === summaryView.range) return;
   summaryView.range = r;
+  if (summaryView.back) Object.assign(summaryView, { anchor: new Date(), back: null });
   renderSummary();
 };
 const sumSlider = periodSlider({

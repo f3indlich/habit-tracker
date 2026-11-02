@@ -341,7 +341,7 @@ export function missBadge(h) {
   if (!last) {
     let part = false;
     for (let d = parseKey(h.created), end = todayKey(); key(d) <= end && !part; d = addDays(d, 1)) part = count(h, d) > 0;
-    if (part) return { texts: ['Пока частично', 'Частично'], title: 'Полностью привычка ещё не выполнялась, но вы уже начали', calm: true };
+    if (part) return { texts: ['Пока частично', 'Частично'], title: 'Полностью привычка ещё не выполнялась, но Вы уже начали', calm: true };
     return daysSince(h.created) >= STALE_DAYS
       ? { texts: ['Давно не было', 'Давно'], title: 'С момента создания привычка ещё не выполнялась', stale: true, never: true, calm: true }
       : { texts: ['Ещё не выполнялась', 'Не выполнялась'], title: 'С момента создания привычка ещё не выполнялась', calm: true };

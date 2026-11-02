@@ -1,8 +1,8 @@
-import { $, addDays, COLORS, DAY_C, days, ofDays, EASE, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, key, MONTHS_SHORT, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=2.2c';
+import { $, addDays, COLORS, DAY_C, days, ofDays, EASE, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, key, LEGEND_STORE, MONTHS_SHORT, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=2.2c';
 import { IC, setIcon } from './icons.js?v=2.2c';
 import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=2.2c';
 import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=2.2c';
-import { openCats, openForm } from './form.js?v=2.2c';
+import { drawEmptyTpl, openCats, openForm } from './form.js?v=2.2c';
 import { day, dayTip, hist, openDay, openHistory, renderDay, renderHistory, setHist } from './history.js?v=2.2c';
 import { userName } from './settings.js?v=2.2c';
 import { queueTips } from './tips.js?v=2.2c';
@@ -133,11 +133,15 @@ export function buildCard(id) {
   info.onkeydown = e => { if (e.target === info && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openHistory(id); } };
   el.querySelectorAll('.dot').forEach((dot, i) => dot.onclick = () => {
     if (el._swiped) return;
-    const d = addDays(viewDate, i - 6), h = at(findHabit(id), d);
+    const d = addDays(viewDate, i - 6);
+    if (!quickDay(d)) return openDay(id, d);
+    const h = at(findHabit(id), d);
     changeCount(h, d, count(h, d) >= h.target ? 0 : h.target);
   });
   return el;
 }
+
+export const quickDay = d => key(d) >= key(addDays(new Date(), -1));
 
 export function staleTip(anchor, id) {
   if (menuEl?._anchor === anchor) return closeMenu();
@@ -538,9 +542,17 @@ export function buildStripLayout(view) {
   };
 }
 
+export const LEGEND_DAYS = 7;
+export function legendOff() {
+  if (getPref(LEGEND_STORE, '')) return true;
+  const first = state.habits.reduce((m, h) => (!m || h.created < m ? h.created : m), '');
+  if (!first || first > key(addDays(new Date(), -LEGEND_DAYS))) return false;
+  setPref(LEGEND_STORE, '1');
+  return true;
+}
 export function renderLegend() {
   const v = VIEWS[document.body.dataset.view];
-  $('viewLegend').hidden = !visibleHabits(state).some(h => !h.archived);
+  $('viewLegend').hidden = !visibleHabits(state).some(h => !h.archived) || legendOff();
   $('viewLegend').classList.toggle('round', !v.cells);
   $('viewLegend').title = v.label;
   $('viewLegend').innerHTML = `<span><i class="lg3"></i>выполнено</span><span><i class="lg1"></i>частично</span>
@@ -591,6 +603,7 @@ export function render() {
   const habits = activeOn(viewDate);
   const priv = privateHabits(state), privLive = priv.filter(h => !h.archived && key(viewDate) >= h.created);
   $('empty').hidden = active.length > 0;
+  if (!active.length) drawEmptyTpl();
   document.body.classList.toggle('no-habits', !active.length);
 
   const ids = new Set([...habits, ...privLive].map(h => h.id));
@@ -729,13 +742,30 @@ export function renderHero() {
 
   if (today && allDone && wasAllDone === false) celebrate();
   if (today) wasAllDone = allDone;
+  setBadge();
 }
 
+let badgeLast = null;
+export const badgeLeft = () => { const p = dayProgress(new Date()); return Math.max(0, p.total - p.done); };
+export function setBadge(n = badgeLeft()) {
+  if (n === badgeLast || !('setAppBadge' in navigator)) return;
+  badgeLast = n;
+  (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
+}
+
+export const CHEER = [18, 70, 18, 70, 45];
+export const CONFETTI = 70;
+export const weakDevice = (nav = navigator) => nav.hardwareConcurrency <= 4 || nav.deviceMemory <= 4;
+export const confettiCount = (nav = navigator) => weakDevice(nav) ? CONFETTI / 2 : CONFETTI;
 export function celebrate() {
   if (reducedMotion) return;
+  navigator.vibrate?.(CHEER);
+  requestAnimationFrame(() => requestAnimationFrame(burst));
+}
+function burst() {
   const r = $('heroProg').closest('.hero-ring').getBoundingClientRect();
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-  for (let i = 0; i < 70; i++) {
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, n = confettiCount();
+  for (let i = 0; i < n; i++) {
     const p = document.createElement('div');
     p.className = 'confetti';
     p.style.background = COLORS[i % COLORS.length];
@@ -991,6 +1021,7 @@ export function applyView(v) {
   document.body.dataset.view = v;
   $('viewBtn').innerHTML = `${IC.cal}<span>${VIEWS[v].short}</span>`;
   $('viewBtn').title = `На карточках: ${VIEWS[v].label.toLowerCase()}`;
+  $('viewBtn').setAttribute('aria-label', `Вид карточек: ${VIEWS[v].label.toLowerCase()}`);
 }
 export function renderViewPage() {
   const cur = document.body.dataset.view;

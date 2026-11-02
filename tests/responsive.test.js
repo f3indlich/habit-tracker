@@ -148,5 +148,31 @@ fe.style.maxWidth = ''; fe.style.width = w0; fe.style.height = h0; await wait(15
   ok('tile emoji hidden only on very narrow screens', !tiny.shown && tiny.fits, tiny);
 }
 
+ok('iOS sheets add no history entry, so the system back swipe cannot show a second screen', usesHistory(true) === false && usesHistory(false) === true);
+{
+  const rows = els => { const m = new Map(); els.forEach(e => { const r = e.getBoundingClientRect(), k = Math.round(r.top); m.set(k, [...(m.get(k) || []), r]); }); return [...m.values()]; };
+  const even = (box, label) => {
+    const rs = rows([...box.children].filter(e => e.tagName === 'BUTTON' && e.offsetParent)), b = box.getBoundingClientRect();
+    const fullRows = rs.filter(r => r.length === 1).every(([r]) => Math.abs(r.left - b.left) < 1 && Math.abs(r.right - b.right) < 1);
+    const pairs = rs.filter(r => r.length > 1).every(r => r.every(x => Math.abs(x.width - r[0].width) < 1));
+    const heights = rs.flat().every(r => Math.abs(r.height - rs[0][0].height) < 1);
+    ok(`${label}: rows even, single item spans full width, equal heights`, fullRows && pairs && heights, rs.map(r => r.map(x => [Math.round(x.left), Math.round(x.width), Math.round(x.height)])));
+  };
+  ['Учёба', 'Физическая подготовка', 'Здоровье'].forEach(n => addCategory(n));
+  openForm(); await wait(500);
+  even($('schedSeg'), 'schedule options');
+  even($('catChips'), 'categories (odd count)');
+  ok('add category button spans full width', Math.abs($('catChips').querySelector('.add-chip').getBoundingClientRect().width - $('catChips').getBoundingClientRect().width) < 1);
+  closeOverlay($('formOv')); await wait(400);
+  addCategory('Работа');
+  openForm(); await wait(500);
+  even($('catChips'), 'categories (even count)');
+  const cs = [...$('colors').children].map(e => e.getBoundingClientRect()), cr = rows([...$('colors').children]);
+  ok('colors in two equal rows', cr.length === 2 && cr[0].length === cr[1].length && cr[0].every((r, i) => Math.abs(r.left - cr[1][i].left) < 1), cr.map(r => r.length));
+  const sub = $('formOv').querySelector('.form > .form-actions .primary');
+  ok('submit label stays on one line', sub.scrollWidth <= sub.clientWidth + 1 && getComputedStyle(sub).whiteSpace === 'nowrap');
+  closeOverlay($('formOv')); await wait(400);
+}
+
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

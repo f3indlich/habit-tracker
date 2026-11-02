@@ -124,7 +124,9 @@ if (isIOS) {
 }
 
 export const shownOverlays = () => [...document.querySelectorAll('.overlay')].filter(o => o._shown);
-let histHeld = false, histSkip = 0;
+let histHeld = false, histSkip = 0, histWant = false;
+export const usesHistory = ios => !ios;
+const HIST = usesHistory(isIOS);
 const keepFieldInView = () => {
   const el = document.activeElement;
   if (el?.matches('input:not([type=checkbox]), textarea') && el.closest('.overlay')?._shown) el.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' });
@@ -152,8 +154,11 @@ function cascade(sheet) {
 export function openOverlay(ov) {
   const fresh = !ov._shown;
   if (!shownOverlays().length) window.visualViewport?.addEventListener('resize', keepFieldInView);
-  if (fresh && !histHeld) { history.pushState({ sheet: true }, ''); histHeld = true; }
-  if (fresh) ov._opener = document.activeElement;
+  if (fresh && HIST && !histHeld) {
+    if (histSkip) histWant = true;
+    else { history.pushState({ sheet: true }, ''); histHeld = true; }
+  }
+  if (fresh) { ov._opener = document.activeElement; hideToast(); }
   ov._shown = true;
   ov.hidden = false;
   document.body.classList.add('locked');
@@ -179,12 +184,17 @@ export function closeOverlay(ov) {
   ov._opener = null;
 }
 addEventListener('popstate', async () => {
-  if (histSkip) { histSkip--; return; }
+  if (histSkip) {
+    if (--histSkip || !histWant) return;
+    histWant = false;
+    if (HIST && shownOverlays().length && !histHeld) { history.pushState({ sheet: true }, ''); histHeld = true; }
+    return;
+  }
   histHeld = false;
   const top = shownOverlays().pop();
   if (!top) return;
   if (top === $('confirm')) closeConfirm(false); else await requestClose(top);
-  if (shownOverlays().length && !histHeld) { history.pushState({ sheet: true }, ''); histHeld = true; }
+  if (HIST && shownOverlays().length && !histHeld) { history.pushState({ sheet: true }, ''); histHeld = true; }
 });
 addEventListener('keydown', e => {
   if (e.key !== 'Tab') return;
@@ -409,10 +419,21 @@ export function toast(text, action, label = 'Отменить') {
   $('toastUndo').textContent = label;
   $('toastUndo').onclick = () => { action?.(); hideToast(); };
   toastSwipe = null;
-  Object.assign($('toast').style, { transform: '', opacity: '', transition: '' });
+  Object.assign($('toast').style, { transform: '', opacity: '', transition: '', bottom: toastLift() });
   $('toast').classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(hideToast, label === 'Отменить' ? 5000 : 12000);
+}
+export function toastLift() {
+  const ov = shownOverlays().pop();
+  if (!ov) return '';
+  const vh = innerHeight, zone = vh - 160;
+  let top = vh;
+  for (const el of ov.querySelectorAll('button, input, textarea, select, [role=button]')) {
+    const r = el.getBoundingClientRect();
+    if (r.height && r.width && r.bottom > zone && r.top < vh && getComputedStyle(el).visibility !== 'hidden') top = Math.min(top, r.top);
+  }
+  return top < vh ? `${Math.round(vh - top + 10)}px` : '';
 }
 export function hideToast() { $('toast').classList.remove('show'); }
 $('toast').addEventListener('pointerdown', e => {

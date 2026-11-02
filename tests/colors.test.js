@@ -1,4 +1,5 @@
 window.wait = ms => new Promise(r => setTimeout(r, ms));
+window.waitFor = async (cond, timeout = 3000) => { const t = Date.now(); while (!cond()) { if (Date.now() - t > timeout) return false; await wait(30); } return true; };
 window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
@@ -12,7 +13,7 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
 
 try { localStorage.removeItem(ACCENT_STORE); localStorage.removeItem(DATA_STORE); } catch {}
 applyTheme('light'); applyColors(); await wait(50);
-ok('defaults: cobalt interface, red data', colorPrefs().accent === 'cobalt' && colorPrefs().data === 'red' && probe('var(--accent)') === probe('#2563eb') && probe('var(--data)') === probe('#dc2626'), [css('--accent'), css('--data')]);
+ok('defaults: cobalt interface, statistics follow it', colorPrefs().accent === 'cobalt' && colorPrefs().data === 'cobalt' && probe('var(--accent)') === probe('#2563eb') && probe('var(--data)') === probe('#2563eb'), [css('--accent'), css('--data')]);
 ok('default interface not red', !root.hasAttribute('data-ui-red'));
 ok('twelve presets', Object.keys(PALETTES).length === 12);
 const bad = Object.values(PALETTES).flatMap(([n, l, d, il, id]) => [[n, 'light', ratio(l, il)], [n, 'dark', ratio(d, id)]]).filter(x => x[2] < 4.5);
@@ -21,21 +22,21 @@ ok('text on accent at least 4.5:1 in both themes', bad.length === 0, bad);
 renderSettings(); openOverlay($('setOv')); await wait(400);
 ok('colors section right above habit icons', $('iconStyles').closest('.set-group').previousElementSibling.querySelector('h3').textContent === 'Цвета');
 const seg = () => [...$('colorSeg').children], pick = k => $('colorSeg').querySelector(`[data-k=${k}]`);
-ok('switch shows both choices with names', seg().length === 2 && pick('accent').textContent === 'ИнтерфейсКобальт' && pick('data').textContent === 'СтатистикаКрасный' && pick('accent').getAttribute('aria-checked') === 'true', seg().map(b => b.textContent));
+ok('switch shows both choices with names', seg().length === 2 && pick('accent').textContent === 'ИнтерфейсКобальт' && pick('data').textContent === 'СтатистикаКобальт' && pick('accent').getAttribute('aria-checked') === 'true', seg().map(b => b.textContent));
 ok('one row of 12 swatches for interface', $('swRow').querySelectorAll('.swatch').length === 12 && $('swRow').querySelector('[aria-checked=true]').dataset.c === 'cobalt');
 const colorCard = document.querySelector('.color-set');
 ok('color block is compact', colorCard.getBoundingClientRect().height <= 190 && $('swRow').scrollHeight <= 44 && getComputedStyle($('swRow')).overflowX === 'auto', [colorCard.getBoundingClientRect().height, $('swRow').scrollHeight]);
 pick('data').click(); await wait(50);
-ok('switch to statistics shows its choice', pick('data').getAttribute('aria-checked') === 'true' && $('swRow').querySelector('[aria-checked=true]').dataset.c === 'red' && /статистика/.test($('swRow').getAttribute('aria-label')));
+ok('switch to statistics shows its choice', pick('data').getAttribute('aria-checked') === 'true' && $('swRow').querySelector('[aria-checked=true]').dataset.c === 'cobalt' && /статистика/.test($('swRow').getAttribute('aria-label')));
 ok('live preview has button and 5 levels', !!document.querySelector('.color-prev .cp-btn') && document.querySelectorAll('.color-prev .heat-strip i').length === 5);
 const strip = [...document.querySelectorAll('.color-prev .heat-strip i')].map(rgb);
 ok('preview levels all different', new Set(strip).size === 5, strip);
 
-$('swRow').querySelector('[data-c=emerald]').click(); await wait(400);
+$('swRow').querySelector('[data-c=emerald]').click(); await waitFor(() => probe('var(--data)') === probe('#047857') && pick('data').querySelector('small').textContent === 'Изумрудный' && rgb(document.querySelector('.heat-strip .lv4')) === probe('color-mix(in srgb, #047857 100%, var(--card))'));
 ok('switch caption follows choice', pick('data').querySelector('small').textContent === 'Изумрудный' && pick('accent').querySelector('small').textContent === 'Кобальт');
 ok('data color applies at once', probe('var(--data)') === probe('#047857') && rgb(document.querySelector('.heat-strip .lv4')) === probe('color-mix(in srgb, #047857 100%, var(--card))'));
-pick('accent').click(); await wait(50);
-$('swRow').querySelector('[data-c=red]').click(); await wait(400);
+pick('accent').click(); await waitFor(() => pick('accent').getAttribute('aria-checked') === 'true');
+$('swRow').querySelector('[data-c=red]').click(); await waitFor(() => probe('var(--accent)') === probe('#dc2626') && rgb(document.querySelector('.color-prev .cp-btn')) === probe('#dc2626') && !document.getAnimations().some(a => a.playState === 'running' && document.querySelector('.color-prev')?.contains(a.effect?.target)));
 ok('interface color applies at once', probe('var(--accent)') === probe('#dc2626') && rgb(document.querySelector('.color-prev .cp-btn')) === probe('#dc2626'));
 ok('choice saved to storage', localStorage.getItem(ACCENT_STORE) === 'red' && localStorage.getItem(DATA_STORE) === 'emerald');
 root.style.cssText = ''; root.removeAttribute('data-ui-red');
@@ -75,7 +76,7 @@ ok('other interface: confirm filled', getComputedStyle($('cYes')).backgroundColo
 closeConfirm(false); await wait(300);
 
 localStorage.setItem(ACCENT_STORE, 'zzz'); localStorage.setItem(DATA_STORE, 'zzz');
-ok('unknown saved value falls back to defaults', colorPrefs().accent === 'cobalt' && colorPrefs().data === 'red');
+ok('unknown saved value falls back to defaults', colorPrefs().accent === 'cobalt' && colorPrefs().data === 'cobalt');
 localStorage.removeItem(ACCENT_STORE); localStorage.removeItem(DATA_STORE); applyColors();
 
 ok('habit palette has no indigo', !COLORS.includes('#4f46e5') && COLORS.includes('#2563eb') && TEMPLATES.find(t => t.name === 'Чтение').color === '#2563eb');

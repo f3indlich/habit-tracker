@@ -8,7 +8,14 @@ import { visibleHabits } from './privacy.js?v=2.2c';
 export const TIPS_STORE = NS + '-tips';
 export const USED_STORE = NS + '-used';
 export const TIPS_ON_STORE = NS + '-tips-on';
+export const HEAD_TIPS = [
+  ['viewBtn', 'Календарь', ' — сколько дней показывать на карточках: неделю, месяц, квартал или год.'],
+  ['goalsBtn', 'Флажок', ' — цели со сроком и шагами.'],
+  ['acctBtn', 'Облако', ' — вход по почте и синхронизация между устройствами.'],
+  ['setBtn', 'Шестерёнка', ' — настройки: тема, цвета, напоминания, данные.'],
+];
 export const TIP_TEXT = {
+  head: { title: 'Что за значки наверху', lines: [] },
   mark: { title: 'Отметьте первую привычку', text: 'Нажмите на кружок, когда выполните её. Нажмёте ещё раз — отметка снимется.' },
   steps: { title: 'Если цель — несколько раз', lines: [['Нажатие на кружок', ' — плюс один.'], ['Удержание кружка', ' — сразу вся цель.'], ['Кнопка −', ' — убрать последнее.']] },
   swipe: { bar: 'Смахните карточку вправо — выполнено. Влево — сбросить отметку.' },
@@ -174,6 +181,11 @@ export function runTips() {
   const vis = [...document.querySelectorAll('#sections .habit')].filter(e => e.offsetParent !== null);
   if (!vis.length) return false;
   const cardOf = h => vis.find(e => e.dataset.id === h.id);
+  if (!seen.head && !seen.mark) {
+    const head = HEAD_TIPS.filter(([id]) => $(id) && !$(id).hidden && $(id).offsetParent !== null);
+    TIP_TEXT.head.lines = head.map(([, b, rest]) => [b, rest]);
+    if (head.length) return showTip('head', head.map(([id]) => $(id)));
+  }
   if (!seen.mark) return showTip('mark', vis[0].querySelector('.check'));
   const multi = visibleHabits(state).find(h => !h.archived && h.target > 1 && cardOf(h));
   if (!seen.steps && multi) { const el = cardOf(multi); return showTip('steps', [el.querySelector('.step-minus:not(.idle)'), el.querySelector('.check')]); }
