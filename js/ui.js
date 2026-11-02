@@ -293,12 +293,12 @@ export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get
     },
     move: g => {
       if (!g.lock) {
-        if (Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) {
+        if (Math.abs(g.dx) >= 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) {
           g.lock = 'x';
           sheet.querySelectorAll('.tip.show').forEach(t => t.classList.remove('show'));
           sheet.querySelectorAll('[data-tip].on').forEach(t => t.classList.remove('on'));
           if (!reducedMotion) [-1, 1].forEach(peek);
-        } else if (Math.abs(g.dy) > 12) return false;
+        } else if (Math.abs(g.dy) >= 6) return false;
         else return;
       }
       if (reducedMotion) return;

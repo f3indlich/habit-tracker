@@ -76,6 +76,25 @@ await swipe($('hChart'), [W * .15, 450], [W * .8, 455]);
 ok('month swipe shows previous month', $('hLabel').textContent !== m0 && $('hLabel').textContent === rangeLabel('month', rangeDays('month', shiftAnchor('month', new Date(), -1))));
 $('hTabs').querySelector('[data-r=week]').click(); await wait(300);
 
+{
+  const ch = $('hChart'), x0 = W * .5, y0 = 420;
+  const step = (type, x, y) => {
+    const t = new Touch({ identifier: 1, target: ch, clientX: x, clientY: y });
+    const e = new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] });
+    ch.dispatchEvent(e);
+    return e.defaultPrevented;
+  };
+  step('touchstart', x0, y0);
+  const early = step('touchmove', x0 - 7, y0 + 2);
+  ok('short sideways move already takes the gesture from page scroll', early && $('hPerTrack').style.transform.includes('translateX'));
+  step('touchend', x0 - 7, y0 + 2); await wait(450);
+  step('touchstart', x0, y0);
+  const vert = step('touchmove', x0 + 2, y0 + 7);
+  ok('short vertical move is left to page scroll', !vert && !$('hPerTrack').style.transform);
+  step('touchend', x0 + 2, y0 + 7); await wait(200);
+  ok('calendar text cannot be selected', getComputedStyle($('hPer')).userSelect === 'none' && getComputedStyle($('hPer')).webkitTouchCallout !== 'default');
+}
+
 mid = '';
 await swipe(head, [W / 2, 160], [W / 2, 600], 8, 12, () => mid = hs.style.transform + '|' + getComputedStyle($('histOv')).getPropertyValue('--fade'));
 ok('sheet follows finger and backdrop fades', /translateY\(\d+/.test(mid) && parseFloat(mid.split('|')[1]) < 1, mid);

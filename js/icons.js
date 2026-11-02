@@ -100,7 +100,16 @@ export const ICON_ART = {
   wateringcan: '<path d="M14.5 15l5-6.2" stroke="#16a34a" stroke-width="2" stroke-linecap="round"/><path d="M18 7.3l3.4 2.9-1.3 1.2-3.3-2.8z" fill="#15803d"/><path d="M8 9.5V7.7a2.5 2.5 0 0 1 5 0v1.8" fill="none" stroke="#15803d" stroke-width="1.8"/><path d="M5 9.5h10v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="#22c55e"/><path d="M5 12h10" stroke="#86efac" stroke-width="1.4"/><path d="M21 13.5v1.2M19.2 15.5v1.2M22 17v1.2" stroke="#38bdf8" stroke-width="1.4" stroke-linecap="round"/>',
   glass: '<path d="M5.5 3h13l-1.7 16.6a1.6 1.6 0 0 1-1.6 1.4H8.8a1.6 1.6 0 0 1-1.6-1.4z" fill="#e0f2fe" stroke="#94a3b8" stroke-width="1"/><path d="M6.3 10.5c1.9-.9 3.8-.9 5.7 0s3.8.9 5.7 0l-.9 9.1a1.6 1.6 0 0 1-1.6 1.4H8.8a1.6 1.6 0 0 1-1.6-1.4z" fill="#38bdf8"/><path d="M8.6 12.5l.7 6" stroke="#bae6fd" stroke-width="1.2" stroke-linecap="round"/>',
 };
-export const ICON_KEYS = Object.keys(ICONS);
+export const ICON_GROUPS = [
+  ['check', 'target', 'clock', 'sunrise', 'sun', 'sleep'],
+  ['run', 'walk', 'squat', 'dumbbell', 'strong', 'pullup', 'bike', 'swim', 'meditate'],
+  ['water', 'glass', 'salad', 'apple', 'coffee', 'pill', 'eyedrop', 'tooth', 'razor', 'heart'],
+  ['book', 'books', 'pen', 'brain', 'bulb', 'laptop', 'chat'],
+  ['home', 'wateringcan', 'flower', 'leaf', 'paw', 'cat', 'car', 'coin'],
+  ['music', 'video', 'smile'],
+  ['nosmoke', 'noalcohol', 'phoneoff', 'nohand', 'noheart'],
+];
+export const ICON_KEYS = [...new Set([...ICON_GROUPS.flat(), ...Object.keys(ICONS)])].filter(k => ICONS[k]);
 export const EMOJI_TO_ICON = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [v.e, k]));
 export const ICON_STYLES = Object.fromEntries(Object.entries({
   color: 'Объёмные', tile: 'Неон', mono: 'Чёрно-белые', art: 'Иллюстрации', emoji: 'Эмодзи', line: 'Контурные',
