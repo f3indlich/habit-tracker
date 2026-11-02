@@ -1,14 +1,14 @@
-import { $, esc, isIOS } from './core.js?v=2.2b';
-import { IC } from './icons.js?v=2.2b';
-import { findHabit, save, setMap, state } from './storage.js?v=2.2b';
-import { closeMenu, closeOverlay, openOverlay, shownOverlays, toast } from './ui.js?v=2.2b';
-import { purgePrivate, render } from './render.js?v=2.2b';
-import { editingId, form, syncPrivRow } from './form.js?v=2.2b';
-import { day, hist, setHist } from './history.js?v=2.2b';
-import { exportData } from './settings.js?v=2.2b';
-import { goalsLocked } from './goalsui.js?v=2.2b';
-import { cloud } from './sync.js?v=2.2b';
-import { addLongPress, b64, hasPin, IDLE_MS, isPrivate, LOCK_STORE, lockWait, readLock, setPin, setUnlocked, tryPin, unb64, unlocked, validPin, writeLock } from './privacy.js?v=2.2b';
+import { $, esc, isIOS } from './core.js?v=2.2c';
+import { IC } from './icons.js?v=2.2c';
+import { findHabit, save, setMap, state } from './storage.js?v=2.2c';
+import { closeMenu, closeOverlay, openOverlay, shownOverlays, toast } from './ui.js?v=2.2c';
+import { purgePrivate, render } from './render.js?v=2.2c';
+import { editingId, form, syncPrivRow } from './form.js?v=2.2c';
+import { day, hist, setHist } from './history.js?v=2.2c';
+import { exportData } from './settings.js?v=2.2c';
+import { goalsLocked } from './goalsui.js?v=2.2c';
+import { cloud } from './sync.js?v=2.2c';
+import { addLongPress, b64, hasPin, IDLE_MS, isPrivate, LOCK_STORE, lockWait, readLock, setPin, setUnlocked, tryPin, unb64, unlocked, validPin, writeLock } from './privacy.js?v=2.2c';
 
 export const FACE = isIOS ? 'Face ID или Touch ID' : 'отпечаток пальца или распознавание лица';
 export const WIPE_WORD = 'СТЕРЕТЬ';
