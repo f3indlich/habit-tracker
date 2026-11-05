@@ -20,7 +20,7 @@ const bad = Object.values(PALETTES).flatMap(([n, l, d, il, id]) => [[n, 'light',
 ok('text on accent at least 4.5:1 in both themes', bad.length === 0, bad);
 
 renderSettings(); openOverlay($('setOv')); await wait(400);
-ok('colors section right above habit icons', $('iconStyles').closest('.set-group').previousElementSibling.querySelector('h3').textContent === 'Цвета');
+ok('animations section between colors and habit icons', $('motionSeg').closest('.set-group').previousElementSibling.querySelector('h3').textContent === 'Цвета' && $('iconStyles').closest('.set-group').previousElementSibling === $('motionSeg').closest('.set-group'));
 const seg = () => [...$('colorSeg').children], pick = k => $('colorSeg').querySelector(`[data-k=${k}]`);
 ok('switch shows both choices with names', seg().length === 2 && pick('accent').textContent === 'ИнтерфейсКобальт' && pick('data').textContent === 'СтатистикаКобальт' && pick('accent').getAttribute('aria-checked') === 'true', seg().map(b => b.textContent));
 ok('one row of 12 swatches for interface', $('swRow').querySelectorAll('.swatch').length === 12 && $('swRow').querySelector('[aria-checked=true]').dataset.c === 'cobalt');
