@@ -54,7 +54,7 @@ ok('fab visible at top', !document.body.classList.contains('fab-away'));
 
 renderSettings(); openOverlay($('setOv')); await wait(500);
 const order = [...$('setOv').querySelectorAll('.set-group > h3')].map(h => h.textContent);
-ok('settings order', order.join(',') === 'Тема,Профиль,Напоминания,Привычки,Цели,Цвета,Иконки привычек,Помощь,Данные', order);
+ok('settings order', order.join(',') === 'Тема,Профиль,Напоминания,Привычки,Цели,Цвета,Анимации,Иконки привычек,Помощь,Данные', order);
 ok('theme compact', $('themeSeg').querySelector('button').getBoundingClientRect().height <= 36);
 ok('account group visible without login', !$('setAcctGroup').hidden && !$('setName').hidden && $('setCloudIn').hidden);
 ok('name shows not set', $('setNameVal').textContent === 'Не указано', $('setNameVal').textContent);
@@ -147,7 +147,7 @@ ok('about version', /^\d+\.\d{1,2}[a-z]?$/.test(ver) && $('appVersion').textCont
   if (lm) await waitFor(() => !$('appUpdated').hidden);
   ok('about updated date', lm ? !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} г\. в \d\d:\d\d$/.test($('appUpdated').textContent) : $('appUpdated').hidden, [lm, $('appUpdated').textContent]);
 }
-ok('about note', $('setOv').querySelector('.about-txt small').textContent === 'Реализовано для удобства');
+ok('about has no filler note', !$('setOv').querySelector('.about-txt small'));
 ok('about is last in data block', $('importFile').nextElementSibling.classList.contains('app-about'));
 closeOverlay($('setOv')); await wait(400);
 
@@ -213,7 +213,10 @@ closeOverlay($('formOv')); await wait(400);
   const w = tb.map(b => Math.round(b.getBoundingClientRect().width)), top = tb.map(b => Math.round(b.getBoundingClientRect().top));
   ok('empty templates sit in an even grid', new Set(w).size === 1 && top[0] === top[1] && top[2] === top[3] && top[2] > top[0], { w, top });
   tb[1].click(); await wait(400);
-  ok('empty template opens a prefilled form', $('formOv')._shown && $('name').value === TEMPLATES[EMPTY_TPL[1]].name && form.icon === TEMPLATES[EMPTY_TPL[1]].icon && !$('tplField').hidden);
+  ok('empty template opens a prefilled form', $('formOv')._shown && $('name').value === TEMPLATES[EMPTY_TPL[1]].name && form.icon === TEMPLATES[EMPTY_TPL[1]].icon && $('tplField').hidden);
+  closeOverlay($('formOv')); await wait(400);
+  openForm(); await wait(400);
+  ok('new form still offers popular templates', !$('tplField').hidden);
   closeOverlay($('formOv')); await wait(400);
   setState(saved); cards.forEach(e => e.remove()); cards.clear(); render(); await wait(300);
 

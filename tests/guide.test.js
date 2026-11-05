@@ -23,6 +23,7 @@ const swipe = async (el, from, to) => {
 ok('tips are off in tests by default', !tipsOn() && runTips() === false && !layerOn());
 
 window.__tipsOn = true;
+window.__touch = true;
 resetTips();
 await fresh([{ id: 'z', name: 'Зарядка', icon: 'strong', color: '#22c55e', created: todayKey(), time: 'morning' }]);
 await runTips(); await wait(300);

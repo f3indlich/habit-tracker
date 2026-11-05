@@ -1,11 +1,11 @@
-import { $, ACCENT_STORE, DATA_STORE, esc, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, NS, PRIVACY_EMAIL, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=2.3a';
+import { $, ACCENT_STORE, DATA_STORE, EASE_STD, esc, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, isVivid, MOTION_MODES, MOTION_STORE, mv, NS, PRIVACY_EMAIL, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=2.3a';
 import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=2.3a';
 import { normalize, save, setState, state } from './storage.js?v=2.3a';
 import { askConfirm, closeOverlay, morph, openOverlay, toast } from './ui.js?v=2.3a';
-import { cards, render, setWasAllDone } from './render.js?v=2.3a';
+import { cards, render, setWasAllDone, sparks } from './render.js?v=2.3a';
 import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=2.3a';
 import { hist, renderHistory } from './history.js?v=2.3a';
-import { cloud, deleteAccount, emailMatches, renderAccount } from './sync.js?v=2.3a';
+import { cloud, deleteAccount, emailMatches, openAccount, renderAccount } from './sync.js?v=2.3a';
 
 export function applyIcons(style) {
   document.body.dataset.icons = style;
@@ -54,6 +54,24 @@ $('iconStyles').onclick = e => {
   setPref(ICON_STORE, b.dataset.s); applyIcons(b.dataset.s); renderSettings();
 };
 
+export function applyMotion(m) {
+  if (!MOTION_MODES[m]) m = 'calm';
+  document.documentElement.dataset.motion = m;
+  $('motionSeg').innerHTML = Object.entries(MOTION_MODES).map(([id, [label]]) => `<button type="button" role="radio" aria-checked="${id === m}" data-m="${id}"><span>${label}</span></button>`).join('');
+  $('motionHint').textContent = reducedMotion ? 'В системе включено уменьшение движения, поэтому анимации отключены.' : MOTION_MODES[m][1];
+}
+$('motionSeg').onclick = e => {
+  const m = e.target.closest('[data-m]')?.dataset.m;
+  if (!m) return;
+  setPref(MOTION_STORE, m);
+  applyMotion(m);
+  if (reducedMotion) return;
+  const b = $('motionSeg').querySelector('[aria-checked=true]');
+  b.animate({ scale: [1, mv(1.03, 1.08), 1] }, { duration: mv(280, 460), easing: EASE_STD });
+  if (isVivid()) sparks(b, 'var(--accent)');
+};
+applyMotion(getPref(MOTION_STORE, 'calm'));
+
 export const THEMES = { auto: ['Системная', 'auto'], light: ['Светлая', 'sun'], dark: ['Тёмная', 'moon'] };
 export function applyTheme(t) {
   if (!THEMES[t]) t = 'auto';
@@ -66,7 +84,7 @@ export function applyTheme(t) {
 $('themeSeg').onclick = e => {
   const b = e.target.closest('[data-t]');
   if (!b) return;
-  setPref(THEME_STORE, b.dataset.t); morph(() => applyTheme(b.dataset.t));
+  setPref(THEME_STORE, b.dataset.t); morph(() => applyTheme(b.dataset.t), true);
 };
 
 export const PALETTES = {
@@ -231,7 +249,7 @@ $('nameForm').onsubmit = e => {
 };
 $('nameSkip').onclick = () => closeOverlay($('nameOv'));
 $('setName').onclick = () => openName(false);
-$('setLogin').onclick = () => { openOverlay($('acctOv')); renderAccount(); };
+$('setLogin').onclick = openAccount;
 
 $('setDelete').onclick = () => {
   if (!cloud.session) return;

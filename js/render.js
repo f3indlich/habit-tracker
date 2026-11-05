@@ -1,4 +1,4 @@
-import { $, addDays, COLORS, DAY_C, days, ofDays, EASE, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, key, LEGEND_STORE, MONTHS_SHORT, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=2.3a';
+import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, ofDays, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=2.3a';
 import { IC, setIcon } from './icons.js?v=2.3a';
 import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=2.3a';
 import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=2.3a';
@@ -331,7 +331,7 @@ export function changeCount(h, d, n, clearSkip = false, announce = false) {
   if (clearSkip && prevSkip) setMap(state.skip, key(d), h.id, 0);
   setCount(h, d, n);
   const wasDone = prev >= h.target, isDone = n >= h.target;
-  if (isDone && !wasDone && key(d) === key(viewDate)) glow(cards.get(h.id));
+  if (isDone && !wasDone && key(d) === key(viewDate)) markFx(cards.get(h.id), h.color);
   navigator.vibrate?.(wasDone && isDone && n > prev ? 6 : n > prev ? 12 : [6, 40, 6]);
   if (announce || wasDone !== isDone || (n === 0 && prev > 1)) {
     const dayNote = isToday(d) ? '' : ` (${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })})`;
@@ -392,7 +392,7 @@ export function updateCard(el, h) {
     ob.title = overState === '+' ? 'Цель выполнена — можно добавить сверх плана' : overState ? `Сверх цели: ${extra}` : '';
     if (sameDay && overState && !reducedMotion) ob.animate(was
       ? [{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }]
-      : [{ transform: 'scale(0)' }, { transform: 'scale(1)' }], { duration: was ? 220 : 250, easing: was ? 'ease-out' : 'cubic-bezier(.34, 1.56, .64, 1)' });
+      : [{ transform: 'scale(0)' }, { transform: 'scale(1)' }], { duration: was ? 220 : 250, easing: was ? 'ease-out' : spring() });
   }
   const minusBtn = el.querySelector('.step-minus');
   minusBtn.hidden = !multi;
@@ -570,15 +570,42 @@ export function glow(el) {
     { duration: 820, easing: 'cubic-bezier(.35, .6, .3, 1)' }).onfinish = () => g.remove();
 }
 
+export function sparks(el, color) {
+  if (reducedMotion || !isVivid() || !el?.isConnected) return;
+  const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, n = weakDevice() ? 6 : 12;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('i');
+    p.className = 'spark';
+    p.style.background = color;
+    p.style.left = cx + 'px'; p.style.top = cy + 'px';
+    document.body.append(p);
+    const a = (i / n) * Math.PI * 2 + Math.random() * .4, v = 38 + Math.random() * 34, x = Math.cos(a) * v, y = Math.sin(a) * v;
+    p.animate([
+      { transform: 'translate(-50%, -50%) scale(1.2)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${x * .8}px), calc(-50% + ${y * .8}px)) scale(1)`, opacity: 1, offset: .55 },
+      { transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(.3)`, opacity: 0 },
+    ], { duration: 540 + Math.random() * 180, easing: 'cubic-bezier(.15, .7, .3, 1)' }).onfinish = () => p.remove();
+  }
+}
+export function markFx(el, color) {
+  if (reducedMotion || !el?.isConnected) return;
+  glow(el);
+  el.animate({ scale: [1, mv(1.012, 1.03), 1] }, { duration: mv(320, 480), easing: EASE_STD });
+  el.querySelector('.check')?.animate({ scale: [1, mv(1.1, 1.26), 1] }, { duration: mv(360, 560), easing: EASE_STD });
+  if (!isVivid()) return;
+  el.querySelector('.hicon')?.animate({ rotate: ['0deg', '-10deg', '8deg', '0deg'], scale: [1, 1.14, 1, 1] }, { duration: 520, easing: 'ease-out' });
+  sparks(el.querySelector('.check'), color);
+}
+
 export function removeCard(el) {
   el.classList.add('leaving');
   if (reducedMotion) return el.remove();
-  const h = el.offsetHeight;
+  const h = el.offsetHeight, out = mv('translateX(-16px)', 'translateX(-36px) scale(.94)');
   el.animate([
     { opacity: 1, transform: 'none', height: h + 'px' },
-    { opacity: 0, transform: 'translateX(-16px)', height: h + 'px', offset: .45 },
-    { opacity: 0, transform: 'translateX(-16px)', height: 0, paddingTop: 0, paddingBottom: 0, borderWidth: 0, marginBottom: '-10px' },
-  ], { duration: 420, easing: EASE }).onfinish = () => el.remove();
+    { opacity: 0, transform: out, height: h + 'px', offset: .45 },
+    { opacity: 0, transform: out, height: 0, paddingTop: 0, paddingBottom: 0, borderWidth: 0, marginBottom: '-10px' },
+  ], { duration: mv(380, 480), easing: EASE }).onfinish = () => el.remove();
 }
 
 export let wasAllDone = null;
@@ -656,7 +683,7 @@ export function render() {
     const el = cards.get(id);
     if (!el?.isConnected || el.classList.contains('leaving') || !el.offsetParent) continue;
     const dy = top - el.getBoundingClientRect().top;
-    if (Math.abs(dy) > 1) el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 420, easing: EASE });
+    if (Math.abs(dy) > 1) el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: mv(360, 560), easing: mv(EASE, spring()) });
   }
   renderPrivate(privLive, priv.filter(h => h.archived));
 
@@ -680,7 +707,7 @@ function fillWeek(el, vd) {
     const was = b._k === k && b.classList.contains('perfect'), perfect = p.total > 0 && p.done === p.total;
     b.classList.toggle('perfect', perfect);
     if (perfect && !was && b._k === k && el.id === 'days' && !reducedMotion)
-      b.querySelector('.dr').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.2)', offset: .35 }, { transform: 'scale(1)' }], { duration: 560, easing: 'cubic-bezier(.3, .7, .3, 1)' });
+      b.querySelector('.dr').animate([{ transform: 'scale(1)' }, { transform: `scale(${mv(1.2, 1.36)})`, offset: .35 }, { transform: 'scale(1)' }], { duration: mv(520, 680), easing: 'cubic-bezier(.3, .7, .3, 1)' });
     b._k = k;
     b.disabled = k > tk;
     b.title = d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) + (p.total ? ` — ${p.done} из ${p.total}` : '');
@@ -721,7 +748,9 @@ export function renderHero() {
   $('heroMsg').textContent = !p.total && !activeOn(viewDate).length ? 'Привычек ещё не было'
     : !p.total ? 'Выходной — отдыхайте'
     : allDone ? (today ? 'Всё выполнено! 🎉' : 'Идеальный день 🎉')
-    : !p.done ? (today ? 'Начните с простой привычки' : 'Ничего не отмечено')
+    : !p.done && !p.partial ? (today ? 'Начните с простой привычки' : 'Ничего не отмечено')
+    : !today ? `Не выполнено: ${left}`
+    : !p.done ? 'Хорошее начало!'
     : `Осталось ${left} — Вы справитесь`;
 
   const chips = [];
@@ -754,30 +783,44 @@ export function setBadge(n = badgeLeft()) {
 }
 
 export const CHEER = [18, 70, 18, 70, 45];
-export const CONFETTI = 70;
+export const CONFETTI = 40;
+export const CONFETTI_VIVID = 90;
 export const weakDevice = (nav = navigator) => nav.hardwareConcurrency <= 4 || nav.deviceMemory <= 4;
-export const confettiCount = (nav = navigator) => weakDevice(nav) ? CONFETTI / 2 : CONFETTI;
+export const confettiCount = (nav = navigator) => mv(CONFETTI, CONFETTI_VIVID) / (weakDevice(nav) ? 2 : 1);
 export function celebrate() {
   if (reducedMotion) return;
   navigator.vibrate?.(CHEER);
   requestAnimationFrame(() => requestAnimationFrame(burst));
 }
+function shock(cx, cy, delay) {
+  const s = document.createElement('i');
+  s.className = 'shock';
+  s.style.left = cx + 'px'; s.style.top = cy + 'px';
+  document.body.append(s);
+  s.animate([{ transform: 'translate(-50%, -50%) scale(.5)', opacity: .7 }, { transform: `translate(-50%, -50%) scale(${mv(1.5, 2.6)})`, opacity: 0 }],
+    { duration: mv(560, 780), delay, easing: EASE_STD, fill: 'backwards' }).onfinish = () => s.remove();
+}
 function burst() {
-  const r = $('heroProg').closest('.hero-ring').getBoundingClientRect();
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, n = confettiCount();
+  const ring = $('heroProg').closest('.hero-ring'), r = ring.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2, n = confettiCount(), spread = mv(190, 320);
+  ring.animate({ scale: [1, mv(1.08, 1.2), 1] }, { duration: mv(520, 720), easing: EASE_STD });
+  glow($('hero'));
+  shock(cx, cy, 0);
+  if (isVivid()) shock(cx, cy, 170);
   for (let i = 0; i < n; i++) {
     const p = document.createElement('div');
     p.className = 'confetti';
     p.style.background = COLORS[i % COLORS.length];
+    if (i % 3 === 0) p.style.borderRadius = '50%';
     p.style.left = cx + 'px'; p.style.top = cy + 'px';
     document.body.append(p);
-    const a = Math.random() * Math.PI * 2, v = 120 + Math.random() * 220;
-    const dx = Math.cos(a) * v, dy = Math.sin(a) * v - 120;
+    const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * spread;
+    const dx = Math.cos(a) * v, dy = Math.sin(a) * v - 110, sc = .7 + Math.random() * .6;
     p.animate([
-      { transform: 'translate(-50%, -50%) rotate(0)', opacity: 1 },
-      { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random() * 540}deg)`, opacity: 1, offset: .55 },
-      { transform: `translate(${dx * 1.2}px, ${dy + 260}px) rotate(${Math.random() * 900}deg)`, opacity: 0 },
-    ], { duration: 1300 + Math.random() * 700, easing: 'cubic-bezier(.2, .7, .4, 1)' }).onfinish = () => p.remove();
+      { transform: `translate(-50%, -50%) scale(${sc}) rotate3d(1, 1, 0, 0deg)`, opacity: 1 },
+      { transform: `translate(${dx}px, ${dy}px) scale(${sc}) rotate3d(1, 1, 0, ${Math.random() * 720}deg)`, opacity: 1, offset: .5 },
+      { transform: `translate(${dx * 1.25}px, ${dy + 300}px) scale(${sc}) rotate3d(1, .4, 0, ${720 + Math.random() * 900}deg)`, opacity: 0 },
+    ], { duration: mv(1200, 1500) + Math.random() * 700, easing: 'cubic-bezier(.2, .7, .4, 1)' }).onfinish = () => p.remove();
   }
 }
 
@@ -904,7 +947,7 @@ export function goTo(d) {
   viewDate = d;
   render();
   if (reducedMotion) return;
-  const opts = { duration: 320, easing: 'cubic-bezier(.2, .8, .2, 1)' };
+  const opts = { duration: 320, easing: EASE_STD };
   $('title').animate([{ opacity: 0, transform: `translateX(${8 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
   $('sections').animate([{ opacity: .35, transform: `translateX(${10 * dir}px)` }, { opacity: 1, transform: 'none' }], opts);
 }

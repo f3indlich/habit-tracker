@@ -113,6 +113,7 @@
     <div class="hero-ring" role="button" tabindex="0" aria-label="Открыть сводку" title="Сводка">
       <svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="36"/><circle class="prog" id="heroProg" cx="42" cy="42" r="36"/></svg>
       <span id="heroPct">0%</span>
+      <small class="hero-sum" aria-hidden="true">Сводка ›</small>
     </div>
   </div>
 
@@ -338,6 +339,11 @@
       </div>
     </section>
     <section class="set-group">
+      <h3>Анимации</h3>
+      <div class="pseg pseg-theme pseg-motion" id="motionSeg" role="radiogroup" aria-label="Анимации"></div>
+      <p class="motion-hint" id="motionHint"></p>
+    </section>
+    <section class="set-group">
       <h3>Иконки привычек</h3>
       <div class="icon-styles" id="iconStyles" role="radiogroup" aria-label="Иконки привычек"></div>
     </section>
@@ -374,7 +380,6 @@
           <b>Трекер привычек</b>
           <span id="appVersion"></span>
           <span id="appUpdated" hidden></span>
-          <small>Реализовано для удобства</small>
         </div>
       </div>
     </section>
@@ -498,7 +503,7 @@
       <button data-r="week">Неделя</button>
       <button data-r="month">Месяц</button>
       <button data-r="year">Год</button>
-      <button data-r="all">Всё<span class="t-long"> время</span></button>
+      <button data-r="all">Всё время</button>
     </div>
     <div class="pnav">
       <button class="ghost icon-btn" id="hPrev" title="Раньше"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>

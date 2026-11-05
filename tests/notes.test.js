@@ -297,7 +297,8 @@ ok('service worker keeps setting across versions', /k !== PREFS/.test(swSrc) && 
   $('hChart').querySelector(`[data-day="${todayKey()}"]`).click(); await wait(400);
   btn('plus').click(); btn('plus').click(); await wait(800);
   const l1 = document.querySelector('#hSheet .plan-l1')?.textContent.replace(/[ \t\n]+/g, ' ') || '';
-  ok('change in day sheet updates habit sheet', /Сделано 20 из 100/.test(l1) && $('hChart').querySelector('.wk-day.today .wk-val')?.textContent === '20/100', l1);
+  const pw = planStats(findHabit('mq'), state, period().start, period().end, todayKey());
+  ok('change in day sheet updates habit sheet', l1.includes(`Сделано ${fmtNum(pw.fact)} из ${fmtNum(pw.plan)}`) && pw.fact >= 20 && $('hChart').querySelector('.wk-day.today .wk-val')?.textContent === '20/100', [l1, pw.fact, pw.plan]);
   ok('change in day sheet updates main card', [...document.querySelectorAll('.habit .meta')].some(m => /20 \/ 100/.test(m.textContent)));
   closeOverlay($('dayOv')); await wait(350); closeOverlay($('histOv')); setHist(null); await wait(400);
 

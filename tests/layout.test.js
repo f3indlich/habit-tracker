@@ -113,7 +113,7 @@ function scanText(where, root) {
         for (const el of document.elementsFromPoint(x, y)) {
           if (el === p || p.contains(el) || el.contains(p)) break;
           if (el.closest(FLOAT) && !p.closest(FLOAT)) break;
-          if (!shown(el) || !solid(el)) continue;
+          if (!shown(el) || !solid(el) || el.matches('.spark, .shock, .confetti')) continue;
           const pin = root.contains(el) ? pinned(el, root) : null;
           if (pin && !pin.contains(p)) break;
           if (el instanceof SVGElement && (el.ownerSVGElement || el).parentElement.contains(p)) continue;

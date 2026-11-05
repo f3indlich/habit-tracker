@@ -211,11 +211,12 @@ function drawSummary() {
   paintBack($('sBack'), summaryView, range, ds, () => { summaryView.anchor = new Date(); renderSummary(); });
 
   const cur = periodStats(ds), prev = periodStats(rangeDays(range, shiftAnchor(range, summaryView.anchor, -1)));
-  const starting = historyDays() < LIMITS.startDays, empty = !starting && cur.pct == null;
+  const hd = historyDays(), starting = hd < LIMITS.startDays, empty = !starting && cur.pct == null;
   $('sBody').hidden = starting || empty;
   $('sSum').classList.toggle('muted', starting || empty);
   if (starting || empty) {
-    $('sSum').textContent = starting ? 'Сводка появится через несколько недель отметок' : emptyText(range, ds, today);
+    const left = LIMITS.startDays - hd;
+    $('sSum').textContent = starting ? `Сводка появится через ${left} ${plural(left, 'день', 'дня', 'дней')}` : emptyText(range, ds, today);
     return;
   }
   const parts = summaryParts(range, ds, cur, prev);

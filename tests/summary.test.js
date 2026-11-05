@@ -77,7 +77,7 @@ ok('legend levels match heatmap', heatLv(true, 0) === 'lv0' && heatLv(true, .49)
 
 await fresh({ habits: [{ id: 'n', name: 'Новая', icon: 'book', created: ago(2) }], log: {} });
 openSummary(); await wait(500);
-ok('too little history shows waiting text', $('sSum').textContent === 'Сводка появится через несколько недель отметок' && $('sBody').hidden);
+ok('too little history shows waiting text', $('sSum').textContent === 'Сводка появится через 5 дней' && $('sBody').hidden, $('sSum').textContent);
 const wk0 = rangeDays('week', parseKey('2026-11-02')), mo0 = rangeDays('month', parseKey('2026-11-01'));
 ok('just started period text', emptyText('week', wk0, '2026-11-02') === 'Неделя только началась' && emptyText('month', mo0, '2026-11-01') === 'Месяц только начался'
   && emptyText('week', wk0, '2026-11-03') === 'За этот период нет запланированных привычек' && emptyText('week', wk0, '2026-11-10') === 'За этот период нет запланированных привычек');

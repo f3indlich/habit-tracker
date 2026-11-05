@@ -27,6 +27,17 @@ export const EASE = 'cubic-bezier(.22, 1, .36, 1)';
 const motionQuery = matchMedia('(prefers-reduced-motion: reduce)');
 export let reducedMotion = motionQuery.matches;
 motionQuery.addEventListener?.('change', e => { reducedMotion = e.matches; });
+export const MOTION_STORE = NS + '-motion';
+export const MOTION_MODES = { calm: ['Сдержанные', 'Короткие спокойные движения, удобно на каждый день.'], vivid: ['Яркие', 'Пружины, вспышки и частицы при каждой отметке.'] };
+export const EASE_STD = 'cubic-bezier(.2, .8, .2, 1)';
+export const EASE_IN = 'cubic-bezier(.55, 0, .75, .2)';
+export const isVivid = () => document.documentElement.dataset.motion === 'vivid';
+export const mv = (calm, vivid) => isVivid() ? vivid : calm;
+const springs = {};
+export const spring = () => {
+  const m = isVivid() ? 'vivid' : 'calm';
+  return (springs[m] ||= getComputedStyle(document.documentElement).getPropertyValue('--spring').trim()) || 'ease-out';
+};
 export const RING_C = 2 * Math.PI * 22;
 export const DAY_C = 2 * Math.PI * 15.5;
 export const HERO_C = 2 * Math.PI * 36;

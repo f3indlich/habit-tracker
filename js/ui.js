@@ -1,4 +1,4 @@
-import { $, esc, isIOS, isStandalone, reducedMotion, RING_C, TEST_MODE, viewportHeight } from './core.js?v=2.3a';
+import { $, EASE, EASE_IN, EASE_STD, esc, isIOS, isStandalone, mv, reducedMotion, RING_C, spring, TEST_MODE, viewportHeight } from './core.js?v=2.3a';
 import { IC } from './icons.js?v=2.3a';
 import { reordering, setReorder } from './render.js?v=2.3a';
 import { setHist } from './history.js?v=2.3a';
@@ -12,9 +12,9 @@ export function rollNumber(slot, text, dir, animate) {
   const old = [...slot.children];
   slot.append(nu);
   if (!animate || reducedMotion || !text) { old.forEach(o => o.remove()); return; }
-  const opts = { duration: 300, easing: 'cubic-bezier(.2, .8, .2, 1)' };
+  const opts = { duration: 300, easing: EASE_STD };
   if (!old.length) {
-    nu.animate([{ opacity: 0, transform: 'scale(.5)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
+    nu.animate([{ opacity: 0, transform: 'scale(.5)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: spring() });
     return;
   }
   for (const o of old) {
@@ -54,7 +54,7 @@ export function paintSegments(svg, filled, animate) {
     s.setAttribute('stroke-dasharray', on ? full : empty);
     if (animate && !reducedMotion) {
       s.animate([{ strokeDasharray: on ? empty : full }, { strokeDasharray: on ? full : empty }],
-        { duration: on ? 320 : 200, easing: on ? 'cubic-bezier(.2, .8, .2, 1)' : 'cubic-bezier(.55, 0, .75, .2)' });
+        { duration: on ? 320 : 200, easing: on ? EASE_STD : EASE_IN });
     }
   });
 }
@@ -70,9 +70,19 @@ export function countTo(el, to, suffix = '', { from = numOf(el.textContent) ?? 0
   };
   el._raf = requestAnimationFrame(step);
 }
-export function morph(fn) {
+let lastTap = null;
+addEventListener('pointerdown', e => { lastTap = [e.clientX, e.clientY]; }, true);
+export function morph(fn, reveal = false) {
   if (reducedMotion || TEST_MODE || !document.startViewTransition || document.hidden) return fn();
-  document.startViewTransition(fn);
+  const root = document.documentElement, [x, y] = lastTap || [innerWidth / 2, innerHeight / 2];
+  if (reveal) root.classList.add('vt-reveal');
+  const t = document.startViewTransition(fn);
+  if (!reveal) return;
+  t.ready.then(() => {
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    root.animate({ clipPath: [`circle(0 at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] }, { duration: mv(420, 680), easing: EASE, pseudoElement: '::view-transition-new(root)' });
+  }).catch(() => {});
+  t.finished.finally(() => root.classList.remove('vt-reveal'));
 }
 const SEGS = '.seg, .pseg, .mini-seg';
 const picked = box => box.querySelector(':scope > [aria-pressed=true], :scope > [aria-checked=true]');
@@ -90,7 +100,7 @@ export function slidePick(box, from) {
   box.prepend(g);
   el.classList.add('seg-under');
   const a = g.animate([{ transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})` }, { transform: 'none' }],
-    { duration: 340, easing: 'cubic-bezier(.3, .9, .3, 1)' });
+    { duration: mv(280, 440), easing: mv('cubic-bezier(.3, .9, .3, 1)', spring()) });
   a.onfinish = a.oncancel = () => { g.remove(); el.classList.remove('seg-under'); };
 }
 document.addEventListener('click', e => {
@@ -100,7 +110,7 @@ document.addEventListener('click', e => {
 }, true);
 export function flash(el) {
   el.animate([{ opacity: .22, transform: 'scale(.72)' }, { opacity: 0, transform: 'scale(1)' }],
-    { duration: 420, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+    { duration: 420, easing: EASE_STD });
 }
 
 export const VGAP_MIN = 120;
@@ -148,9 +158,20 @@ document.addEventListener('click', e => {
 });
 function cascade(sheet) {
   const items = [...sheet.children].filter(e => !e.hidden && e.offsetParent !== null && !e.matches('[data-close], .tip-layer')).slice(0, 9);
-  items.forEach((e, i) => e.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }],
-    { duration: 320, delay: 70 + i * 32, easing: 'cubic-bezier(.2, .8, .2, 1)', fill: 'backwards' }));
+  items.forEach((e, i) => e.animate([{ opacity: 0, transform: mv('translateY(8px)', 'translateY(18px) scale(.97)') }, { opacity: 1, transform: 'none' }],
+    { duration: mv(260, 460), delay: mv(50, 70) + i * mv(24, 38), easing: mv(EASE_STD, spring()), fill: 'backwards' }));
 }
+function syncRecede() {
+  const on = !reducedMotion && shownOverlays().some(o => !o.classList.contains('page'));
+  if (on && !document.body.classList.contains('recede')) document.documentElement.style.setProperty('--recede-y', Math.round(scrollY + innerHeight / 2) + 'px');
+  document.body.classList.toggle('recede', on);
+}
+const flingOut = (el, dist, speed) => {
+  if (reducedMotion) return;
+  const ms = Math.round(Math.max(130, Math.min(300, dist / Math.max(speed, .6))));
+  el.style.transition = `transform ${ms}ms cubic-bezier(.2, .7, .3, 1)`;
+  setTimeout(() => { el.style.transition = ''; }, ms + 40);
+};
 export function openOverlay(ov) {
   const fresh = !ov._shown;
   if (!shownOverlays().length) window.visualViewport?.addEventListener('resize', keepFieldInView);
@@ -161,6 +182,7 @@ export function openOverlay(ov) {
   if (fresh) { ov._opener = document.activeElement; hideToast(); }
   ov._shown = true;
   ov.hidden = false;
+  syncRecede();
   document.body.classList.add('locked');
   requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); }));
   const sheet = ov.querySelector('.sheet');
@@ -174,6 +196,7 @@ export function closeOverlay(ov) {
   if (!ov._shown) return;
   ov._shown = false;
   ov.classList.remove('open');
+  syncRecede();
   if (!shownOverlays().length) {
     document.body.classList.remove('locked');
     window.visualViewport?.removeEventListener('resize', keepFieldInView);
@@ -256,9 +279,11 @@ export function addEdgeBack(ov) {
       ov.style.transform = `translateX(${Math.max(0, g.dx)}px)`;
     },
     end: (g, dt, cancel) => {
+      const leave = !cancel && (g.dx > innerWidth / 3 || (g.dx > 40 && g.dx / dt > .5));
+      if (leave) flingOut(ov, innerWidth - g.dx, g.dx / dt);
       ov.classList.remove('edging');
       ov.style.transform = '';
-      if (!cancel && (g.dx > innerWidth / 3 || (g.dx > 40 && g.dx / dt > .5))) closeVia(ov);
+      if (leave) closeVia(ov);
     },
   });
 }
@@ -282,11 +307,13 @@ export function addPullDown(ov) {
       ov.style.setProperty('--fade', Math.max(0, 1 - d / sheet.offsetHeight).toFixed(3));
     },
     end: (g, dt, cancel) => {
-      const d = g.dy - 10;
+      const d = g.dy - 10, h = sheet.offsetHeight;
+      const leave = !cancel && (d > Math.min(140, h / 3) || (d > 30 && g.dy / dt > .5));
+      if (leave) flingOut(sheet, h - d, g.dy / dt);
       sheet.classList.remove('pulling');
       sheet.style.transform = '';
       ov.style.removeProperty('--fade');
-      if (!cancel && (d > Math.min(140, sheet.offsetHeight / 3) || (d > 30 && g.dy / dt > .5))) closeVia(ov);
+      if (leave) closeVia(ov);
     },
   });
 }
@@ -486,7 +513,7 @@ export function closeMenu() {
   menuEl = null;
   if (reducedMotion) return m.remove();
   m.style.pointerEvents = 'none';
-  m.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.97)' }], { duration: 120, easing: 'cubic-bezier(.55, 0, .75, .2)' }).onfinish = () => m.remove();
+  m.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.97)' }], { duration: 120, easing: EASE_IN }).onfinish = () => m.remove();
 }
 export function openMenu(anchor, items) {
   closeMenu();

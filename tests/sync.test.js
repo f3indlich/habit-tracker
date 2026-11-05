@@ -155,6 +155,27 @@ setCount(findHabit('g'), addDays(new Date(), -5), 1);
 await wait(1000);
 ok('no uploads after sign out', !row1().data.log[ago(5)]);
 
+{
+  const keep = cloud.enabled, made = [], libTags = () => [...document.scripts].filter(s => s.src.includes('supabase-js')).length;
+  window.supabase = { createClient: () => { made.push(1); return fake; } };
+  cloud.enabled = true; cloud.sb = null;
+  await initCloud();
+  ok('signed-out start does not load Supabase', !made.length && !cloud.sb && !libTags(), [made.length, libTags()]);
+  $('setLogin').click(); await wait(200);
+  ok('opening sign-in loads Supabase', made.length === 1 && cloud.sb === fake, made.length);
+  closeOverlay($('acctOv')); await wait(400);
+  cloud.sb = null; localStorage.setItem('sb-test-auth-token', '{}');
+  await initCloud();
+  ok('saved sign-in loads Supabase at start', made.length === 2 && cloud.sb === fake, made.length);
+  localStorage.removeItem('sb-test-auth-token');
+  cloud.sb = null;
+  dispatchEvent(new StorageEvent('storage', { key: 'sb-test-auth-token', newValue: null })); await wait(100);
+  ok('sign-out in another tab does not load Supabase', made.length === 2 && !cloud.sb, made.length);
+  dispatchEvent(new StorageEvent('storage', { key: 'sb-test-auth-token', newValue: '{}' })); await wait(200);
+  ok('sign-in in another tab loads Supabase', made.length === 3 && cloud.sb === fake, made.length);
+  cloud.enabled = keep; cloud.sb = null; delete window.supabase;
+}
+
 const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content || '';
 const dir = n => (csp.split(';').map(s => s.trim().split(/\s+/)).find(p => p[0] === n) || []).slice(1);
 ok('page has a content security policy', !!csp && csp === document.head.querySelector('meta[http-equiv]').content && document.head.firstElementChild.matches('meta[charset]') && document.head.children[1].matches('meta[http-equiv="Content-Security-Policy"]'));

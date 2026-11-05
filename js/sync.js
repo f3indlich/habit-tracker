@@ -261,6 +261,45 @@ export async function deleteAccount(wipe) {
   }
 }
 
+const loadLib = () => window.supabase ? Promise.resolve() : new Promise((res, rej) => {
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.min.js';
+  s.integrity = 'sha384-D3HBLJnDxXL59BXo26GFWjGTcyxip2IVM0I+EqfCMwOhTc5jUTZxISDtfdXFaUOm';
+  s.crossOrigin = 'anonymous';
+  s.onload = res; s.onerror = () => { s.remove(); rej(new Error('Не удалось подключиться к синхронизации. Проверьте интернет')); };
+  document.head.append(s);
+});
+async function attachClient(client) {
+  if (!client) {
+    await loadLib();
+    client = window.supabase.createClient(cloudCfg.supabaseUrl, cloudCfg.supabaseKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' },
+    });
+  }
+  cloud.sb = client;
+  cloud.sb.auth.onAuthStateChange((event, s) => {
+    const was = cloud.session?.user.id;
+    cloud.session = s;
+    if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname + location.search);
+    if (s && s.user.id !== was) startSync();
+    if (!s && was) { stopSync(); lockNow(); }
+    renderAccount();
+  });
+  const { data } = await cloud.sb.auth.getSession();
+  if (data.session && !cloud.session) { cloud.session = data.session; startSync(); }
+  return cloud.sb;
+}
+let connecting = null;
+export function connectCloud(client) {
+  if (connecting) return connecting;
+  if (cloud.sb && !client) return Promise.resolve(cloud.sb);
+  return connecting = attachClient(client).finally(() => { connecting = null; });
+}
+export const AUTH_KEY = /^sb-.+-auth-token/;
+export function hasStoredLogin() {
+  try { return Object.keys(localStorage).some(k => AUTH_KEY.test(k)); } catch { return false; }
+}
+
 export async function initCloud(client) {
   if (!cloud.enabled && !client) { renderAccount(); return; }
   const fromLink = /access_token|refresh_token/.test(location.hash);
@@ -268,30 +307,7 @@ export async function initCloud(client) {
   const linkError = hashParams.get('error_code') || hashParams.get('error');
   if (linkError) history.replaceState(null, '', location.pathname);
   try {
-    if (!client) {
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.min.js';
-        s.integrity = 'sha384-D3HBLJnDxXL59BXo26GFWjGTcyxip2IVM0I+EqfCMwOhTc5jUTZxISDtfdXFaUOm';
-        s.crossOrigin = 'anonymous';
-        s.onload = res; s.onerror = () => rej(new Error('Не удалось подключиться к синхронизации. Проверьте интернет'));
-        document.head.append(s);
-      });
-      client = window.supabase.createClient(cloudCfg.supabaseUrl, cloudCfg.supabaseKey, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' },
-      });
-    }
-    cloud.sb = client;
-    cloud.sb.auth.onAuthStateChange((event, s) => {
-      const was = cloud.session?.user.id;
-      cloud.session = s;
-      if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname + location.search);
-      if (s && s.user.id !== was) startSync();
-      if (!s && was) { stopSync(); lockNow(); }
-      renderAccount();
-    });
-    const { data } = await cloud.sb.auth.getSession();
-    if (data.session && !cloud.session) { cloud.session = data.session; startSync(); }
+    if (client || fromLink || linkError || hasStoredLogin()) await connectCloud(client);
     if (fromLink && cloud.session && isIOS && !isStandalone()) { authStep = 'handoff'; openOverlay($('acctOv')); }
     else if (fromLink && cloud.session) toast(`Вы вошли как ${cloud.session.user.email}. Синхронизация включена`, null, '');
     else if (linkError && !cloud.session) {
@@ -307,9 +323,14 @@ export async function initCloud(client) {
 }
 
 addEventListener('storage', async e => {
-  if (!cloud.sb || cloud.session || !e.key?.startsWith('sb-')) return;
-  const { data } = await cloud.sb.auth.getSession();
-  if (data.session && !cloud.session) { cloud.session = data.session; startSync(); renderAccount(); }
+  if (cloud.session || !e.key?.startsWith('sb-')) return;
+  if (!cloud.sb && !(cloud.enabled && AUTH_KEY.test(e.key) && e.newValue)) return;
+  try {
+    await connectCloud();
+    const { data } = await cloud.sb.auth.getSession();
+    if (data.session && !cloud.session) { cloud.session = data.session; startSync(); }
+    renderAccount();
+  } catch (err) { setSync('error', err.message); }
 });
 
 export function sendErrorText(err) {
@@ -363,6 +384,7 @@ export function renderAccount() {
 setInterval(() => { if ($('acctOv')._shown && authStep === 'code') renderAccount(); }, 1000);
 
 export async function sendLink(email) {
+  await connectCloud();
   const { error } = await cloud.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
   if (error) throw error;
   $('acctLinkError').textContent = '';
@@ -371,7 +393,12 @@ export async function sendLink(email) {
   setTimeout(() => $('acctCode').focus(), 100);
 }
 
-$('acctBtn').onclick = () => { openOverlay($('acctOv')); renderAccount(); };
+export function openAccount() {
+  openOverlay($('acctOv'));
+  renderAccount();
+  if (cloud.enabled) connectCloud().catch(() => {}).then(renderAccount);
+}
+$('acctBtn').onclick = openAccount;
 $('acctEmailForm').onsubmit = async e => {
   e.preventDefault();
   const email = $('acctEmailInput').value.trim();
@@ -391,6 +418,7 @@ export async function signInWithCode(raw) {
   if (!value) return toast('Вставьте код входа');
   $('acctVerify').disabled = true;
   try {
+    await connectCloud();
     const { error } = /^\d{6,8}$/.test(digits)
       ? await cloud.sb.auth.verifyOtp({ email: authEmail, token: digits, type: 'email' })
       : await cloud.sb.auth.refreshSession({ refresh_token: value });

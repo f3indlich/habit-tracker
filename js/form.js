@@ -1,4 +1,4 @@
-import { $, addDays, COLORS, days, esc, scheduleOf, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=2.3a';
+import { $, addDays, COLORS, days, EASE_IN, EASE_STD, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, scheduleOf, spring, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=2.3a';
 import { guessIcon, IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=2.3a';
 import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=2.3a';
 import { findHabit, goalOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=2.3a';
@@ -76,8 +76,8 @@ export function syncPreview() {
   $('fpMeta').textContent = [goal, sched, form.time !== 'any' && time ? time.label.toLowerCase() : '', remShort()].filter(Boolean).join(' · ');
   renderRemindHint();
   if (changed && !reducedMotion) {
-    box.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.025)' }, { transform: 'scale(1)' }], { duration: 360, easing: 'cubic-bezier(.2, .8, .2, 1)' });
-    $('fpIcon').animate([{ transform: 'scale(.82) rotate(-8deg)' }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
+    box.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.025)' }, { transform: 'scale(1)' }], { duration: 360, easing: EASE_STD });
+    $('fpIcon').animate([{ transform: 'scale(.82) rotate(-8deg)' }, { transform: 'none' }], { duration: 420, easing: spring() });
   }
 }
 for (const id of ['name', 'unit']) $(id).addEventListener('input', syncPreview);
@@ -156,7 +156,7 @@ export function renderTimes(enterIndex = -1) {
     </span>`).join('')
     + (t.length < 6 ? `<button type="button" class="tadd" id="remAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Добавить</button>` : '');
   const chip = $('remTimes').querySelector(`.tchip[data-i="${enterIndex}"]`);
-  if (chip && !reducedMotion) chip.animate([{ opacity: 0, transform: 'scale(.7)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
+  if (chip && !reducedMotion) chip.animate([{ opacity: 0, transform: 'scale(.7)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: spring() });
 }
 
 export function renderRem() {
@@ -216,7 +216,7 @@ export function renderRem() {
   if (sum.textContent !== text) {
     const had = sum.textContent;
     sum.textContent = text;
-    if (had && !reducedMotion) sum.animate([{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+    if (had && !reducedMotion) sum.animate([{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: EASE_STD });
   }
 }
 export function remChanged() { form.rem.touched = true; renderRem(); syncPreview(); }
@@ -333,7 +333,7 @@ $('remTimes').addEventListener('click', e => {
   const done = () => { t.splice(i, 1); renderTimes(); remChanged(); };
   if (reducedMotion) return done();
   chip.style.pointerEvents = 'none';
-  chip.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.6)' }], { duration: 180, easing: 'cubic-bezier(.55, 0, .75, .2)' }).finished.then(done, done);
+  chip.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.6)' }], { duration: 180, easing: EASE_IN }).finished.then(done, done);
 });
 
 export function syncForm() {
@@ -418,6 +418,7 @@ $('emptyTpl').onclick = e => {
   const b = e.target.closest('button');
   if (!b) return;
   openForm();
+  $('tplField').hidden = true;
   applyTemplate(TEMPLATES[b.dataset.i]);
 };
 function applyTemplate(t) {
@@ -472,7 +473,7 @@ export function renderStep() {
   viz.innerHTML = Array.from({ length: show }, (_, i) => `<i style="flex:${i === u - 1 ? last : 1}"></i>`).join('')
     + (u > show ? `<span>+${u - show}</span>` : '');
   if (!reducedMotion && $('formOv')._shown) viz.querySelectorAll('i').forEach((el, i) => {
-    if (i >= prevN) el.animate([{ opacity: 0, transform: 'scaleY(.2)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: Math.min(i - prevN, 10) * 22, easing: 'cubic-bezier(.34, 1.56, .64, 1)', fill: 'backwards' });
+    if (i >= prevN) el.animate([{ opacity: 0, transform: 'scaleY(.2)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: Math.min(i - prevN, 10) * 22, easing: spring(), fill: 'backwards' });
   });
 }
 

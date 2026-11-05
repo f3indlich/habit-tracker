@@ -1,4 +1,4 @@
-import { $, esc, getPref, isToday, NS, reducedMotion, setPref, TEST_MODE, todayKey, viewportHeight } from './core.js?v=2.3a';
+import { $, EASE_STD, esc, getPref, isToday, NS, reducedMotion, setPref, TEST_MODE, todayKey, viewportHeight } from './core.js?v=2.3a';
 import { confirmResolve, menuEl, shownOverlays } from './ui.js?v=2.3a';
 import { reordering, viewDate } from './render.js?v=2.3a';
 import { state } from './storage.js?v=2.3a';
@@ -26,6 +26,11 @@ export const TIP_TEXT = {
   goals: { title: 'Цель со сроком', text: 'Добавьте цель, дату и шаги. Приложение покажет, сколько осталось дней, какой нужен темп и успеваете ли Вы.' },
   sync: { bar: 'Включите синхронизацию, чтобы не потерять привычки при смене телефона.' },
 };
+export const MOUSE_TIP_TEXT = {
+  hist: { title: 'История по дням', lines: [['Нажмите на день', ' — увидите подробности и сможете добавить заметку.'], ['Стрелки у названия периода', ' листают недели, месяцы и годы.']] },
+  sum: { title: 'Что значат цифры', text: 'Нажмите ⓘ рядом с показателем — откроется объяснение, как он считается. Стрелки у названия периода показывают прошлые периоды.' },
+};
+export const touchScreen = () => !!window.__touch || matchMedia('(pointer: coarse)').matches;
 const SESSION_MAX = 3;
 
 let seen = {};
@@ -103,7 +108,7 @@ export async function showTip(id, target, opts = {}) {
     if (!r) { tip = null; return false; }
   }
   if (!layer) buildLayer();
-  const t = TIP_TEXT[id], bar = !!t.bar;
+  const t = (!touchScreen() && MOUSE_TIP_TEXT[id]) || TIP_TEXT[id], bar = !!t.bar;
   layer.classList.toggle('bar', bar);
   $('tipTitle').hidden = bar;
   $('tipTitle').textContent = t.title || '';
@@ -144,7 +149,7 @@ function place(r, bar) {
 
 function nudge(el) {
   el.animate([{ transform: 'none' }, { transform: 'translateX(34px)', offset: .35 }, { transform: 'translateX(34px)', offset: .6 }, { transform: 'none' }],
-    { duration: 1100, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+    { duration: 1100, easing: EASE_STD });
 }
 
 const outside = e => { if (!e.target.closest('.tip-box')) closeTip(true); };
@@ -190,8 +195,9 @@ export function runTips() {
   const multi = visibleHabits(state).find(h => !h.archived && h.target > 1 && cardOf(h));
   if (!seen.steps && multi) { const el = cardOf(multi); return showTip('steps', [el.querySelector('.step-minus:not(.idle)'), el.querySelector('.check')]); }
   const marked = Object.keys(state.log[todayKey()] || {}).length > 0;
-  if (!seen.swipe && marked) return showTip('swipe', vis.find(e => !e.classList.contains('complete')) || vis[0], { nudge: true });
-  if (!seen.days && seen.swipe && visibleHabits(state).some(h => !h.archived && h.created < todayKey())) return showTip('days', $('days'));
+  const touch = touchScreen();
+  if (touch && !seen.swipe && marked) return showTip('swipe', vis.find(e => !e.classList.contains('complete')) || vis[0], { nudge: true });
+  if (!seen.days && (seen.swipe || !touch && marked) && visibleHabits(state).some(h => !h.archived && h.created < todayKey())) return showTip('days', $('days'));
   if (!seen.order && seen.days && vis.length >= 3) return showTip('order', vis[1]);
   if (!seen.sync && seen.mark && usedDays.length >= 5 && (cloud.enabled || cloud.sb) && !cloud.session && !$('acctBtn').hidden) return showTip('sync', $('acctBtn'));
   return false;

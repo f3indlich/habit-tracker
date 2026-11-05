@@ -101,5 +101,47 @@ await wait(1500);
   ok('finished day vibrates with its own pattern', got.length === 1 && JSON.stringify(got[0]) === JSON.stringify(CHEER) && CHEER.length > 3);
   document.querySelectorAll('.confetti').forEach(x => x.remove());
 }
+{
+  const root = document.documentElement, radios = () => [...$('motionSeg').children], pick = m => radios().find(b => b.dataset.m === m).click();
+  ok('calm animations by default', root.dataset.motion === 'calm' && radios().length === 2 && radios().find(b => b.getAttribute('aria-checked') === 'true').dataset.m === 'calm' && !!$('motionHint').textContent);
+  ok('spring eases animations', !!spring() && mv(1, 2) === 1 && confettiCount({}) === CONFETTI);
+
+  await wait(300);
+  fresh([{ id: 'x', name: 'Вода', icon: 'water', color: '#3b82f6', created: ago(10) }, { id: 'y', name: 'Чтение', icon: 'book', color: '#22c55e', created: ago(10) }]);
+  await wait(600);
+  changeCount(findHabit('x'), new Date(), 1); render(); await wait(60);
+  const card = document.querySelector('.habit[data-id="x"]');
+  ok('calm mark has no sparks', !document.querySelector('.spark') && card.getAnimations().length >= 1);
+  await wait(700);
+
+  pick('vivid'); await wait(60);
+  ok('vivid mode switches and is remembered', root.dataset.motion === 'vivid' && getPref(MOTION_STORE, '') === 'vivid' && radios().find(b => b.dataset.m === 'vivid').getAttribute('aria-checked') === 'true' && $('motionHint').textContent.includes('частицы'));
+  ok('vivid uses another spring and more confetti', spring() !== '' && mv(1, 2) === 2 && confettiCount({}) === CONFETTI_VIVID && confettiCount({ hardwareConcurrency: 4 }) === CONFETTI_VIVID / 2);
+  ok('vivid sheets are slower than calm', parseFloat(getComputedStyle(root).getPropertyValue('--dur-sheet')) === .46);
+  await wait(800);
+  document.querySelectorAll('.spark').forEach(x => x.remove());
+  changeCount(findHabit('y'), new Date(), 1); render(); await wait(60);
+  ok('vivid mark throws sparks', document.querySelectorAll('.spark').length >= 6, document.querySelectorAll('.spark').length);
+  await wait(900);
+  ok('sparks clean up', !document.querySelector('.spark'));
+
+  openSummary(); await wait(60);
+  ok('sheet makes the screen recede', document.body.classList.contains('recede') && getComputedStyle($('sSheet').closest('.overlay')).position === 'fixed');
+  await wait(600);
+  ok('vivid screen shrinks behind the sheet', document.querySelector('.wrap').getBoundingClientRect().width < document.documentElement.clientWidth * .97);
+  closeOverlay($('sumOv')); await wait(600);
+  ok('screen returns after closing', !document.body.classList.contains('recede') && getComputedStyle(document.querySelector('.wrap')).transform === 'none');
+  openOverlay($('setOv')); await wait(60);
+  ok('full pages do not recede', !document.body.classList.contains('recede'));
+  closeOverlay($('setOv')); await wait(450);
+
+  celebrate(); await wait(120);
+  ok('finished day has a shock wave in vivid', document.querySelectorAll('.shock').length === 2 && document.querySelectorAll('.confetti').length === confettiCount(), [document.querySelectorAll('.shock').length, document.querySelectorAll('.confetti').length]);
+  document.querySelectorAll('.confetti, .shock').forEach(x => x.remove());
+
+  applyMotion('nonsense');
+  ok('unknown mode falls back to calm', root.dataset.motion === 'calm');
+  setPref(MOTION_STORE, 'calm');
+}
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

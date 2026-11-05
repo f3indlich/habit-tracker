@@ -382,7 +382,35 @@ if (usesHistory(isIOS)) {
   await fresh([{ id: 'f1', name: 'Форма', icon: 'book', created: ago(5) }]);
   await runTips(); await wait(300);
   ok('header tip is skipped for people who already saw tips', tip?.id !== 'head' && !tipSeen('head'));
-  closeTip?.(false); window.__tipsOn = false;
+  closeTip?.(false); await wait(1700);
+
+  window.__touch = false;
+  resetTips(); ['mark', 'steps', 'head'].forEach(markTip);
+  await fresh([{ id: 'm1', name: 'Мышь', icon: 'book', created: ago(5) }, { id: 'm2', name: 'Клик', icon: 'book', created: ago(5) }]);
+  setCount(findHabit('m1'), new Date(), 1); render(); await wait(300);
+  await runTips(); await wait(300);
+  ok('mouse users skip the swipe tip', tip?.id === 'days' && !tipSeen('swipe'), tip?.id);
+  closeTip(false); await wait(1700);
+  markTip('days');
+  openHistory('m1'); await waitFor(() => $('histOv')._shown); await wait(350);
+  await runTips(); await wait(300);
+  ok('mouse history tip has no touch gestures', tip?.id === 'hist' && !/Смахните|Потяните/.test($('tipBody').textContent) && /Стрелки/.test($('tipBody').textContent), $('tipBody')?.textContent);
+  closeTip(false); closeOverlay($('histOv')); await wait(400);
+  window.__tipsOn = false;
+}
+
+{
+  await fresh([{ id: 'p1', name: 'Вода', icon: 'water', target: 8, created: ago(5) }, { id: 'p2', name: 'Чай', icon: 'book', created: ago(5) }]);
+  setCount(findHabit('p1'), new Date(), 3); render(); await wait(300);
+  ok('hero praises a partial start', $('heroMsg').textContent === 'Хорошее начало!', $('heroMsg').textContent);
+  setCount(findHabit('p1'), addDays(new Date(), -1), 3); viewDate = addDays(new Date(), -1); render(); await wait(300);
+  ok('past day with partial marks counts what is left', $('heroMsg').textContent === 'Не выполнено: 2', $('heroMsg').textContent);
+  viewDate = new Date(); render(); await wait(200);
+  const cap = document.querySelector('.hero-sum'), hr = $('hero').getBoundingClientRect(), cr = cap.getBoundingClientRect();
+  ok('summary caption is visible inside the hero', cap.textContent.startsWith('Сводка') && cr.height > 0 && cr.bottom <= hr.bottom && cr.right <= hr.right, [cr.bottom, hr.bottom]);
+  cap.click(); await waitFor(() => $('sumOv')._shown);
+  ok('summary caption opens the summary', $('sumOv')._shown);
+  closeOverlay($('sumOv')); await wait(400);
 }
 
 {

@@ -81,7 +81,7 @@ await wait(200);
 const tags = $('hTags');
 ok('overflowing tag row uses own class', tags.classList.contains('overflow') && !tags.classList.contains('more'), tags.className);
 ok('overflowing tag row keeps full height', tags.getBoundingClientRect().height >= 24 && tags.getBoundingClientRect().width > 300, tags.getBoundingClientRect());
-ok('card action button keeps its size', card('s').querySelector('.more').getBoundingClientRect().width === 28);
+ok('card action button keeps its size', card('s').querySelector('.more').offsetWidth === 28);
 const hb = id => $(id).getBoundingClientRect(), xb = $('hSheet').querySelector('[data-close]').getBoundingClientRect();
 ok('edit button sits between info and close', hb('hInfo').right <= hb('hEdit').left && hb('hEdit').right <= xb.left && Math.abs(hb('hEdit').top - xb.top) < 1 && hb('hEdit').width === xb.width);
 $('hEdit').click(); await wait(500);

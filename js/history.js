@@ -290,7 +290,7 @@ export function renderPlan(h, p = planStats(h, state, period().start, period().e
       ${bar.mark == null ? '' : `<span class="pb-mark pb-${markPos}" style="left:${bar.mark}%"><span>план ${fmtNum(p.plan)}</span></span>`}
       <div class="plan-bar" role="img" aria-label="Сделано ${fmtNum(p.fact)} из ${fmtNum(p.plan)}${p.over ? `, из них сверх нормы ${fmtNum(p.over)}` : ''}"><i class="pb-in" style="width:${bar.inW}%"></i>${p.over ? `<i class="pb-over" style="width:${bar.overW}%"></i>` : ''}</div>
     </div>
-    <div class="plan-lg"><span><i class="pb-dot pb-in"></i>В пределах нормы ${fmtNum(p.credited)}</span>${p.over ? `<span><i class="pb-dot pb-over"></i>Сверх нормы ${fmtNum(p.over)}</span>` : ''}</div>
+    <div class="plan-lg"><span><i class="pb-dot pb-in"></i>Вошло в норму: ${fmtNum(p.credited)}</span>${p.over ? `<span><i class="pb-dot pb-over"></i>Сверх нормы: ${fmtNum(p.over)}</span>` : ''}</div>
     ${unitChanged(h, period().start) ? '<p class="plan-note">Единица измерения менялась — старые и новые числа могут не совпадать по смыслу</p>' : ''}`;
   }
   const was = box._id === h.id ? numOf(box.querySelector('.plan-l1 b')?.textContent ?? '') : null;
@@ -530,6 +530,7 @@ export function heatmap(box, ds, cell) {
   });
   box.innerHTML = `<div class="heatwrap">${labels}<div class="hscroll">${svgEl(SW, H, s)}</div></div><div class="tip"></div>`;
   const sc = box.querySelector('.hscroll');
+  sc.querySelector('svg')?.classList.add('heat-year');
   sc.scrollLeft = Math.max(0, lastX + 8 - sc.clientWidth);
 }
 
