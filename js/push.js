@@ -1,12 +1,12 @@
-import { $, getPref, HHMM, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=2.4a';
-import { count, findHabit, goalRemindOf, normGoalRemind, normSmart, save, smartOf, state, targetOn } from './storage.js?v=2.4a';
-import { closeOverlay, openOverlay, toast } from './ui.js?v=2.4a';
-import { changeCount, render, setViewDate, viewDate } from './render.js?v=2.4a';
-import { form } from './form.js?v=2.4a';
-import { renderSettings } from './settings.js?v=2.4a';
-import { cloud, cloudCfg, renderAccount } from './sync.js?v=2.4a';
-import { isPrivate, unlocked, visibleHabits } from './privacy.js?v=2.4a';
-import { doneTaskFromPush } from './tasksui.js?v=2.4a';
+import { $, getPref, HHMM, isIOS, isStandalone, isToday, key, NOTIFY_STORE, setPref, TEST_MODE } from './core.js?v=3.0';
+import { count, findHabit, goalRemindOf, normGoalRemind, normSmart, save, smartOf, state, targetOn } from './storage.js?v=3.0';
+import { closeOverlay, openOverlay, toast } from './ui.js?v=3.0';
+import { changeCount, render, setViewDate, viewDate } from './render.js?v=3.0';
+import { form } from './form.js?v=3.0';
+import { renderSettings } from './settings.js?v=3.0';
+import { cloud, cloudCfg, renderAccount } from './sync.js?v=3.0';
+import { isPrivate, unlocked, visibleHabits } from './privacy.js?v=3.0';
+import { doneTaskFromPush } from './tasksui.js?v=3.0';
 
 export const push = {
   supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
