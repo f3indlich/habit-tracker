@@ -174,6 +174,13 @@ const flingOut = (el, dist, speed) => {
 };
 const isTabPage = ov => ov.classList.contains('tab-page');
 const FAB_LABELS = { today: 'Новая привычка', tasks: 'Новая задача', goals: 'Новая цель' };
+const TAB_ORDER = ['today', 'tasks', 'goals', 'settings'];
+function shiftHome(from, to) {
+  if (reducedMotion) return;
+  const kf = { transform: [`translateX(${from})`, `translateX(${to})`] }, o = { duration: 300, easing: 'cubic-bezier(.32, .72, 0, 1)' };
+  document.querySelector('.wrap').animate(kf, o);
+  document.body.animate(kf, { ...o, pseudoElement: '::before' });
+}
 export function syncTabs() {
   const shown = shownOverlays(), tabs = shown.filter(isTabPage), tab = tabs.length ? tabs[tabs.length - 1].dataset.tab : 'today';
   document.body.classList.toggle('tabs-off', shown.some(o => !isTabPage(o)));
@@ -197,11 +204,17 @@ export function openOverlay(ov) {
   if (fresh) { ov._opener = document.activeElement; hideToast(); }
   ov._shown = true;
   ov.hidden = false;
-  if (isTabPage(ov)) for (const o of shownOverlays()) if (o !== ov && isTabPage(o)) closeOverlay(o);
+  if (isTabPage(ov)) {
+    const from = document.body.dataset.tab, dir = TAB_ORDER.indexOf(ov.dataset.tab) < TAB_ORDER.indexOf(from) ? -1 : 1;
+    if (fresh) ov.style.setProperty('--off', `${dir * 100}%`);
+    for (const o of shownOverlays()) if (o !== ov && isTabPage(o)) { o._exit = `${-dir * 100}%`; closeOverlay(o); }
+    if (fresh && from === 'today') shiftHome('0', '-22%');
+  }
   syncRecede();
   syncTabs();
   document.body.classList.add('locked');
-  requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); }));
+  if (isTabPage(ov)) { void ov.offsetWidth; ov.classList.add('open'); }
+  else requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); }));
   const sheet = ov.querySelector('.sheet');
   if (fresh) { sheet.scrollTop = 0; hintPull(sheet); }
   if (fresh && !reducedMotion && !ov.classList.contains('page')) cascade(sheet);
@@ -212,6 +225,11 @@ export function closeOverlay(ov) {
   closeMenu();
   if (!ov._shown) return;
   ov._shown = false;
+  if (isTabPage(ov)) {
+    ov.style.setProperty('--off', ov._exit || '100%');
+    if (!ov._exit) shiftHome('-22%', '0');
+    ov._exit = null;
+  }
   ov.classList.remove('open');
   syncRecede();
   syncTabs();

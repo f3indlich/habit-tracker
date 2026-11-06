@@ -12,6 +12,7 @@ export function goToday() {
 }
 export function addForTab(tab = document.body.dataset.tab) {
   if (tab === 'goals') return openGoalForm();
+  if (tab === 'settings') goToday();
   if (tab !== 'tasks') return openForm();
   const today = todayKey();
   openTaskForm(null, tv.tab === 'month' && tv.day > today ? tv.day : today);

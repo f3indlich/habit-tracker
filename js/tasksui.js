@@ -9,7 +9,7 @@ import { dayLong, dayMarks, dayShort, dayTasks, doneHeading, isOverdue, newTaskI
 
 export const TASKS_DAY_STORE = NS + '-tasks-day', TASKS_DOTS_STORE = NS + '-tasks-dots', TASKS_LIMIT_STORE = NS + '-tasks-limit', TASKS_FOLD_STORE = NS + '-tasks-fold';
 export const TASK_LIMITS = [3, 5, 10];
-export const SWIPE_W = 124, SWIPE_W3 = 180;
+export const SWIPE_W = 152, SWIPE_W3 = 224;
 const DONE_STEP = 5;
 const IC_CHECK = '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const IC_LIST = '<svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l.8.8L6.3 5M4 12l.8.8 1.5-1.8M4 18l.8.8 1.5-1.8"/></svg>';
@@ -47,9 +47,10 @@ function metaHTML(t, mode, today) {
 }
 
 function actsHTML(t, today) {
-  const move = `<button type="button" data-act="move">${IC_MOVE}<span>Перенести</span></button>`, del = `<button type="button" data-act="del">${IC.trash}<span>Удалить</span></button>`;
-  if (t.archivedAt) return `<button type="button" data-act="restore">${IC.reset}<span>Вернуть</span></button>${del}`;
-  return isOverdue(t, today) ? `${move}<button type="button" data-act="arch">${IC.archive}<span>В архив</span></button>${del}` : move + del;
+  const act = (name, icon, label) => `<button type="button" data-act="${name}"><i>${icon}</i><span>${label}</span></button>`;
+  const move = act('move', IC_MOVE, 'Перенести'), del = act('del', IC.trash.replace(' del-ic', ''), 'Удалить');
+  if (t.archivedAt) return act('restore', IC.reset, 'Вернуть') + del;
+  return isOverdue(t, today) ? move + act('arch', IC.archive, 'В архив') + del : move + del;
 }
 
 function rowHTML(t, mode, today) {
@@ -96,7 +97,7 @@ function renderList() {
     groupHTML('Сегодня', g.today, 'none', today, { count: g.today.filter(t => !t.done).length }),
     groupHTML('Предстоящие', g.upcoming, 'when', today),
     groupHTML('Без даты', g.nodate, 'none', today),
-    doneHTML(g.done, today),
+    doneHTML(g.done.filter(t => t.doneAt !== today), today),
     archiveHTML(g.archived, today),
   ].join('');
 }
