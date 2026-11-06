@@ -157,7 +157,10 @@ ok('swipe right lands on last day of previous week', key(viewDate) === key(addDa
 await swipe(sb.left + 240, sb.left + 40);
 ok('swipe left back into this week lands on today', key(viewDate) === before, key(viewDate));
 await swipe(sb.left + 240, sb.left + 40);
-ok('cannot swipe past current week', key(viewDate) === before && !strip.style.transform, key(viewDate));
+const nextMon = key(addDays(parseKey(before), 7 - weekday(parseKey(before))));
+ok('swipe left from the current week opens next Monday', key(viewDate) === nextMon && !strip.style.transform, key(viewDate));
+await swipe(sb.left + 40, sb.left + 240);
+ok('swipe right from next week lands on today', key(viewDate) === before, key(viewDate));
 await swipe(sb.left + 100, sb.left + 130);
 ok('short swipe does nothing', key(viewDate) === before);
 {
@@ -167,7 +170,7 @@ ok('short swipe does nothing', key(viewDate) === before);
   strip.dispatchEvent(new PointerEvent('pointermove', { ...o, clientX: sb.left + 60 }));
   strip.dispatchEvent(new PointerEvent('pointermove', { ...o, clientX: sb.left + 130 }));
   const pv = peeks()[0], wkPrev = addDays(parseKey(before), -7 - weekday(parseKey(before)));
-  ok('drag shows previous week beside the strip', peeks().length === 1 && pv.querySelector('.dn').textContent == wkPrev.getDate() && pv.getBoundingClientRect().right <= strip.getBoundingClientRect().left + 1, peeks().length);
+  ok('drag shows both neighbour weeks beside the strip', peeks().length === 2 && pv.querySelector('.dn').textContent == wkPrev.getDate() && pv.getBoundingClientRect().right <= strip.getBoundingClientRect().left + 1, peeks().length);
   ok('strip follows the finger', tr.style.transform === 'translateX(90px)', tr.style.transform);
   ok('peek is not interactive', pv.inert && !pv.id && pv.querySelector('.sel') === pv.lastElementChild);
   strip.dispatchEvent(new PointerEvent('pointercancel', { ...o, clientX: sb.left + 130 }));
@@ -184,8 +187,9 @@ ok('short swipe does nothing', key(viewDate) === before);
   ok('step forward from an older week lands on its next Monday', key(viewDate) === key(addDays(sun2, 1)) && weekday(viewDate) === 0, key(viewDate));
   $('todayBtn').click(); await wait(450);
   $('next').click(); $('prev').click();
-  ok('second click finishes the first slide', key(viewDate) === before && peeks().length === 1);
+  ok('second click finishes the first slide', key(viewDate) === nextMon && peeks().length === 1, key(viewDate));
   await wait(450);
+  ok('back from next week lands on today', key(viewDate) === before, key(viewDate));
   $('todayBtn').click(); await wait(450);
   ok('today button slides back', key(viewDate) === before && !peeks().length);
 }

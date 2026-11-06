@@ -42,7 +42,7 @@ const probe = document.createElement('style');
 probe.textContent = '* { pointer-events: auto !important; } *::before, *::after { pointer-events: none !important; }';
 document.head.append(still);
 
-const FLOAT = '.fab, .toast, #toast, .tip, .menu, .pop';
+const FLOAT = '.tabbar, .tabbar *, .toast, #toast, .tip, .menu, .pop';
 const desc = el => el ? (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).join('.') : '') + (el.textContent.trim() ? ' «' + el.textContent.trim().replace(/\s+/g, ' ').slice(0, 30) + '»' : '')) : '';
 const shown = el => {
   for (let e = el; e && e !== document.documentElement; e = e.parentElement) {

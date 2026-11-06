@@ -28,8 +28,10 @@ resetTips();
 await fresh([{ id: 'z', name: 'Зарядка', icon: 'strong', color: '#22c55e', created: todayKey(), time: 'morning' }]);
 await runTips(); await wait(300);
 {
-  const heads = ['viewBtn', 'goalsBtn', 'setBtn'].map($), lines = [...$('tipBody').querySelectorAll('b')].map(b => b.textContent);
-  ok('first habit starts with the header icons tip', layerOn() && tip.id === 'head' && ['Календарь', 'Флажок', 'Шестерёнка'].every(t => lines.includes(t)) && heads.every(h => tip.els.includes(h)), [tip?.id, lines]);
+  const heads = ['tasksBtn', 'goalsBtn', 'setBtn'].map($), lines = [...$('tipBody').querySelectorAll('b')].map(b => b.textContent);
+  ok('first habit starts with the header icons tip', layerOn() && tip.id === 'head' && ['Календарь вверху', 'Цели', 'Настройки'].every(t => lines.includes(t)) && heads.every(h => tip.els.includes(h)) && !tip.els.includes($('viewBtn')), [tip?.id, lines]);
+  const hb = document.querySelector('.tip-box').getBoundingClientRect();
+  ok('sections tip stays on screen above the panel', hb.top >= 0 && hb.bottom <= $('tabbar').getBoundingClientRect().top, hb);
   ok('header icons have names for screen readers', ['viewBtn', 'goalsBtn', 'acctBtn', 'setBtn'].every(id => $(id).getAttribute('aria-label') && $(id).title));
   $('tipOk').click(); await wait(1700); await runTips(); await wait(300);
 }
@@ -156,7 +158,7 @@ ok('settings have a help group before data', groups.indexOf('Помощь') === 
 $('helpBtn').click(); await wait(500);
 ok('help page opens over settings', $('helpOv')._shown && shownOverlays().pop() === $('helpOv'));
 const rows = () => [...$('helpList').querySelectorAll('.help-item')];
-ok('help has three groups and eleven rows', $('helpList').querySelectorAll('.set-group').length === 3 && rows().length === 11, rows().length);
+ok('help has three groups and twelve rows', $('helpList').querySelectorAll('.set-group').length === 3 && rows().length === 12, rows().length);
 ok('articles start closed', rows().filter(r => r.dataset.id).every(r => r.querySelector('.help-body').hidden));
 rows()[0].querySelector('.set-row').click(); await wait(100);
 ok('tap opens an article', !rows()[0].querySelector('.help-body').hidden && rows()[0].querySelector('.set-row').getAttribute('aria-expanded') === 'true');

@@ -27,6 +27,31 @@ ok('monthly 31: February 29 in leap year', isDue(m31, P('2028-02-29'), empty) &&
 const m30 = H({ type: 'monthly', dom: 30 }), m28 = H({ type: 'monthly', dom: 28 });
 ok('monthly 30: last day of February, 30th otherwise', isDue(m30, P('2026-02-28'), empty) && isDue(m30, P('2026-04-30'), empty) && !isDue(m30, P('2026-05-31'), empty));
 ok('monthly 28: only the 28th', isDue(m28, P('2028-02-28'), empty) && !isDue(m28, P('2028-02-29'), empty) && isDue(m28, P('2026-03-28'), empty));
+{
+  const now = new Date(), first = new Date(now.getFullYear(), now.getMonth(), 1), prevLast = addDays(first, -1), prevFirst = new Date(prevLast.getFullYear(), prevLast.getMonth(), 1);
+  const nextFirst = new Date(now.getFullYear(), now.getMonth() + 1, 1), tomorrow = addDays(now, 1), prevMid = new Date(prevLast.getFullYear(), prevLast.getMonth(), 10);
+  const any = H({ type: 'monthly', dom: 0 }), st = log => ({ habits: [], log, skip: {} });
+  const earlier = addDays(now, -1), sameMonth = earlier.getMonth() === now.getMonth();
+  ok('any day: normalize keeps 0', normalize({ habits: [{ id: 'a', name: 'A', schedule: { type: 'monthly', dom: 0 } }], log: {} }).habits[0].schedule?.dom === 0);
+  ok('any day: due today while not done', isDue(any, now, empty));
+  ok('any day: stays due while done today', isDue(any, now, st({ [T]: { x: 1 } })));
+  if (sameMonth) ok('any day: not due today when done earlier this month', !isDue(any, now, st({ [key(earlier)]: { x: 1 } })));
+  ok('any day: done last month does not cover this month', isDue(any, now, st({ [key(prevMid)]: { x: 1 } })));
+  ok('any day: future days are not due', tomorrow.getMonth() !== now.getMonth() || !isDue(any, tomorrow, empty));
+  ok('any day: past month without a mark misses once, on its last day', isDue(any, prevLast, empty) && !isDue(any, prevMid, empty) && !isDue(any, prevFirst, empty));
+  ok('any day: past month with a mark has no miss', !isDue(any, prevLast, st({ [key(prevMid)]: { x: 1 } })) && isDue(any, prevMid, st({ [key(prevMid)]: { x: 1 } })));
+  const part = { ...any, target: 3 }, partLog = st({ [key(prevMid)]: { x: 1 } });
+  ok('any day: partial mark stays counted and is the only miss of the month', isDue(part, prevMid, partLog) && !isDue(part, prevLast, partLog));
+  if (sameMonth) ok('any day: partial mark earlier does not close the month', isDue(part, now, st({ [key(earlier)]: { x: 1 } })) && !isDue(part, now, st({ [key(earlier)]: { x: 3 } })));
+  ok('any day: schedule text has no day number', schedText(any) === 'раз в месяц');
+  const live = state;
+  state = st({ [T]: { x: 1 } });
+  ok('any day: next time is the first of next month once done', key(nextDue(any, now)) === key(nextFirst));
+  state = st({});
+  ok('any day: no next date while not done', nextDue(any, now) === null);
+  ok('any day: no miss badge', missBadge({ ...any, created: key(prevFirst) }) === null);
+  state = live;
+}
 ok('not due before creation or after archive', !isDue(H({ type: 'daily' }, { created: '2026-03-10' }), P('2026-03-09'), empty) && !isDue(H({ type: 'daily' }, { archived: '2026-03-10' }), P('2026-03-11'), empty) && isDue(H({ type: 'daily' }, { archived: '2026-03-10' }), P('2026-03-10'), empty));
 ok('skip does not cancel due', isDue(H({ type: 'daily' }), P('2026-03-02'), { log: {}, skip: { '2026-03-02': { x: 1 } } }));
 
@@ -38,7 +63,7 @@ ok('schedule text for old habits unchanged', schedText(old[0]) === 'Вт, Чт, 
 
 const junk = normalize({ habits: [
   { id: 'j1', name: 'a', schedule: { type: 'hourly' } }, { id: 'j2', name: 'b', schedule: { type: 'perWeek', times: 9 } },
-  { id: 'j3', name: 'c', schedule: { type: 'monthly', dom: 0 } }, { id: 'j4', name: 'd', schedule: { type: 'everyNWeeks', every: 1, days: [0] } },
+  { id: 'j3', name: 'c', schedule: { type: 'monthly', dom: 32 } }, { id: 'j4', name: 'd', schedule: { type: 'everyNWeeks', every: 1, days: [0] } },
   { id: 'j5', name: 'e', schedule: { type: 'everyNWeeks', every: 3, days: [] } }, { id: 'j6', name: 'f', schedule: 'perWeek' },
   { id: 'j7', name: 'g', schedule: { type: 'weekdays', days: [1, 2] }, days: [3] }, { id: 'j8', name: 'h', schedule: { type: 'perWeek', times: 2 }, days: [1] },
   { id: 'g1', name: 'i', schedule: { type: 'perWeek', times: 4, extra: 1 } }, { id: 'g2', name: 'j', created: '2026-02-02', schedule: { type: 'everyNWeeks', every: 2, days: [4, 0, 4, 9], anchor: 'x' } },
@@ -139,6 +164,10 @@ ok('every N weeks shows N, days and start date', vis('everyWrap') && vis('daysWr
 seg('monthly'); await wait(50);
 $('dom').value = 31; $('dom').dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
 ok('monthly shows day field and hint for 31', vis('domWrap') && !vis('daysWrap') && $('schedHint').textContent.includes('последний день'));
+$('dom').value = 0; $('dom').dispatchEvent(new Event('input', { bubbles: true })); await wait(50);
+ok('monthly accepts 0 without a hint', formSchedule().dom === 0 && $('schedHint').textContent === '' && $('dom').min === '0');
+$('dom').dispatchEvent(new Event('change', { bubbles: true }));
+ok('monthly keeps 0 after leaving the field', $('dom').value === '0');
 ok('schedule inputs at least 16px', ['dom', 'anchor'].every(id => parseFloat(getComputedStyle($(id)).fontSize) >= 16));
 seg('perWeek'); $('timesChips').querySelector('[data-v="4"]').click();
 $('name').value = 'Бассейн'; $('form').requestSubmit(); await wait(500);
@@ -147,6 +176,14 @@ ok('save perWeek', nb?.schedule?.type === 'perWeek' && nb.schedule.times === 4 &
 openForm(nb.id); await wait(500);
 ok('reopen restores perWeek', $('schedSeg').querySelector('[aria-pressed=true]').dataset.v === 'perWeek' && $('timesChips').querySelector('[aria-pressed=true]').dataset.v === '4');
 closeOverlay($('formOv')); await wait(400);
+{
+  const anyH = normalize({ habits: [{ id: 'z', name: 'Любой', created: ago(5), schedule: { type: 'monthly', dom: 0 } }], log: {} }).habits[0];
+  state.habits.push(anyH);
+  openForm('z'); await wait(500);
+  ok('reopen restores 0', $('dom').value === '0' && $('schedSeg').querySelector('[aria-pressed=true]').dataset.v === 'monthly' && $('schedHint').textContent === '', $('dom').value);
+  closeOverlay($('formOv')); await wait(400);
+  state.habits.splice(state.habits.indexOf(anyH), 1);
+}
 
 const f = findHabit('f');
 openForm('f'); await wait(500);

@@ -42,7 +42,7 @@ export async function renderAbout() {
     const d = lm && new Date(lm);
     if (!d || isNaN(d)) return;
     aboutDone = true;
-    $('appUpdated').textContent = `Обновлено ${withYear(d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }))} в ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    $('appUpdated').textContent = `Обновлено ${withYear(d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }))}`;
     $('appUpdated').hidden = false;
   } catch {}
 }
@@ -58,6 +58,7 @@ export function applyMotion(m) {
   if (!MOTION_MODES[m]) m = 'calm';
   document.documentElement.dataset.motion = m;
   $('motionSeg').innerHTML = Object.entries(MOTION_MODES).map(([id, [label]]) => `<button type="button" role="radio" aria-checked="${id === m}" data-m="${id}"><span>${label}</span></button>`).join('');
+  $('motionHintSizer').innerHTML = Object.values(MOTION_MODES).map(([, hint]) => `<p class="motion-hint">${hint}</p>`).join('');
   $('motionHint').textContent = reducedMotion ? 'В системе включено уменьшение движения, поэтому анимации отключены.' : MOTION_MODES[m][1];
 }
 $('motionSeg').onclick = e => {

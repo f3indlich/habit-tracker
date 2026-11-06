@@ -67,7 +67,7 @@ for (const [w, h] of sizes) {
   for (const [name, open, ov] of [['settings', () => $('setBtn').click(), 'setOv'], ['summary', () => openSummary(), 'sumOv'], ['form', () => openForm(), 'formOv']]) {
     open(); await wait(600);
     const o = $(ov), sheet = o.querySelector('.sheet'), sr = sheet.getBoundingClientRect();
-    const close = o.querySelector('[data-close], .page-head .icon-btn');
+    const close = o.classList.contains('tab-page') ? $('todayTab') : o.querySelector('[data-close], .page-head .icon-btn');
     const scrolls = sheet.scrollHeight <= sheet.clientHeight + 1 || ['auto', 'scroll'].includes(getComputedStyle(sheet).overflowY);
     ok(`${tag}: ${name} fits or scrolls, close visible`, sr.top >= -1 && sr.bottom <= innerHeight + 1 && scrolls && close && inView(close) && hit(close), [Math.round(sr.top), Math.round(sr.bottom), innerHeight, scrolls, close && inView(close), close && span(close), close?.className]);
     if (name === 'form') {
@@ -111,9 +111,9 @@ fe.style.maxWidth = ''; fe.style.width = w0; fe.style.height = h0; await wait(15
   ok('no shift while typing, in Safari, on Android or for status bar', vg({ typing: true }) === 0 && vg({ standalone: false }) === 0 && vg({ ios: false }) === 0 && vg({ inner: 812 }) === 0);
   const root = document.documentElement, fab = $('fab'), ov = $('histOv');
   root.style.setProperty('--vgap', '200px');
-  ok('button, sheets and toast follow the shift', getComputedStyle(fab).bottom === '-182px' && getComputedStyle(ov).bottom === '-200px' && getComputedStyle($('dayOv')).bottom === '-200px');
+  ok('button, sheets and toast follow the shift', getComputedStyle($('tabbar')).bottom === '-182px' && getComputedStyle(ov).bottom === '-200px' && getComputedStyle($('dayOv')).bottom === '-200px');
   root.style.removeProperty('--vgap');
-  ok('no shift by default', getComputedStyle(fab).bottom === '18px' && getComputedStyle(ov).bottom === '0px');
+  ok('no shift by default', getComputedStyle($('tabbar')).bottom === '18px' && getComputedStyle(ov).bottom === '0px');
   fixViewport();
   ok('desktop browser gets no shift', !root.style.getPropertyValue('--vgap'));
 }

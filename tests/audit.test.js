@@ -452,7 +452,7 @@ if (usesHistory(isIOS)) {
 }
 
 {
-  const files = ['index.html', 'app.js', 'sw.js', 'manifest.webmanifest', ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide', 'privacy', 'lock', 'plan', 'goals', 'goalsui'].map(m => `js/${m}.js`)];
+  const files = ['index.html', 'app.js', 'sw.js', 'manifest.webmanifest', ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide', 'privacy', 'lock', 'plan', 'goals', 'goalsui', 'tasks', 'tasksui', 'tabs'].map(m => `js/${m}.js`)];
   const low = /(?<![\p{L}\p{N}_])(вы|вас|вам|вами|ваш[а-я]*)(?![\p{L}\p{N}_])/gu, hits = [];
   for (const f of files) {
     const src = await fetch(f, { cache: 'no-store' }).then(r => r.text());

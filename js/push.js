@@ -6,6 +6,7 @@ import { form } from './form.js?v=2.4a';
 import { renderSettings } from './settings.js?v=2.4a';
 import { cloud, cloudCfg, renderAccount } from './sync.js?v=2.4a';
 import { isPrivate, unlocked, visibleHabits } from './privacy.js?v=2.4a';
+import { doneTaskFromPush } from './tasksui.js?v=2.4a';
 
 export const push = {
   supported: 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
@@ -193,6 +194,7 @@ $('pushTest').onclick = async () => {
   } catch (err) { toast('Не удалось показать уведомление: ' + err.message, null, ''); }
 };
 export function markDoneFromPush(id) {
+  if (String(id).startsWith('task:')) return doneTaskFromPush(String(id).slice(5));
   const h = findHabit(id);
   if (!h || h.archived || (isPrivate(h) && !unlocked)) return;
   if (!isToday(viewDate)) setViewDate(new Date());

@@ -25,6 +25,9 @@ import * as lockMod from './js/lock.js?v=2.4a';
 import * as planMod from './js/plan.js?v=2.4a';
 import * as goalsMod from './js/goals.js?v=2.4a';
 import * as goalsUi from './js/goalsui.js?v=2.4a';
+import * as tasksMod from './js/tasks.js?v=2.4a';
+import * as tasksUi from './js/tasksui.js?v=2.4a';
+import * as tabsMod from './js/tabs.js?v=2.4a';
 
 if (framedByOther(window)) {
   const app = document.createElement('div');
@@ -39,7 +42,7 @@ if (framedByOther(window)) {
 }
 
 if (TEST_MODE) {
-  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod, privacyMod, lockMod, planMod, goalsMod, goalsUi]) {
+  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod, privacyMod, lockMod, planMod, goalsMod, goalsUi, tasksMod, tasksUi, tabsMod]) {
     for (const k of Object.keys(m)) {
       const set = typeof m[k] !== 'function' && m['set' + k[0].toUpperCase() + k.slice(1)];
       try { Object.defineProperty(window, k, { configurable: true, get: () => m[k], set: set || undefined }); } catch {}

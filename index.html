@@ -85,16 +85,10 @@
     </div>
     <div class="top-actions">
       <button class="ghost icon-btn" id="viewBtn"></button>
-      <button class="ghost icon-btn" id="goalsBtn" aria-label="Цели" title="Цели"><svg class="ic" viewBox="0 0 24 24"><path d="M5.5 21V4.5M5.5 4.5h11.5l-2.5 4.25 2.5 4.25H5.5"/></svg></button>
       <button class="ghost icon-btn acct-btn" id="acctBtn" data-sync="none" aria-label="Аккаунт и синхронизация" title="Аккаунт и синхронизация">
         <svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg>
         <span class="sync-dot"></span>
       </button>
-      <button class="ghost icon-btn acct-btn" id="setBtn" data-sync="none" aria-label="Настройки" title="Настройки">
-        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-        <span class="sync-dot"></span>
-      </button>
-      <button class="primary add-btn" id="addBtn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Привычка</span></button>
     </div>
   </div>
 
@@ -133,6 +127,14 @@
     <button type="button" class="ghost icon-btn gs-x" id="gsHide" aria-label="Скрыть до завтра" title="Скрыть до завтра"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
 
+  <section class="section t-day" id="dayTasks" hidden></section>
+
+  <div class="card t-ahead" id="futureNote" hidden>
+    <b id="fnTitle"></b>
+    <p id="fnText"></p>
+    <button type="button" class="t-link" id="fnToggle"></button>
+  </div>
+
   <div id="sections"></div>
 
   <section class="archive" id="archive" hidden>
@@ -150,7 +152,16 @@
   </footer>
 </div>
 
-<button class="primary fab" id="fab"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Новая привычка</span></button>
+<nav class="tabbar" id="tabbar" aria-label="Разделы">
+  <div class="tabs-pill">
+    <i class="tab-lens" id="tabLens" aria-hidden="true"></i>
+    <button type="button" class="tab" id="todayTab" data-tab="today" title="Сегодня"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Сегодня</span></button>
+    <button type="button" class="tab" id="tasksBtn" data-tab="tasks" aria-label="Задачи" title="Задачи"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l.8.8L6.3 5M4 12l.8.8 1.5-1.8M4 18l.8.8 1.5-1.8"/></svg><span>Задачи</span><span class="t-badge" id="tasksBadge" hidden></span></button>
+    <button type="button" class="tab" id="goalsBtn" data-tab="goals" aria-label="Цели" title="Цели"><svg class="ic" viewBox="0 0 24 24"><path d="M5.5 21V4.5M5.5 4.5h11.5l-2.5 4.25 2.5 4.25H5.5"/></svg><span>Цели</span></button>
+    <button type="button" class="tab acct-btn" id="setBtn" data-tab="settings" data-sync="none" aria-label="Настройки" title="Настройки"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Настройки</span><span class="sync-dot"></span></button>
+  </div>
+  <button type="button" class="primary fab" id="fab" aria-label="Новая привычка" title="Добавить"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+</nav>
 
 <div class="overlay page" id="viewOv" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
@@ -180,8 +191,8 @@
   </div>
 </div>
 
-<div class="overlay page" id="setOv" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+<div class="overlay page tab-page" id="setOv" data-tab="settings" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="setTitle">
     <div class="page-head">
       <button class="ghost icon-btn" data-close title="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
       <h2 id="setTitle">Настройки</h2>
@@ -328,6 +339,23 @@
       </div>
     </section>
     <section class="set-group">
+      <h3>Задачи</h3>
+      <div class="set-card">
+        <div class="set-row static">
+          <span class="set-txt"><b id="tDayLbl">Показывать задачи на экране дня</b></span>
+          <button type="button" class="switch" id="tDaySwitch" role="switch" aria-checked="true" aria-labelledby="tDayLbl"><span></span></button>
+        </div>
+        <div class="set-row static">
+          <span class="set-txt"><b id="tDotsLbl">Точки в ленте дней</b></span>
+          <button type="button" class="switch" id="tDotsSwitch" role="switch" aria-checked="true" aria-labelledby="tDotsLbl"><span></span></button>
+        </div>
+        <div class="set-row static">
+          <span class="set-txt"><b id="tLimitLbl">Сколько задач показывать сразу</b></span>
+          <div class="pseg t-limit" id="tLimitSeg" role="radiogroup" aria-labelledby="tLimitLbl"></div>
+        </div>
+      </div>
+    </section>
+    <section class="set-group">
       <h3>Цвета</h3>
       <div class="set-card color-set">
         <div class="color-prev" aria-hidden="true">
@@ -341,7 +369,10 @@
     <section class="set-group">
       <h3>Анимации</h3>
       <div class="pseg pseg-theme pseg-motion" id="motionSeg" role="radiogroup" aria-label="Анимации"></div>
-      <p class="motion-hint" id="motionHint"></p>
+      <div class="motion-hint-box">
+        <div class="motion-hint-sizer" id="motionHintSizer" aria-hidden="true"></div>
+        <p class="motion-hint" id="motionHint"></p>
+      </div>
     </section>
     <section class="set-group">
       <h3>Иконки привычек</h3>
@@ -548,6 +579,7 @@
     <div class="sheet-head">
       <h2 id="formTitle">Новая привычка</h2>
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button type="submit" form="form" class="icon-btn sheet-ok" aria-label="Сохранить" title="Сохранить"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
     </div>
     <form class="form" id="form" novalidate>
       <div class="prev-dock">
@@ -621,7 +653,7 @@
         <div class="collapse" id="everyWrap"><div><div class="sched-row"><span id="everyLbl"></span></div><div class="num-chips" id="everyChips"></div>
           <label class="sched-row sched-date">С какой недели<input type="date" id="anchor" enterkeyhint="done"></label></div></div>
         <div class="collapse" id="daysWrap"><div><div class="weekdays" id="weekdays"></div></div></div>
-        <div class="collapse" id="domWrap"><div><label class="sched-row sched-dom">Число месяца<input type="number" id="dom" min="1" max="31" inputmode="numeric" enterkeyhint="done"></label></div></div>
+        <div class="collapse" id="domWrap"><div><label class="sched-row sched-dom">Число месяца<input type="number" id="dom" min="0" max="31" inputmode="numeric" enterkeyhint="done"></label></div></div>
         <p class="sched-hint" id="schedHint"></p>
       </div>
       <div class="field">
@@ -706,7 +738,6 @@
         <input type="text" id="why" enterkeyhint="done" maxlength="120" placeholder="Например: больше энергии">
       </div>
       <div class="form-actions">
-        <button type="button" data-close>Отмена</button>
         <button type="submit" class="primary" id="submit">Добавить</button>
       </div>
     </form>
@@ -840,8 +871,8 @@
   </div>
 </div>
 
-<div class="overlay page" id="goalsOv" hidden>
-  <div class="sheet" id="gSheet" role="dialog" aria-modal="true" aria-labelledby="gTitle">
+<div class="overlay page tab-page" id="goalsOv" data-tab="goals" hidden>
+  <div class="sheet" id="gSheet" role="dialog" aria-labelledby="gTitle">
     <div class="page-head g-head">
       <button class="ghost icon-btn" data-close id="gBack" title="Назад" aria-label="Назад" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
       <h2 id="gTitle">Цели</h2>
@@ -854,7 +885,6 @@
         <button type="button" data-t="done">Выполненные</button>
       </div>
       <div class="g-items" id="gItems"></div>
-      <button type="button" class="primary g-add" id="gAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Новая цель</span></button>
     </div>
     <div class="g-view" id="gGoalView" hidden></div>
   </div>
@@ -865,6 +895,7 @@
     <div class="sheet-head">
       <h2 id="gfTitle">Новая цель</h2>
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button type="submit" form="gForm" class="icon-btn sheet-ok" aria-label="Сохранить" title="Сохранить"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
     </div>
     <form class="form g-form" id="gForm" novalidate>
       <div class="field" id="gfNameField">
@@ -907,10 +938,83 @@
       </details>
       <div id="gfPrivSlot"></div>
       <div class="form-actions">
-        <button type="button" data-close>Отмена</button>
         <button type="submit" class="primary" id="gfSubmit">Создать</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="overlay page tab-page" id="tasksOv" data-tab="tasks" hidden>
+  <div class="sheet" id="tSheet" role="dialog" aria-labelledby="tTitle">
+    <div class="page-head">
+      <button class="ghost icon-btn" data-close title="Назад" aria-label="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <h2 id="tTitle">Задачи</h2>
+    </div>
+    <div class="seg t-tabs" id="tTabs" role="group" aria-label="Как показать задачи">
+      <button type="button" data-t="list">Список</button>
+      <button type="button" data-t="month">Месяц</button>
+    </div>
+    <div id="tListView">
+      <div id="tItems"></div>
+    </div>
+    <div id="tMonthView" hidden>
+      <div class="card t-cal" id="tCal"></div>
+      <h3 class="sec-h" id="tMonthHead"></h3>
+      <div class="card t-list" id="tMonthItems"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="tFormOv" hidden>
+  <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="tfTitle">
+    <div class="sheet-head">
+      <h2 id="tfTitle">Задача</h2>
+      <button class="ghost icon-btn" data-close title="Закрыть" aria-label="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button type="submit" form="tForm" class="icon-btn sheet-ok" aria-label="Сохранить" title="Сохранить"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+    </div>
+    <form class="form t-form" id="tForm" novalidate>
+      <div class="field">
+        <label class="lbl" for="tfText">Что сделать</label>
+        <input type="text" id="tfText" maxlength="200" enterkeyhint="done" autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="lbl" for="tfNote">Заметка</label>
+        <textarea id="tfNote" maxlength="1000" rows="2"></textarea>
+      </div>
+      <button type="button" class="t-date-btn" id="tfDate"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><span>Дата</span><em id="tfDateVal"></em></button>
+      <div class="t-date-btn t-time-row" id="tfTimeRow" hidden>
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        <label for="tfTime">Время</label>
+        <input type="time" id="tfTime" step="300">
+        <button type="button" class="ghost icon-btn" id="tfTimeClear" aria-label="Убрать время" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="field" id="tfRemRow" hidden>
+        <span class="lbl" id="tfRemLbl">Напоминание</span>
+        <div class="t-chips" id="tfRem" role="radiogroup" aria-labelledby="tfRemLbl"></div>
+        <p class="field-hint" id="tfRemHint"></p>
+      </div>
+      <div class="field" id="tfCalRow" hidden>
+        <button type="button" class="t-cal-btn" id="tfCal"></button>
+        <p class="field-hint" id="tfCalNote" hidden>Приложение не узнает, нажали ли Вы «Добавить» в окне iPhone. Если поменять дату, событие в календаре останется старым: его нужно будет удалить там и добавить заново.</p>
+      </div>
+      <div class="form-actions t-form-actions">
+        <button type="button" class="danger" id="tfDelete">Удалить</button>
+        <button type="button" id="tfArchive" hidden>В архив</button>
+        <button type="submit" class="primary" id="tfSubmit">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="overlay" id="tDateOv" hidden>
+  <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="tdTitle">
+    <div class="sheet-head"><h2 id="tdTitle">Когда сделать</h2></div>
+    <div class="t-chips t-chips-on" id="tdQuick"></div>
+    <div class="t-cal t-cal-flat" id="tdCal"></div>
+    <div class="form-actions t-form-actions">
+      <button type="button" data-close>Отмена</button>
+      <button type="button" class="primary" id="tdOk"></button>
+    </div>
   </div>
 </div>
 

@@ -6,7 +6,7 @@ const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') 
 const T = todayKey(), ago = n => key(addDays(new Date(), -n));
 
 const src = await (await fetch((window.__serverSrc || 'supabase/functions/send-reminders/index.ts') + '?x=' + Date.now())).text();
-const S = new parent.Function(src.replace(/^import .*$/mg, '').replace(/if \(typeof Deno[\s\S]*$/, '') + '\nreturn { pendingToday, smartDue, smartPayload, smartCfg, inQuiet, dueReminders, payloadFor, localNow, SMART_TAG, SMART_KEYS };')();
+const S = new parent.Function(src.replace(/^import .*$/mg, '').replace(/if \(typeof Deno[\s\S]*$/, '') + '\nreturn { pendingToday, smartDue, smartPayload, smartCfg, inQuiet, dueReminders, payloadFor, localNow, SMART_TAG, SMART_KEYS, taskReminders, taskFireAt, taskPayload, taskBody };')();
 
 const H = (id, extra = {}) => ({ id, name: 'Н-' + id, created: ago(60), ...extra });
 const ids = l => l.map(h => h.id).join();
@@ -21,12 +21,53 @@ const ids = l => l.map(h => h.id).join();
   const wd = (weekday(new Date()) + 1) % 7;
   const nt = S.pendingToday({ habits: [H('w', { days: [wd], schedule: { type: 'weekdays', days: [wd] } }), H('m', { schedule: { type: 'monthly', dom: new Date().getDate() === 1 ? 2 : 1 } })], log: {} }, T);
   ok('habits not scheduled today are not pending', nt.length === 0, nt);
+  {
+    const A = extra => H('m', { schedule: { type: 'monthly', dom: 0 }, ...extra }), first = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const prevDay = key(addDays(first, -1)), earlier = key(addDays(new Date(), -1)), sameMonth = earlier >= key(first);
+    ok('any day of month: pending while not done', ids(S.pendingToday({ habits: [A()], log: {} }, T)) === 'm');
+    ok('any day of month: last month does not close this one', ids(S.pendingToday({ habits: [A()], log: { [prevDay]: { m: 1 } } }, T)) === 'm');
+    ok('any day of month: done today is not pending', S.pendingToday({ habits: [A()], log: { [T]: { m: 1 } } }, T).length === 0);
+    const pa = S.pendingToday({ habits: [A({ target: 3 })], log: { [T]: { m: 1 } } }, T);
+    ok('any day of month: partial today stays pending', pa.length === 1 && pa[0].done === 1 && pa[0].target === 3, pa);
+    if (sameMonth) {
+      ok('any day of month: done earlier this month is not pending', S.pendingToday({ habits: [A()], log: { [earlier]: { m: 1 } } }, T).length === 0);
+      ok('any day of month: partial earlier stays pending', ids(S.pendingToday({ habits: [A({ target: 3 })], log: { [earlier]: { m: 1 } } }, T)) === 'm');
+    }
+    const rh = { id: 'r', name: 'R', created: '2026-01-01', schedule: { type: 'monthly', dom: 0 }, remind: { times: ['09:00'] } }, noon = new Date('2026-10-17T09:05:00Z');
+    ok('any day of month: regular reminder fires until the month is done', S.dueReminders({ habits: [rh], log: {} }, 'UTC', noon).length === 1 && S.dueReminders({ habits: [rh], log: { '2026-10-03': { r: 1 } } }, 'UTC', noon).length === 0);
+  }
   ok('archived habits are not pending', S.pendingToday({ habits: [H('x', { archived: ago(2) }), H('y', { archived: T })], log: {} }, T).length === 0);
   ok('habit created tomorrow is not pending', S.pendingToday({ habits: [H('f', { created: key(addDays(new Date(), 1)) })], log: {} }, T).length === 0);
   const pv = S.pendingToday({ habits: [H('p', { private: true }), H('o')], log: {} }, T);
   ok('pending marks private flag', pv.length === 2 && pv[0].private === true && pv[1].private === false, pv);
   const g = S.pendingToday({ habits: [H('g', { target: 3, goals: [{ until: ago(1), target: 10, unit: '' }] })], log: { [T]: { g: 3 }, [ago(1)]: { g: 3 } } }, T);
   ok('uses today goal from history', g.length === 0, g);
+}
+
+{
+  const K = (id, x = {}) => ({ id, text: 'Дело ' + id, date: '2026-10-17', time: '14:30', remind: 0, done: false, ...x });
+  const at = (iso, tasks, tz = 'UTC') => S.taskReminders({ tasks }, tz, new Date(iso)).map(r => r.id).join();
+  ok('task reminder fires at its time', at('2026-10-17T14:30:00Z', [K('a')]) === 'a');
+  ok('task reminder keeps firing inside the window', at('2026-10-17T14:59:00Z', [K('a')]) === 'a');
+  ok('task reminder stops after the window', at('2026-10-17T15:00:00Z', [K('a')]) === '');
+  ok('task reminder not before its time', at('2026-10-17T14:29:00Z', [K('a')]) === '');
+  ok('task reminder not on another day', at('2026-10-18T14:30:00Z', [K('a')]) === '');
+  ok('finished task is not reminded', at('2026-10-17T14:30:00Z', [K('a', { done: true })]) === '');
+  ok('task without reminder is not reminded', at('2026-10-17T14:30:00Z', [K('a', { remind: undefined })]) === '');
+  ok('task with bad reminder or time is skipped', at('2026-10-17T14:30:00Z', [K('a', { remind: 7 }), K('b', { time: '99:00' }), K('c', { date: 'x' })]) === '');
+  ok('15 minutes before', at('2026-10-17T14:15:00Z', [K('a', { remind: 15 })]) === 'a');
+  ok('one hour before', at('2026-10-17T13:30:00Z', [K('a', { remind: 60 })]) === 'a');
+  ok('one day before', at('2026-10-16T14:30:00Z', [K('a', { remind: 1440 })]) === 'a' && at('2026-10-17T14:30:00Z', [K('a', { remind: 1440 })]) === '');
+  const early = S.taskFireAt(K('a', { time: '00:10', remind: 60 }));
+  ok('reminder before midnight moves to the previous day', early.day === '2026-10-16' && early.min === 23 * 60 + 10, early);
+  ok('time zone of the device is used', at('2026-10-17T11:30:00Z', [K('a')], 'Europe/Moscow') === 'a');
+  const r1 = S.taskReminders({ tasks: [K('a', { remind: 60 })] }, 'UTC', new Date('2026-10-17T13:30:00Z'));
+  const p1 = S.taskPayload(r1);
+  ok('one task: title, time and done button id', p1.title === 'Дело a' && p1.body === 'Через час, в 14:30' && p1.task === true && p1.ids[0] === 'task:a' && p1.tag === 'task-a', p1);
+  const rm = S.taskReminders({ tasks: [K('a'), K('b')] }, 'UTC', new Date('2026-10-17T14:30:00Z')), pm = S.taskPayload(rm);
+  ok('several tasks go in one message', pm.title === 'Задачи: 2' && pm.body === 'Дело a, Дело b' && !pm.ids.length, pm);
+  ok('changing the time gives a new reminder key', r1[0].key !== S.taskReminders({ tasks: [K('a', { remind: 60, time: '15:00' })] }, 'UTC', new Date('2026-10-17T14:00:00Z'))[0].key);
+  ok('tasks in old data do not break reminders', S.taskReminders({}, 'UTC', new Date()).length === 0 && S.taskReminders({ tasks: 'x' }, 'UTC', new Date()).length === 0);
 }
 
 const rnd = (seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647)(7);
@@ -37,7 +78,7 @@ function randomData(n) {
     const id = 'r' + i, target = pick([1, 1, 1, 3, 8, 30]);
     const sc = pick([null, { type: 'daily' }, { type: 'weekdays', days: [pick([0, 1, 2, 3, 4, 5, 6]), pick([0, 1, 2, 3, 4, 5, 6])].sort().filter((x, j, a) => a.indexOf(x) === j) },
       { type: 'perWeek', times: pick([1, 2, 3, 5]) }, { type: 'everyNWeeks', every: pick([2, 3]), days: [pick([0, 1, 2, 3, 4, 5, 6])], anchor: ago(pick([0, 3, 9, 20])) },
-      { type: 'monthly', dom: pick([1, new Date().getDate(), 31]) }]);
+      { type: 'monthly', dom: pick([0, 1, new Date().getDate(), 31]) }]);
     const h = { id, name: 'Р' + i, target, created: ago(pick([0, 3, 12, 40])), private: rnd() < .2 };
     if (sc) { h.schedule = sc; if (sc.type === 'weekdays') h.days = sc.days; }
     if (rnd() < .15) h.archived = ago(pick([0, 2]));

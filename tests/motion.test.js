@@ -133,6 +133,21 @@ await wait(1500);
   ok('screen returns after closing', !document.body.classList.contains('recede') && getComputedStyle(document.querySelector('.wrap')).transform === 'none');
   openOverlay($('setOv')); await wait(60);
   ok('full pages do not recede', !document.body.classList.contains('recede'));
+  {
+    const group = $('motionSeg').closest('.set-group'), jumps = [];
+    for (const w of [280, 340, 393, 600]) {
+      group.style.width = w + 'px';
+      pick('calm');
+      const calm = group.offsetHeight;
+      pick('vivid');
+      const vivid = group.offsetHeight;
+      if (calm !== vivid) jumps.push([w, calm, vivid]);
+    }
+    group.style.width = '';
+    ok('switching animations does not move the blocks below', !jumps.length, jumps);
+    ok('only the current hint is visible', getComputedStyle($('motionHint')).visibility === 'visible' && $('motionHint').textContent === MOTION_MODES.vivid[1] && group.innerText.split(MOTION_MODES.calm[1]).length === 1, group.innerText);
+    document.querySelectorAll('.spark').forEach(x => x.remove());
+  }
   closeOverlay($('setOv')); await wait(450);
 
   celebrate(); await wait(120);

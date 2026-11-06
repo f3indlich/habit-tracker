@@ -61,12 +61,12 @@ $('gTabs').onclick = e => {
   gv.tab = b.dataset.t;
   renderGoals();
 };
-$('gAdd').onclick = () => openGoalForm();
 
 export function renderGoals() {
   const g = gv.id ? visibleGoal(gv.id) : null;
   if (gv.id && !g) gv.id = null;
   $('gBack').hidden = !g;
+  document.body.classList.toggle('g-detail', !!g);
   $('gMore').hidden = !g;
   $('gTitle').textContent = g ? g.title : 'Цели';
   $('gListView').hidden = !!g;
@@ -110,7 +110,6 @@ function renderList() {
   for (const b of $('gTabs').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.t === gv.tab);
   $('gItems').innerHTML = list.length ? list.map(g => cardHTML(g, today)).join('')
     : `<div class="empty g-empty"><div class="g-empty-ic">${IC_FLAG}</div><p>${gv.tab === 'active' ? 'Поставьте цель с датой. Приложение подскажет, какой нужен темп.' : 'Здесь появятся выполненные и закрытые цели.'}</p></div>`;
-  $('gAdd').hidden = gv.tab !== 'active';
 }
 
 $('gItems').onclick = e => {

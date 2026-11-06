@@ -1,10 +1,11 @@
-import { $, addDays, COLORS, days, HHMM, isToday, key, monday, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=2.4a';
+import { $, addDays, COLORS, days, HHMM, isToday, key, monday, monthDays, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=2.4a';
 import { EMOJI_TO_ICON, ICONS } from './icons.js?v=2.4a';
 import { toast } from './ui.js?v=2.4a';
 import { render } from './render.js?v=2.4a';
 import { cloud, cloudQueue } from './sync.js?v=2.4a';
 import { visibleHabits } from './privacy.js?v=2.4a';
 import { normGoals } from './goals.js?v=2.4a';
+import { normTasks } from './tasks.js?v=2.4a';
 
 export let state;
 export function load() {
@@ -63,7 +64,7 @@ export function normSchedule(s, created) {
       if (!e || !ds.length) return null;
       return { type: 'everyNWeeks', every: e, days: ds, anchor: typeof s.anchor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s.anchor) ? s.anchor : created };
     }
-    case 'monthly': { const d = int(s.dom, 1, 31); return d ? { type: 'monthly', dom: d } : null; }
+    case 'monthly': { const d = int(s.dom, 0, 31); return d === null ? null : { type: 'monthly', dom: d }; }
   }
   return null;
 }
@@ -123,6 +124,7 @@ export function normalize(s) {
   const pname = isObj(s.profile) && typeof s.profile.name === 'string' ? s.profile.name.trim().slice(0, 40) : '';
   if (pname) s.profile = { name: pname }; else delete s.profile;
   s.goals = normGoals(s.goals, seen);
+  s.tasks = normTasks(s.tasks);
   const sm = normSmart(s.smart);
   if (sm) s.smart = sm; else delete s.smart;
   const gr = normGoalRemind(s.goalRemind);
@@ -248,10 +250,27 @@ export function weekDone(h, s, weekStart) {
   return n;
 }
 export const weekRemaining = (h, s, weekStart) => Math.max(0, weekQuota(h, weekStart) - weekDone(h, s, weekStart));
+const isAnyDayOfMonth = sc => sc.type === 'monthly' && !sc.dom;
+function monthHas(h, s, d, need) {
+  const t = todayKey();
+  for (let i = 1, n = monthDays(d); i <= n; i++) {
+    const day = new Date(d.getFullYear(), d.getMonth(), i), k = key(day);
+    if (k > t) break;
+    if (inLifeKey(h, k) && (s.log[k]?.[h.id] || 0) >= need(day)) return true;
+  }
+  return false;
+}
+const monthDone = (h, s, d) => monthHas(h, s, d, day => goalOn(h, day).target);
 export function isDue(h, d, s = state) {
   const k = key(d);
   if (!inLifeKey(h, k)) return false;
   const sc = scheduleOn(h, k);
+  if (isAnyDayOfMonth(sc)) {
+    const c = s.log[k]?.[h.id] || 0, t = todayKey();
+    if (k > t) return false;
+    if (k === t) return c > 0 || !monthDone(h, s, d);
+    return c > 0 || (d.getDate() === monthDays(d) && !monthHas(h, s, d, () => 1));
+  }
   if (sc.type !== 'perWeek') return schedDue(sc, d);
   if ((s.log[k]?.[h.id] || 0) > 0) return true;
   const t = todayKey();
@@ -260,7 +279,7 @@ export function isDue(h, d, s = state) {
 }
 export function nextDue(h, from = new Date()) {
   const sc = scheduleOn(h, from);
-  if (sc.type === 'perWeek') return null;
+  if (sc.type === 'perWeek' || (isAnyDayOfMonth(sc) && !monthDone(h, state, from))) return null;
   for (let i = 1; i <= 400; i++) { const d = addDays(from, i); if (schedDue(scheduleOn(h, d), d)) return d; }
   return null;
 }
@@ -334,6 +353,7 @@ export function agoText(n) {
   return 'больше года назад';
 }
 export function missBadge(h) {
+  if (isAnyDayOfMonth(scheduleOn(h, new Date()))) return null;
   const c = count(h, new Date());
   if (c >= targetOn(h, new Date())) return null;
   const { m, last } = missRun(h);

@@ -191,7 +191,7 @@ export const goalColor = (g, i = 0) => g.color || COLORS[i % COLORS.length];
 const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(n => [n, x[n]])) : x);
 const same = (a, b) => canon(a) === canon(b);
 
-function mergeFields(b, l, r, skip) {
+export function mergeFields(b, l, r, skip) {
   const newer = num(r.updatedAt) > num(l.updatedAt) ? r : l, out = {};
   for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) {
     if (skip.includes(k)) continue;
@@ -202,7 +202,7 @@ function mergeFields(b, l, r, skip) {
   return out;
 }
 
-function mergeById(B, L, R, merge) {
+export function mergeById(B, L, R, merge) {
   const bm = new Map(B.map(x => [x.id, x])), lm = new Map(L.map(x => [x.id, x])), rm = new Map(R.map(x => [x.id, x]));
   return [...new Set([...L.map(x => x.id), ...R.map(x => x.id)])].map(id => {
     const b = bm.get(id), l = lm.get(id), r = rm.get(id);

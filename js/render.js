@@ -9,6 +9,8 @@ import { queueTips } from './tips.js?v=2.4a';
 import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=2.4a';
 import { openLockSettings } from './lock.js?v=2.4a';
 import { renderGoalStrip } from './goalsui.js?v=2.4a';
+import { dayMarks } from './tasks.js?v=2.4a';
+import { dotsOn, renderDayTasks, tasksOf } from './tasksui.js?v=2.4a';
 
 export let viewDate = new Date();
 export const cards = new Map();
@@ -22,7 +24,7 @@ export function habitMenu(anchor, id) {
     h.target > 1 && c < h.target && { icon: IC.full, label: 'Выполнить полностью', run: () => changeCount(h, viewDate, h.target) },
     h.target > 1 && c > 0 && { icon: IC.minus, label: h.step ? `Убрать ${c % h.step || h.step}` : 'Убрать одно', run: () => changeCount(h, viewDate, stepDown(h, c)) },
     c > 0 && { icon: IC.reset, label: 'Сбросить отметку', run: () => changeCount(h, viewDate, 0) },
-    (skipped || (isDue(h, viewDate) && !c && !isWeekly(h, viewDate))) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
+    key(viewDate) <= todayKey() && (skipped || (isDue(h, viewDate) && !c && !isWeekly(h, viewDate))) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
     inLife(h, key(viewDate)) && { icon: IC.note, label: noteOf(h, viewDate) ? 'Заметка' : 'Добавить заметку', run: () => openDay(id, viewDate) },
     '-',
     { icon: IC.edit, label: 'Изменить', run: () => openForm(id) },
@@ -162,6 +164,7 @@ export function setReorder(on) {
   closeMenu();
   document.body.classList.toggle('reordering', on);
   $('reorderBar').hidden = !on;
+  syncFutureNote();
   if (on) $('sections').querySelector('.section:not([hidden]) .habit:not(.leaving) .drag-handle')?.focus({ preventScroll: true });
 }
 $('reorderDone').onclick = () => setReorder(false);
@@ -324,6 +327,7 @@ export function addSwipe(el, id) {
 }
 
 export function changeCount(h, d, n, clearSkip = false, announce = false) {
+  if (key(d) > todayKey()) return;
   h = at(h, d);
   const prev = count(h, d), prevSkip = isSkipped(h, d);
   n = Math.max(0, Math.min(countCap(h.target), n));
@@ -363,6 +367,9 @@ export function updateCard(el, h) {
   el.classList.toggle('complete', done);
   el.classList.toggle('skipped', skipped);
   el.classList.toggle('offday', !due && !done);
+  const future = day > todayKey();
+  el.classList.toggle('future', future);
+  el.querySelector('.check').disabled = future;
   el.classList.toggle('has-count', c > 0);
   setIcon(el.querySelector('.hicon'), h.icon);
   const sameDay = el._day === day;
@@ -532,7 +539,7 @@ export function buildStripLayout(view) {
   for (let c = 0; c < W; c++) {
     const wk = days.slice(c * 7, c * 7 + 7), firstOf = wk.find(d => d.getDate() === 1);
     const label = firstOf || (c === 0 && !days.slice(7, 21).some(d => d.getDate() === 1) ? wk[0] : null);
-    if (label && c > end) { months += `<span class="ml" style="grid-column:${c + 2} / span 3">${mon(label)}</span>`; end = c + 2; }
+    if (label && c > end && (W <= 20 || (label.getMonth() - vd.getMonth()) % 2 === 0)) { months += `<span class="ml" style="grid-column:${c + 2} / span 3">${mon(label)}</span>`; end = c + 2; }
   }
   const wl = [0, 2, 4].map(r => `<span class="wl" style="grid-row:${r + 2}">${WEEKDAYS[r]}</span>`).join('');
   const cells = days.map((_, i) => `<i style="grid-area:${(i % 7) + 2} / ${Math.floor(i / 7) + 2}"></i>`).join('');
@@ -552,7 +559,7 @@ export function legendOff() {
 }
 export function renderLegend() {
   const v = VIEWS[document.body.dataset.view];
-  $('viewLegend').hidden = !visibleHabits(state).some(h => !h.archived) || legendOff();
+  $('viewLegend').hidden = !visibleHabits(state).some(h => !h.archived) || legendOff() || listTucked();
   $('viewLegend').classList.toggle('round', !v.cells);
   $('viewLegend').title = v.label;
   $('viewLegend').innerHTML = `<span><i class="lg3"></i>выполнено</span><span><i class="lg1"></i>частично</span>
@@ -609,6 +616,28 @@ export function removeCard(el) {
 }
 
 export let wasAllDone = null;
+let futureOpen = '';
+const dayAhead = () => key(viewDate) > todayKey();
+const listTucked = () => dayAhead() && futureOpen !== key(viewDate) && !reordering && visibleHabits(state).some(h => !h.archived);
+function syncFutureNote() {
+  const note = $('futureNote'), tucked = listTucked();
+  note.hidden = !dayAhead() || !visibleHabits(state).some(h => !h.archived);
+  $('sections').hidden = tucked;
+  if (note.hidden) return;
+  const planned = dayProgress(viewDate).total, any = activeOn(viewDate).length > 0;
+  $('fnTitle').textContent = planned ? 'Время привычек ещё не пришло' : 'На этот день привычек нет';
+  $('fnText').textContent = planned ? `Отметить их можно будет, когда наступит этот день. Запланировано: ${planned}.` : 'Ничего отмечать не нужно.';
+  $('fnToggle').hidden = !any;
+  $('fnToggle').textContent = tucked ? 'Показать привычки' : 'Скрыть привычки';
+  $('fnToggle').setAttribute('aria-expanded', !tucked);
+}
+$('fnToggle').onclick = () => {
+  futureOpen = futureOpen === key(viewDate) ? '' : key(viewDate);
+  syncFutureNote();
+  if (!$('sections').hidden && !reducedMotion) $('sections').animate({ opacity: [0, 1], transform: ['translateY(10px)', 'none'] }, { duration: 340, easing: EASE_STD });
+  renderLegend();
+  renderArchive();
+};
 export let firstRender = true, entering = 0;
 let lastOrder = '', lastDayKey = '';
 export function render() {
@@ -688,16 +717,19 @@ export function render() {
   renderPrivate(privLive, priv.filter(h => h.archived));
 
   renderHero();
+  syncFutureNote();
   firstRender = false;
   renderLegend();
   renderArchive();
   renderGoalStrip();
+  renderDayTasks();
   queueTips();
 }
 
+const FUTURE_WEEKS = 52;
 const weekStart = d => addDays(d, -weekday(d));
 function fillWeek(el, vd) {
-  const start = weekStart(vd), tk = todayKey();
+  const start = weekStart(vd), tk = todayKey(), marks = dotsOn() ? dayMarks(tasksOf(), tk) : {};
   [...el.children].forEach((b, i) => {
     const d = addDays(start, i), k = key(d), p = dayProgress(d);
     b.querySelector('.dn').textContent = d.getDate();
@@ -709,7 +741,8 @@ function fillWeek(el, vd) {
     if (perfect && !was && b._k === k && el.id === 'days' && !reducedMotion)
       b.querySelector('.dr').animate([{ transform: 'scale(1)' }, { transform: `scale(${mv(1.2, 1.36)})`, offset: .35 }, { transform: 'scale(1)' }], { duration: mv(520, 680), easing: 'cubic-bezier(.3, .7, .3, 1)' });
     b._k = k;
-    b.disabled = k > tk;
+    b.classList.toggle('has-tasks', !!marks[k]);
+    b.classList.toggle('late-tasks', !!marks[k]?.late);
     b.title = d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) + (p.total ? ` — ${p.done} из ${p.total}` : '');
     b.onclick = () => { if (k !== key(viewDate)) goTo(d); };
   });
@@ -718,7 +751,7 @@ function fillWeek(el, vd) {
 
 export function renderWeek() {
   const start = fillWeek($('days'), viewDate), tk = todayKey();
-  $('next').disabled = key(addDays(start, 6)) >= tk;
+  $('next').disabled = key(start) >= key(addDays(parseKey(tk), 7 * FUTURE_WEEKS));
   const first = firstHabitDay();
   $('prev').disabled = !first || key(start) <= first;
 }
@@ -734,7 +767,7 @@ if ('ResizeObserver' in window) {
 }
 
 export function renderHero() {
-  const p = dayProgress(viewDate), today = isToday(viewDate);
+  const p = dayProgress(viewDate), today = isToday(viewDate), future = key(viewDate) > todayKey();
   const anyHabits = visibleHabits(state).some(h => !h.archived);
   $('hero').hidden = !anyHabits;
   countTo($('heroDone'), p.done);
@@ -742,11 +775,15 @@ export function renderHero() {
   if (p.partial) $('heroPart').textContent = `и ${p.partial} частично`;
   $('heroPart').classList.toggle('off', !p.partial);
   $('heroPart').setAttribute('aria-hidden', !p.partial);
-  countTo($('heroPct'), Math.round(p.frac * 100), '%');
+  $('hero').classList.toggle('ahead', future);
+  if (future) { cancelAnimationFrame($('heroPct')._raf); $('heroPct').textContent = '—'; }
+  else countTo($('heroPct'), Math.round(p.frac * 100), '%');
   $('heroProg').style.strokeDashoffset = HERO_C * (1 - p.frac);
+  $('heroProg').style.opacity = p.frac > 0 && !future ? '' : '0';
   const left = p.total - p.done, allDone = p.total > 0 && !left;
   $('heroMsg').textContent = !p.total && !activeOn(viewDate).length ? 'Привычек ещё не было'
     : !p.total ? 'Выходной — отдыхайте'
+    : future ? 'День ещё впереди'
     : allDone ? (today ? 'Всё выполнено! 🎉' : 'Идеальный день 🎉')
     : !p.done && !p.partial ? (today ? 'Начните с простой привычки' : 'Ничего не отмечено')
     : !today ? `Не выполнено: ${left}`
@@ -760,7 +797,7 @@ export function renderHero() {
     const best = visibleHabits(state).filter(h => !h.archived).map(h => ({ h, s: streak(h) })).sort((a, b) => b.s - a.s)[0];
     if (best?.s >= 2) chips.push(`🔥 ${best.h.name} · ${streakText(best.h, best.s)}`);
   }
-  if (!chips.length) {
+  if (!chips.length && !future) {
     let done = 0, total = 0, planned = 0;
     for (let i = 0; i < 7; i++) { const d = dayProgress(addDays(viewDate, -i)); done += d.done; total += d.total; if (d.total) planned++; }
     if (planned >= 3) chips.push(`📅 За 7 дней: ${Math.round(done / total * 100)}%`);
@@ -851,7 +888,7 @@ $('archToggle').onclick = () => setArchiveOpen($('archToggle').getAttribute('ari
 
 export function renderArchive() {
   const archived = visibleHabits(state).filter(h => h.archived);
-  $('archive').hidden = !archived.length;
+  $('archive').hidden = !archived.length || listTucked();
   if (!archived.length) setArchiveOpen(false);
   $('archCount').textContent = archived.length;
   fillArchive($('archList'), archived);
@@ -959,8 +996,8 @@ export const firstHabitDay = () => [...visibleHabits(state), ...privateHabits(st
   const page = () => strip.offsetWidth + GAP;
   const target = s => {
     const d = addDays(weekStart(viewDate), s < 0 ? -1 : 7), first = firstHabitDay();
-    if (s < 0) return first && key(d) < first ? parseKey(first) : d;
-    return key(weekStart(d)) === key(weekStart(new Date())) || key(d) > todayKey() ? new Date() : d;
+    if (key(weekStart(d)) === key(weekStart(new Date()))) return new Date();
+    return s < 0 && first && key(d) < first ? parseKey(first) : d;
   };
   const move = x => { off = x; track.style.transform = x ? `translateX(${x}px)` : ''; };
   const peek = (s, d) => {
@@ -1049,12 +1086,13 @@ export const firstHabitDay = () => [...visibleHabits(state), ...privateHabits(st
   strip.addEventListener('pointercancel', end);
   strip.addEventListener('click', e => { if (swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
 
-  $('prev').onclick = () => flip(-1, target(-1));
-  $('next').onclick = () => flip(1, target(1));
-  $('todayBtn').onclick = () => flip(1, new Date());
+  $('prev').onclick = () => { flush(); flip(-1, target(-1)); };
+  $('next').onclick = () => { flush(); flip(1, target(1)); };
+  const toToday = () => flip(key(viewDate) > todayKey() ? -1 : 1, new Date());
+  $('todayBtn').onclick = toToday;
   addEventListener('keydown', e => {
     if ((e.key === 't' || e.key === 'T' || e.key === 'е' || e.key === 'Е') && !e.ctrlKey && !e.metaKey && !e.altKey
-        && !e.target.closest?.('input, textarea') && !shownOverlays().length && !isToday(viewDate)) flip(1, new Date());
+        && !e.target.closest?.('input, textarea') && !shownOverlays().length && !isToday(viewDate)) toToday();
   });
 }
 

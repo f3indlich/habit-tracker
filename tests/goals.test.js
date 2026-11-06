@@ -122,7 +122,7 @@ ok('goals page opens', $('goalsOv')._shown && !$('gListView').hidden && $('gTitl
 ok('empty state text', $('gItems').textContent.includes('Поставьте цель с датой. Приложение подскажет, какой нужен темп.'));
 ok('header button has label', $('goalsBtn').getAttribute('aria-label') === 'Цели');
 
-$('gAdd').click(); await wait(400);
+$('fab').click(); await wait(400);
 ok('form opens', $('gFormOv')._shown && $('gfTitle').textContent === 'Новая цель');
 ok('form inputs are 16px', ['gfName', 'gfDue', 'gfTotal', 'gfNote'].every(id => parseFloat(getComputedStyle($(id)).fontSize) >= 16));
 $('gfDue').value = fwd(15);
@@ -198,7 +198,7 @@ ok('escape from goal returns to list', $('goalsOv')._shown && !$('gListView').hi
 $('gTabs').querySelector('[data-t=done]').click(); await wait(100);
 ok('finished tab lists done goal', $('gItems').querySelectorAll('.g-card').length === 1 && $('gItems').textContent.includes('Выполнена'));
 $('gTabs').querySelector('[data-t=active]').click(); await wait(100);
-ok('active tab empty again', !$('gItems').querySelector('.g-card') && !$('gAdd').hidden);
+ok('active tab empty again', !$('gItems').querySelector('.g-card'));
 
 state.goals.push({ ...G({ id: 'late', title: 'Просроченная', start: ago(10), due: ago(1), steps: [] }) }, { ...G({ id: 'soon', title: 'Скоро', start: ago(1), due: fwd(3) }) }, { ...G({ id: 'later', title: 'Позже', start: ago(1), due: fwd(30) }) });
 setState(normalize(state)); save(); renderGoals(); await wait(100);

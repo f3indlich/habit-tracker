@@ -9,13 +9,14 @@ export const TIPS_STORE = NS + '-tips';
 export const USED_STORE = NS + '-used';
 export const TIPS_ON_STORE = NS + '-tips-on';
 export const HEAD_TIPS = [
-  ['viewBtn', 'Календарь', ' — сколько дней показывать на карточках: неделю, месяц, квартал или год.'],
-  ['goalsBtn', 'Флажок', ' — цели со сроком и шагами.'],
-  ['acctBtn', 'Облако', ' — вход по почте и синхронизация между устройствами.'],
-  ['setBtn', 'Шестерёнка', ' — настройки: тема, цвета, напоминания, данные.'],
+  ['viewBtn', 'Календарь вверху', ' — сколько дней показывать на карточках: неделю, месяц, квартал или год.'],
+  ['acctBtn', 'Облако вверху', ' — вход по почте и синхронизация между устройствами.'],
+  ['tasksBtn', 'Задачи', ' — разовые дела с датами.'],
+  ['goalsBtn', 'Цели', ' — цели со сроком и шагами.'],
+  ['setBtn', 'Настройки', ' — тема, цвета, напоминания, данные.'],
 ];
 export const TIP_TEXT = {
-  head: { title: 'Что за значки наверху', lines: [] },
+  head: { title: 'Что где находится', lines: [] },
   mark: { title: 'Отметьте первую привычку', text: 'Нажмите на кружок, когда выполните её. Нажмёте ещё раз — отметка снимется.' },
   steps: { title: 'Если цель — несколько раз', lines: [['Нажатие на кружок', ' — плюс один.'], ['Удержание кружка', ' — сразу вся цель.'], ['Кнопка −', ' — убрать последнее.']] },
   swipe: { bar: 'Смахните карточку вправо — выполнено. Влево — сбросить отметку.' },
@@ -90,7 +91,7 @@ function canShow(id, els) {
   if (menuEl || reordering || confirmResolve || document.visibilityState === 'hidden') return false;
   if (!els.length || !els.every(e => e?.isConnected)) return false;
   const top = shownOverlays().pop();
-  return !top || els.every(e => top.contains(e));
+  return !top || els.every(e => top.contains(e) || e.closest('#tabbar') && top.classList.contains('tab-page'));
 }
 
 export async function showTip(id, target, opts = {}) {
@@ -181,7 +182,7 @@ export function runTips() {
   const top = shownOverlays().pop();
   if (top === $('histOv')) return showTip('hist', $('hChart'));
   if (top === $('sumOv')) return showTip('sum', $('sSheet').querySelector('.tile-i'));
-  if (top === $('goalsOv')) return $('gListView').hidden ? false : showTip('goals', $('gAdd'));
+  if (top === $('goalsOv')) return $('gListView').hidden ? false : showTip('goals', $('goalsBtn'));
   if (top || !isToday(viewDate)) return false;
   const vis = [...document.querySelectorAll('#sections .habit')].filter(e => e.offsetParent !== null);
   if (!vis.length) return false;
@@ -189,7 +190,7 @@ export function runTips() {
   if (!seen.head && !seen.mark) {
     const head = HEAD_TIPS.filter(([id]) => $(id) && !$(id).hidden && $(id).offsetParent !== null);
     TIP_TEXT.head.lines = head.map(([, b, rest]) => [b, rest]);
-    if (head.length) return showTip('head', head.map(([id]) => $(id)));
+    if (head.length) return showTip('head', head.map(([id]) => $(id)).filter(e => e.closest('#tabbar')));
   }
   if (!seen.mark) return showTip('mark', vis[0].querySelector('.check'));
   const multi = visibleHabits(state).find(h => !h.archived && h.target > 1 && cardOf(h));

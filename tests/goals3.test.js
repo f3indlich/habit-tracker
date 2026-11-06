@@ -46,6 +46,13 @@ const hLog = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [ago(i), { 
 setState(normalize({ habits: [habit], log: hLog, skip: { [ago(3)]: { q: 1 } } }));
 const qs = findHabit('q');
 ok('server auto volume equals app count', S.habitFact(qs, state, ago(14), TD) === planStats(qs, state, ago(14), TD, TD).fact, [S.habitFact(qs, state, ago(14), TD), planStats(qs, state, ago(14), TD, TD).fact]);
+{
+  const anyLog = { [ago(1)]: { z: 3 }, [ago(9)]: { z: 40 }, [ago(35)]: { z: 7 }, [TD]: { z: 2 } };
+  setState(normalize({ habits: [{ id: 'z', name: 'Любой', created: ago(60), target: 40, schedule: { type: 'monthly', dom: 0 } }], log: anyLog }));
+  const zh = findHabit('z'), sv = S.habitFact(zh, state, ago(50), TD), ap = planStats(zh, state, ago(50), TD, TD).fact;
+  ok('server auto volume equals app count for any day of month', sv === ap && sv === 52, [sv, ap]);
+  setState(normalize({ habits: [habit], log: hLog, skip: { [ago(3)]: { q: 1 } } }));
+}
 const autoGoal = { id: 'ag', title: 'А', start: ago(14), due: fwd(10), status: 'active', volume: { total: 2000, done: 0, unit: '', auto: true }, habitIds: ['q'], steps: [] };
 const sn = S.goalNumbers(autoGoal, state, TD);
 ok('server pace equals app pace', sn.pace === pacePerDay(autoGoal, state, TD) && sn.unit === 'вопросов', [sn, pacePerDay(autoGoal, state, TD)]);

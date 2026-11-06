@@ -87,7 +87,7 @@ export function schedDue(sc, d) {
   switch (sc.type) {
     case 'weekdays': return sc.days.includes(weekday(d));
     case 'everyNWeeks': { const w = weekIndex(sc.anchor, d); return ((w % sc.every) + sc.every) % sc.every === 0 && sc.days.includes(weekday(d)); }
-    case 'monthly': return d.getDate() === domOn(sc.dom, d);
+    case 'monthly': return d.getDate() === (sc.dom ? domOn(sc.dom, d) : 1);
     default: return true;
   }
 }
@@ -110,7 +110,7 @@ export function schedText(h) {
     case 'weekdays': return daysText(sc.days);
     case 'perWeek': return `${sc.times} ${plural(sc.times, 'раз', 'раза', 'раз')} в неделю`;
     case 'everyNWeeks': return `${sc.every === 2 ? 'раз в две недели' : `раз в ${sc.every} ${plural(sc.every, 'неделю', 'недели', 'недель')}`}: ${daysText(sc.days)}`;
-    case 'monthly': return `раз в месяц, ${sc.dom} числа`;
+    case 'monthly': return sc.dom ? `раз в месяц, ${sc.dom} числа` : 'раз в месяц';
     default: return 'каждый день';
   }
 }

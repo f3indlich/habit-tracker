@@ -103,12 +103,23 @@ function weekLeft(h, log, today) {
   return Math.max(0, Math.min(sc.times, quota) - done);
 }
 
+const isAnyDayOfMonth = sc => sc.type === 'monthly' && !sc.dom;
+
+function monthDone(h, log, today) {
+  for (let k = today.slice(0, 8) + '01'; k <= today; k = shiftKey(k, 1)) {
+    if (inLife(h, k) && (log[k]?.[h.id] || 0) >= targetOn(h, k)) return true;
+  }
+  return false;
+}
+
 function pendingToday(data, day) {
   const log = data?.log || {}, skip = data?.skip?.[day] || {}, out = [];
   for (const h of data?.habits || []) {
     if (!h || !h.id || h.archived || !inLife(h, day) || skip[h.id]) continue;
     const sc = scheduleOn(h, day), done = log[day]?.[h.id] || 0;
-    const due = sc.type === 'perWeek' ? done > 0 || weekLeft(h, log, day) > 0 : schedDue(sc, day);
+    const due = sc.type === 'perWeek' ? done > 0 || weekLeft(h, log, day) > 0
+      : isAnyDayOfMonth(sc) ? done > 0 || !monthDone(h, log, day)
+      : schedDue(sc, day);
     if (!due) continue;
     const g = goalOn(h, day), target = targetOn(h, day);
     if (done >= target) continue;
@@ -232,7 +243,7 @@ function habitFact(h, data, from, to) {
     const c = Math.min(MAX_COUNT, Math.max(0, Math.floor(log[k]?.[h.id] || 0)));
     if (!c) continue;
     const sc = scheduleOn(h, k);
-    if (sc.type === 'perWeek' || schedDue(sc, k)) sum += c;
+    if (sc.type === 'perWeek' || isAnyDayOfMonth(sc) || schedDue(sc, k)) sum += c;
   }
   return sum;
 }
@@ -295,6 +306,39 @@ function goalPayload(list) {
   return { ...base, title: vis.length === 1 ? 'Срок цели' : 'Сроки целей', body: vis.map(goalText).join(' ') };
 }
 
+const TASK_BEFORE = [0, 15, 60, 1440];
+
+function taskFireAt(t) {
+  const at = toMin(t?.time);
+  if (at == null || !DATE_RE.test(t?.date || '') || !TASK_BEFORE.includes(t?.remind)) return null;
+  let day = t.date, min = at - t.remind;
+  while (min < 0) { day = shiftKey(day, -1); min += 1440; }
+  return { day, min };
+}
+
+function taskReminders(data, tz, now) {
+  const local = localNow(tz, now), out = [];
+  for (const t of Array.isArray(data?.tasks) ? data.tasks : []) {
+    if (!t || typeof t.id !== 'string' || t.done === true) continue;
+    const fire = taskFireAt(t);
+    if (!fire || fire.day !== local.day || local.minutes < fire.min || local.minutes - fire.min >= WINDOW_MIN) continue;
+    out.push({ id: t.id, text: String(t.text || 'Задача'), time: t.time, remind: t.remind, day: local.day, key: `task:${t.id}#${t.date}#${t.time}#${t.remind}` });
+  }
+  return out;
+}
+
+function taskBody(r) {
+  if (r.remind === 15) return `Через 15 минут, в ${r.time}`;
+  if (r.remind === 60) return `Через час, в ${r.time}`;
+  if (r.remind === 1440) return `Завтра в ${r.time}`;
+  return 'Пора сделать';
+}
+
+function taskPayload(list) {
+  if (list.length === 1) return { title: list[0].text, body: taskBody(list[0]), tag: 'task-' + list[0].id, task: true, ids: ['task:' + list[0].id] };
+  return { title: `Задачи: ${list.length}`, body: list.map(r => r.text).join(', '), tag: 'tasks-' + list[0].day, task: true, ids: [] };
+}
+
 function safeEqual(a, b) {
   const x = new TextEncoder().encode(String(a)), y = new TextEncoder().encode(String(b));
   if (x.length !== y.length) return false;
@@ -324,7 +368,7 @@ if (typeof Deno !== 'undefined') {
       : { data: [], error: null };
     if (e2) return Response.json({ error: e2.message }, { status: 500 });
 
-    const summary = { users: users.length, notified: 0, smart: 0, repeat: 0, goals: 0, sent: 0, removed: 0, failed: 0 };
+    const summary = { users: users.length, notified: 0, smart: 0, repeat: 0, goals: 0, tasks: 0, sent: 0, removed: 0, failed: 0 };
     for (const row of rows) {
       const list = byUser.get(row.user_id);
       const latestSub = [...list].sort((a, b) => String(b.last_seen).localeCompare(String(a.last_seen)))[0];
@@ -363,13 +407,20 @@ if (typeof Deno !== 'undefined') {
           if (!dup) goals.push(g);
         }
       }
-      if (!fresh.length && !smart && !goals.length) continue;
+      const tasks = [];
+      for (const t of taskReminders(row.data, tz, now)) {
+        const { error: dup } = await db.from('push_log').insert({ user_id: row.user_id, habit_id: t.key, day: t.day });
+        if (!dup) tasks.push(t);
+      }
+      if (!fresh.length && !smart && !goals.length && !tasks.length) continue;
       summary.notified++;
       if (smart) summary[smart.kind === 'evening' ? 'smart' : 'repeat']++;
       summary.goals += goals.length;
+      summary.tasks += tasks.length;
       const bodies = [];
       if (fresh.length || smart) bodies.push(JSON.stringify({ ...(smart ? smartPayload(smart.list) : payloadFor(fresh)), url: './' }));
       if (goals.length) bodies.push(JSON.stringify({ ...goalPayload(goals), url: './' }));
+      if (tasks.length) bodies.push(JSON.stringify({ ...taskPayload(tasks), url: './' }));
       let delivered = 0, transient = 0;
       for (const s of list) {
         for (const body of bodies) {
@@ -391,6 +442,7 @@ if (typeof Deno !== 'undefined') {
         for (const h of fresh) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', h.day).in('habit_id', h.slotKeys);
         if (smart) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', smart.day).eq('habit_id', smart.key);
         for (const g of goals) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', g.day).eq('habit_id', g.key);
+        for (const t of tasks) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', t.day).eq('habit_id', t.key);
       }
     }
 

@@ -7,6 +7,7 @@ import { hist, renderHistory, setHist } from './history.js?v=2.4a';
 import { pushDisable, pushRefresh, renderPush } from './push.js?v=2.4a';
 import { lockNow } from './lock.js?v=2.4a';
 import { mergeGoals as mergeGoalList } from './goals.js?v=2.4a';
+import { mergeTasks } from './tasks.js?v=2.4a';
 
 export const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
 cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');
@@ -31,7 +32,7 @@ export const delFailText = () => 'Не удалось удалить аккау�
 export const emailMatches = (input, email) => { const a = String(input ?? '').trim().toLowerCase(); return !!a && a === String(email ?? '').trim().toLowerCase(); };
 export const isAccountGone = e => !!e && (e.code === 'user_not_found' || String(e.code) === '23503' || /User from sub claim in JWT does not exist/i.test(e.message || ''));
 
-export const emptyState = () => ({ habits: [], categories: [], log: {}, skip: {}, notes: {}, goals: [] });
+export const emptyState = () => ({ habits: [], categories: [], log: {}, skip: {}, notes: {}, goals: [], tasks: [] });
 export const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(n => [n, x[n]])) : x);
 export const same = (a, b) => canon(a) === canon(b);
 export function loadBase() {
@@ -88,8 +89,11 @@ export function mergeStates(base, local, remote) {
     smart: same(local.smart, base.smart) ? remote.smart : local.smart,
     goalRemind: same(local.goalRemind, base.goalRemind) ? remote.goalRemind : local.goalRemind,
     goals: mergeGoalList(base.goals, local.goals, remote.goals),
+    tasks: mergeTasks(base.tasks, local.tasks, remote.tasks),
   };
 }
+
+export const keepTasksFromOldApp = (raw, remote, local) => Array.isArray(raw?.tasks) ? remote : { ...remote, tasks: local.tasks || [] };
 
 export function applyState(next) {
   cloud.applying = true;
@@ -124,7 +128,7 @@ export async function cloudPull() {
   }
   if (row.version === base.version) return !same(state, base.data);
   const remote = normalize(row.data);
-  const merged = normalize(mergeStates(base.data, state, remote));
+  const merged = normalize(mergeStates(base.data, state, keepTasksFromOldApp(row.data, remote, state)));
   saveBase(row.version, remote);
   if (!same(merged, state)) applyState(merged);
   return !same(merged, remote);

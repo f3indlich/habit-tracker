@@ -54,7 +54,7 @@ export function schedHint() {
   switch (form.sched) {
     case 'perWeek': return 'В любые удобные дни с понедельника по воскресенье. Когда наберёте нужное число раз, до конца недели привычки не будет в списке на день.';
     case 'everyNWeeks': return `Привычка будет в списке в неделю с выбранной датой, а дальше — ${form.every === 2 ? 'через неделю' : `раз в ${form.every} ${plural(form.every, 'неделю', 'недели', 'недель')}`}.`;
-    case 'monthly': return form.dom > 28 ? `В месяцах без ${form.dom} числа — в последний день месяца.` : `Каждый месяц ${form.dom} числа.`;
+    case 'monthly': return !form.dom ? '' : form.dom > 28 ? `В месяцах без ${form.dom} числа — в последний день месяца.` : `Каждый месяц ${form.dom} числа.`;
     default: return '';
   }
 }
@@ -381,7 +381,7 @@ pick($('schedSeg'), v => {
 pick($('timesChips'), v => form.times = +v);
 pick($('everyChips'), v => form.every = +v);
 $('anchor').addEventListener('change', () => { if (/^\d{4}-\d{2}-\d{2}$/.test($('anchor').value)) form.anchor = $('anchor').value; syncForm(); });
-$('dom').addEventListener('input', () => { const n = parseInt($('dom').value); if (n >= 1 && n <= 31) { form.dom = n; syncForm(); } });
+$('dom').addEventListener('input', () => { const n = parseInt($('dom').value); if (n >= 0 && n <= 31) { form.dom = n; syncForm(); } });
 $('dom').addEventListener('change', () => { $('dom').value = form.dom; });
 pick($('timeSeg'), v => form.time = v);
 pick($('catChips'), v => {
@@ -515,7 +515,7 @@ export function openForm(id = null, priv = false) {
     : { icon: 'check', color: nextColor(), goal: 'once', sched: 'daily', days: [0, 1, 2, 3, 4], time: 'any', cat: null },
     { newCat: false, iconPicked: !!h });
   const sc = h ? scheduleOf(h) : { type: 'daily' }, FORM_OF_SCHED = { daily: 'daily', weekdays: 'days', perWeek: 'perWeek', everyNWeeks: 'everyNWeeks', monthly: 'monthly' };
-  Object.assign(form, { sched: FORM_OF_SCHED[sc.type], days: sc.days ? [...sc.days] : [0, 1, 2, 3, 4], times: sc.times || 3, every: sc.every || 2, anchor: sc.anchor || todayKey(), dom: sc.dom || new Date().getDate() });
+  Object.assign(form, { sched: FORM_OF_SCHED[sc.type], days: sc.days ? [...sc.days] : [0, 1, 2, 3, 4], times: sc.times || 3, every: sc.every || 2, anchor: sc.anchor || todayKey(), dom: sc.dom ?? new Date().getDate() });
   $('newCatName').value = '';
   $('name').value = h?.name || '';
   $('name').removeAttribute('aria-invalid');
@@ -609,8 +609,6 @@ $('catNewAdd').onclick = () => {
 };
 $('catNewName').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); $('catNewAdd').click(); } };
 
-$('addBtn').onclick = () => openForm();
-$('fab').onclick = () => openForm();
 $('emptyAdd').onclick = () => openForm();
 
 $('form').onsubmit = async e => {

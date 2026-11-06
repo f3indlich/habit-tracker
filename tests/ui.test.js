@@ -46,15 +46,12 @@ hideToast();
 for (let i = 0; i < 8; i++) { state.habits.push({ id: 'x' + i, name: 'Привычка ' + i, icon: 'check', target: 1, color: '#64748b', created: c0 }); }
 state = normalize(state); render(); await wait(400);
 scrollTo(0, 0); await wait(100); scrollTo(0, 400); await wait(150);
-ok('fab hides on scroll down', document.body.classList.contains('fab-away'));
-scrollTo(0, 300); await wait(150);
-ok('fab returns on scroll up', !document.body.classList.contains('fab-away'));
-scrollTo(0, 500); await wait(150); scrollTo(0, 0); await wait(150);
-ok('fab visible at top', !document.body.classList.contains('fab-away'));
+ok('tab bar stays on scroll', getComputedStyle($('tabbar')).opacity === '1' && $('fab').getBoundingClientRect().width > 0);
+scrollTo(0, 0); await wait(150);
 
 renderSettings(); openOverlay($('setOv')); await wait(500);
 const order = [...$('setOv').querySelectorAll('.set-group > h3')].map(h => h.textContent);
-ok('settings order', order.join(',') === 'Тема,Профиль,Напоминания,Привычки,Цели,Цвета,Анимации,Иконки привычек,Помощь,Данные', order);
+ok('settings order', order.join(',') === 'Тема,Профиль,Напоминания,Привычки,Цели,Задачи,Цвета,Анимации,Иконки привычек,Помощь,Данные', order);
 ok('theme compact', $('themeSeg').querySelector('button').getBoundingClientRect().height <= 36);
 ok('account group visible without login', !$('setAcctGroup').hidden && !$('setName').hidden && $('setCloudIn').hidden);
 ok('name shows not set', $('setNameVal').textContent === 'Не указано', $('setNameVal').textContent);
@@ -108,7 +105,7 @@ const hl = $('hello'), dt = hl.querySelector('.hello-date');
 ok('greeting has numeric date', /^\d{2}\.\d{2}\.\d{4} г\.$/.test(dt?.textContent) && hl.textContent.includes(', Андрей · '), hl.textContent);
 ok('greeting fits one line in full', hl.getBoundingClientRect().height < 22 && hl.scrollWidth <= hl.clientWidth + 1 && getComputedStyle(hl).textOverflow !== 'ellipsis', { h: hl.getBoundingClientRect().height, sw: hl.scrollWidth, cw: hl.clientWidth });
 ok('greeting spans full header width', Math.abs(hl.getBoundingClientRect().right - document.querySelector('.top').getBoundingClientRect().right) < 1);
-const tr = $('title').getBoundingClientRect(), sb = $('setBtn').getBoundingClientRect();
+const tr = $('title').getBoundingClientRect(), sb = $('acctBtn').getBoundingClientRect();
 ok('title and buttons share a row', Math.abs((tr.top + tr.bottom) / 2 - (sb.top + sb.bottom) / 2) < 8, { title: tr.top, btn: sb.top });
 state.profile = { name: 'Александра Константиновна' }; render();
 ok('long name keeps date whole', hl.querySelector('.hello-date').getClientRects().length === 1 && getComputedStyle(hl).overflow !== 'hidden', hl.getBoundingClientRect().height);
@@ -145,7 +142,7 @@ ok('about version', /^\d+\.\d{1,2}[a-z]?$/.test(ver) && $('appVersion').textCont
 {
   const lm = await fetch(APP_SRC).then(r => r.headers.get('last-modified')).catch(() => null);
   if (lm) await waitFor(() => !$('appUpdated').hidden);
-  ok('about updated date', lm ? !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} г\. в \d\d:\d\d$/.test($('appUpdated').textContent) : $('appUpdated').hidden, [lm, $('appUpdated').textContent]);
+  ok('about updated date', lm ? !$('appUpdated').hidden && /^Обновлено \d{1,2} [а-я]+ \d{4} г\.$/.test($('appUpdated').textContent) : $('appUpdated').hidden, [lm, $('appUpdated').textContent]);
 }
 ok('about has no filler note', !$('setOv').querySelector('.about-txt small'));
 ok('about is last in data block', $('importFile').nextElementSibling.classList.contains('app-about'));

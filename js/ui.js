@@ -172,6 +172,21 @@ const flingOut = (el, dist, speed) => {
   el.style.transition = `transform ${ms}ms cubic-bezier(.2, .7, .3, 1)`;
   setTimeout(() => { el.style.transition = ''; }, ms + 40);
 };
+const isTabPage = ov => ov.classList.contains('tab-page');
+const FAB_LABELS = { today: 'Новая привычка', tasks: 'Новая задача', goals: 'Новая цель' };
+export function syncTabs() {
+  const shown = shownOverlays(), tabs = shown.filter(isTabPage), tab = tabs.length ? tabs[tabs.length - 1].dataset.tab : 'today';
+  document.body.classList.toggle('tabs-off', shown.some(o => !isTabPage(o)));
+  const moved = document.body.dataset.tab !== tab && !!document.body.dataset.tab;
+  document.body.dataset.tab = tab;
+  [...$('tabbar').querySelectorAll('[data-tab]')].forEach((b, i) => {
+    if (b.dataset.tab !== tab) return b.removeAttribute('aria-current');
+    b.setAttribute('aria-current', 'page');
+    $('tabLens').style.setProperty('--tab-i', i);
+  });
+  if (moved && !reducedMotion) $('tabLens').animate({ scale: [1, '1.16 .92', 1] }, { duration: 420, easing: EASE_STD });
+  if (FAB_LABELS[tab]) $('fab').setAttribute('aria-label', FAB_LABELS[tab]);
+}
 export function openOverlay(ov) {
   const fresh = !ov._shown;
   if (!shownOverlays().length) window.visualViewport?.addEventListener('resize', keepFieldInView);
@@ -182,7 +197,9 @@ export function openOverlay(ov) {
   if (fresh) { ov._opener = document.activeElement; hideToast(); }
   ov._shown = true;
   ov.hidden = false;
+  if (isTabPage(ov)) for (const o of shownOverlays()) if (o !== ov && isTabPage(o)) closeOverlay(o);
   syncRecede();
+  syncTabs();
   document.body.classList.add('locked');
   requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); }));
   const sheet = ov.querySelector('.sheet');
@@ -197,6 +214,7 @@ export function closeOverlay(ov) {
   ov._shown = false;
   ov.classList.remove('open');
   syncRecede();
+  syncTabs();
   if (!shownOverlays().length) {
     document.body.classList.remove('locked');
     window.visualViewport?.removeEventListener('resize', keepFieldInView);
@@ -223,11 +241,12 @@ addEventListener('keydown', e => {
   if (e.key !== 'Tab') return;
   const ov = shownOverlays().pop();
   if (!ov) return;
-  const items = [...ov.querySelectorAll('button, input, textarea, [tabindex="0"]')].filter(x => !x.disabled && x.offsetParent && !x.closest('[inert]'));
+  const scope = isTabPage(ov) ? [ov, $('tabbar')] : [ov];
+  const items = scope.flatMap(el => [...el.querySelectorAll('button, input, textarea, [tabindex="0"]')]).filter(x => !x.disabled && x.offsetParent && !x.closest('[inert]'));
   if (!items.length) return;
   const first = items[0], last = items[items.length - 1];
   if (e.shiftKey && (document.activeElement === first || !ov.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
-  else if (!e.shiftKey && (document.activeElement === last || !ov.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+  else if (!e.shiftKey && (document.activeElement === last || !items.includes(document.activeElement) && !ov.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
 });
 for (const ov of document.querySelectorAll('.overlay')) {
   ov.addEventListener('click', e => {
@@ -269,7 +288,7 @@ export const EDGE = 24;
 
 export function addEdgeBack(ov) {
   trackTouch(ov, {
-    start: g => isTop(ov) && g.x0 <= EDGE,
+    start: g => isTop(ov) && g.x0 <= EDGE && (!isTabPage(ov) || !!ov.querySelector('[data-close]')?.offsetParent),
     move: g => {
       if (!g.lock) {
         if (Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy)) { g.lock = 'x'; ov.classList.add('edging'); }
@@ -453,7 +472,7 @@ export function toast(text, action, label = 'Отменить') {
 }
 export function toastLift() {
   const ov = shownOverlays().pop();
-  if (!ov) return '';
+  if (!ov || isTabPage(ov)) return '';
   const vh = innerHeight, zone = vh - 160;
   let top = vh;
   for (const el of ov.querySelectorAll('button, input, textarea, select, [role=button]')) {
@@ -497,14 +516,6 @@ export const endToastSwipe = e => {
 };
 $('toast').addEventListener('pointerup', endToastSwipe);
 $('toast').addEventListener('pointercancel', endToastSwipe);
-
-export let fabY = scrollY;
-addEventListener('scroll', () => {
-  const y = scrollY, d = y - fabY;
-  if (Math.abs(d) < 8 && y > 80) return;
-  document.body.classList.toggle('fab-away', d > 0 && y > 80);
-  fabY = y;
-}, { passive: true });
 
 export let menuEl = null;
 export function closeMenu() {
