@@ -1,5 +1,5 @@
-import { addDays, HHMM, key, monday, parseKey, todayKey, WEEKDAYS, weekday, withYear } from './core.js?v=3.0';
-import { mergeById, mergeFields, newId } from './goals.js?v=3.0';
+import { addDays, HHMM, key, monday, parseKey, todayKey, WEEKDAYS, weekday, withYear } from './core.js?v=3.1';
+import { mergeById, mergeFields, newId } from './goals.js?v=3.1';
 
 export const TASK_LIM = { text: 200, note: 1000, total: 1000, doneDays: 180 };
 export const newTaskId = () => newId('t');

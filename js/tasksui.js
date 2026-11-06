@@ -1,11 +1,11 @@
-import { $, addDays, esc, getPref, isIOS, isStandalone, isVivid, key, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday } from './core.js?v=3.0';
-import { IC } from './icons.js?v=3.0';
-import { save, state } from './storage.js?v=3.0';
-import { askConfirm, closeMenu, closeOverlay, openOverlay, toast } from './ui.js?v=3.0';
-import { render, sparks, viewDate } from './render.js?v=3.0';
-import { queueTips } from './tips.js?v=3.0';
-import { pushState } from './push.js?v=3.0';
-import { dayLong, dayMarks, dayShort, dayTasks, doneHeading, isOverdue, newTaskId, nextMonday, pendingToday, TASK_LIM, TASK_REMINDS, taskGroups, taskIcs, taskWhen, tomorrowOf } from './tasks.js?v=3.0';
+import { $, addDays, esc, getPref, isIOS, isStandalone, isVivid, key, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday } from './core.js?v=3.1';
+import { IC } from './icons.js?v=3.1';
+import { save, state } from './storage.js?v=3.1';
+import { askConfirm, closeMenu, closeOverlay, openOverlay, toast } from './ui.js?v=3.1';
+import { render, sparks, viewDate } from './render.js?v=3.1';
+import { queueTips } from './tips.js?v=3.1';
+import { pushState } from './push.js?v=3.1';
+import { dayLong, dayMarks, dayShort, dayTasks, doneHeading, isOverdue, newTaskId, nextMonday, pendingToday, TASK_LIM, TASK_REMINDS, taskGroups, taskIcs, taskWhen, tomorrowOf } from './tasks.js?v=3.1';
 
 export const TASKS_DAY_STORE = NS + '-tasks-day', TASKS_DOTS_STORE = NS + '-tasks-dots', TASKS_LIMIT_STORE = NS + '-tasks-limit', TASKS_FOLD_STORE = NS + '-tasks-fold';
 export const TASK_LIMITS = [3, 5, 10];

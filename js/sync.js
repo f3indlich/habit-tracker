@@ -1,13 +1,13 @@
-import { $, isIOS, isStandalone, NS, PRIVACY_EMAIL, TEST_MODE } from './core.js?v=3.0';
-import { findHabit, normalize, save, setState, state } from './storage.js?v=3.0';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=3.0';
-import { render } from './render.js?v=3.0';
-import { pick } from './form.js?v=3.0';
-import { hist, renderHistory, setHist } from './history.js?v=3.0';
-import { pushDisable, pushRefresh, renderPush } from './push.js?v=3.0';
-import { lockNow } from './lock.js?v=3.0';
-import { mergeGoals as mergeGoalList } from './goals.js?v=3.0';
-import { mergeTasks } from './tasks.js?v=3.0';
+import { $, isIOS, isStandalone, NS, PRIVACY_EMAIL, TEST_MODE } from './core.js?v=3.1';
+import { findHabit, normalize, save, setState, state } from './storage.js?v=3.1';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=3.1';
+import { render } from './render.js?v=3.1';
+import { pick } from './form.js?v=3.1';
+import { hist, renderHistory, setHist } from './history.js?v=3.1';
+import { pushDisable, pushRefresh, renderPush } from './push.js?v=3.1';
+import { lockNow } from './lock.js?v=3.1';
+import { mergeGoals as mergeGoalList } from './goals.js?v=3.1';
+import { mergeTasks } from './tasks.js?v=3.1';
 
 export const cloudCfg = { ...(window.HABIT_CONFIG || {}) };
 cloudCfg.supabaseUrl = String(cloudCfg.supabaseUrl || '').trim().replace(/\/(rest|auth|realtime|storage)\/v\d+\/?.*$/, '').replace(/\/+$/, '');

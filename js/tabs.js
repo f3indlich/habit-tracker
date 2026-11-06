@@ -1,8 +1,8 @@
-import { $, todayKey } from './core.js?v=3.0';
-import { closeOverlay, shownOverlays, syncTabs } from './ui.js?v=3.0';
-import { openForm } from './form.js?v=3.0';
-import { openGoalForm } from './goalsui.js?v=3.0';
-import { openTaskForm, tv } from './tasksui.js?v=3.0';
+import { $, todayKey } from './core.js?v=3.1';
+import { closeOverlay, shownOverlays, syncTabs } from './ui.js?v=3.1';
+import { openForm } from './form.js?v=3.1';
+import { openGoalForm } from './goalsui.js?v=3.1';
+import { openTaskForm, tv } from './tasksui.js?v=3.1';
 
 export function goToday() {
   const pages = shownOverlays().filter(o => o.classList.contains('tab-page'));

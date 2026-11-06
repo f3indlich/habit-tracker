@@ -1,11 +1,11 @@
-import { $, addDays, COLORS, days, HHMM, isToday, key, monday, monthDays, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=3.0';
-import { EMOJI_TO_ICON, ICONS } from './icons.js?v=3.0';
-import { toast } from './ui.js?v=3.0';
-import { render } from './render.js?v=3.0';
-import { cloud, cloudQueue } from './sync.js?v=3.0';
-import { visibleHabits } from './privacy.js?v=3.0';
-import { normGoals } from './goals.js?v=3.0';
-import { normTasks } from './tasks.js?v=3.0';
+import { $, addDays, COLORS, days, HHMM, isToday, key, monday, monthDays, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=3.1';
+import { EMOJI_TO_ICON, ICONS } from './icons.js?v=3.1';
+import { toast } from './ui.js?v=3.1';
+import { render } from './render.js?v=3.1';
+import { cloud, cloudQueue } from './sync.js?v=3.1';
+import { visibleHabits } from './privacy.js?v=3.1';
+import { normGoals } from './goals.js?v=3.1';
+import { normTasks } from './tasks.js?v=3.1';
 
 export let state;
 export function load() {
