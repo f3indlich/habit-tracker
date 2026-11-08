@@ -6,11 +6,20 @@ import { drawEmptyTpl, openCats, openForm } from './form.js?v=3.1';
 import { day, dayTip, hist, openDay, openHistory, renderDay, renderHistory, setHist } from './history.js?v=3.1';
 import { userName } from './settings.js?v=3.1';
 import { queueTips } from './tips.js?v=3.1';
-import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=3.1';
+import { isPrivate, privateHabits, shownTasks, unlocked, visibleHabits } from './privacy.js?v=3.1';
 import { openLockSettings } from './lock.js?v=3.1';
 import { renderGoalStrip } from './goalsui.js?v=3.1';
 import { dayMarks } from './tasks.js?v=3.1';
 import { dotsOn, renderDayTasks, tasksOf } from './tasksui.js?v=3.1';
+
+export function paintTaskMarks() {
+  const marks = dotsOn() ? dayMarks(shownTasks(tasksOf()), todayKey()) : {};
+  for (const b of document.querySelectorAll('#days > *, .peek > *')) {
+    if (!b._k) continue;
+    b.classList.toggle('has-tasks', !!marks[b._k]);
+    b.classList.toggle('late-tasks', !!marks[b._k]?.late);
+  }
+}
 
 export let viewDate = new Date();
 export const cards = new Map();
@@ -729,7 +738,7 @@ export function render() {
 const FUTURE_WEEKS = 52;
 const weekStart = d => addDays(d, -weekday(d));
 function fillWeek(el, vd) {
-  const start = weekStart(vd), tk = todayKey(), marks = dotsOn() ? dayMarks(tasksOf(), tk) : {};
+  const start = weekStart(vd), tk = todayKey(), marks = dotsOn() ? dayMarks(shownTasks(tasksOf()), tk) : {};
   [...el.children].forEach((b, i) => {
     const d = addDays(start, i), k = key(d), p = dayProgress(d);
     b.querySelector('.dn').textContent = d.getDate();

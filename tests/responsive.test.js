@@ -111,9 +111,9 @@ fe.style.maxWidth = ''; fe.style.width = w0; fe.style.height = h0; await wait(15
   ok('no shift while typing, in Safari, on Android or for status bar', vg({ typing: true }) === 0 && vg({ standalone: false }) === 0 && vg({ ios: false }) === 0 && vg({ inner: 812 }) === 0);
   const root = document.documentElement, fab = $('fab'), ov = $('histOv');
   root.style.setProperty('--vgap', '200px');
-  ok('button, sheets and toast follow the shift', getComputedStyle($('tabbar')).bottom === '-182px' && getComputedStyle(ov).bottom === '-200px' && getComputedStyle($('dayOv')).bottom === '-200px');
+  ok('button, sheets and toast follow the shift', getComputedStyle($('tabbar')).bottom === '-190px' && getComputedStyle(ov).bottom === '-200px' && getComputedStyle($('dayOv')).bottom === '-200px');
   root.style.removeProperty('--vgap');
-  ok('no shift by default', getComputedStyle($('tabbar')).bottom === '18px' && getComputedStyle(ov).bottom === '0px');
+  ok('no shift by default', getComputedStyle($('tabbar')).bottom === '10px' && getComputedStyle(ov).bottom === '0px');
   fixViewport();
   ok('desktop browser gets no shift', !root.style.getPropertyValue('--vgap'));
 }

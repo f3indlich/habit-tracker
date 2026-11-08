@@ -5,7 +5,7 @@ import { render } from './render.js?v=3.1';
 import { cloud, cloudQueue } from './sync.js?v=3.1';
 import { visibleHabits } from './privacy.js?v=3.1';
 import { normGoals } from './goals.js?v=3.1';
-import { normTasks } from './tasks.js?v=3.1';
+import { normTaskLists, normTasks } from './tasks.js?v=3.1';
 
 export let state;
 export function load() {
@@ -124,7 +124,10 @@ export function normalize(s) {
   const pname = isObj(s.profile) && typeof s.profile.name === 'string' ? s.profile.name.trim().slice(0, 40) : '';
   if (pname) s.profile = { name: pname }; else delete s.profile;
   s.goals = normGoals(s.goals, seen);
+  s.taskLists = normTaskLists(s.taskLists);
   s.tasks = normTasks(s.tasks);
+  const listIds = new Set(s.taskLists.map(l => l.id));
+  for (const t of s.tasks) if (t.list && !listIds.has(t.list)) delete t.list;
   const sm = normSmart(s.smart);
   if (sm) s.smart = sm; else delete s.smart;
   const gr = normGoalRemind(s.goalRemind);

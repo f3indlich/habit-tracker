@@ -306,11 +306,12 @@ function goalPayload(list) {
   return { ...base, title: vis.length === 1 ? 'Срок цели' : 'Сроки целей', body: vis.map(goalText).join(' ') };
 }
 
-const TASK_BEFORE = [0, 15, 60, 1440];
+const TASK_BEFORE_MAX = 43200;
+const isTaskBefore = v => Number.isInteger(v) && v >= 0 && v <= TASK_BEFORE_MAX;
 
 function taskFireAt(t) {
   const at = toMin(t?.time);
-  if (at == null || !DATE_RE.test(t?.date || '') || !TASK_BEFORE.includes(t?.remind)) return null;
+  if (at == null || !DATE_RE.test(t?.date || '') || !isTaskBefore(t?.remind)) return null;
   let day = t.date, min = at - t.remind;
   while (min < 0) { day = shiftKey(day, -1); min += 1440; }
   return { day, min };
@@ -319,24 +320,59 @@ function taskFireAt(t) {
 function taskReminders(data, tz, now) {
   const local = localNow(tz, now), out = [];
   for (const t of Array.isArray(data?.tasks) ? data.tasks : []) {
-    if (!t || typeof t.id !== 'string' || t.done === true) continue;
+    if (!t || typeof t.id !== 'string' || t.done === true || t.archivedAt) continue;
     const fire = taskFireAt(t);
     if (!fire || fire.day !== local.day || local.minutes < fire.min || local.minutes - fire.min >= WINDOW_MIN) continue;
-    out.push({ id: t.id, text: String(t.text || 'Задача'), time: t.time, remind: t.remind, day: local.day, key: `task:${t.id}#${t.date}#${t.time}#${t.remind}` });
+    out.push({ id: t.id, text: String(t.text || 'Задача'), time: t.time, remind: t.remind, day: local.day, private: t.private === true, key: `task:${t.id}#${t.date}#${t.time}#${t.remind}` });
   }
   return out;
 }
 
+function taskInterval(m) {
+  const d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), min = m % 60;
+  const parts = [[d, 'день', 'дня', 'дней'], [h, 'час', 'часа', 'часов'], [min, 'минуту', 'минуты', 'минут']].filter(x => x[0]);
+  if (parts.length === 1 && parts[0][0] === 1) return parts[0][1];
+  return parts.map(([n, one, few, many]) => `${n} ${ruPlural(n, one, few, many)}`).join(' ');
+}
+
 function taskBody(r) {
-  if (r.remind === 15) return `Через 15 минут, в ${r.time}`;
-  if (r.remind === 60) return `Через час, в ${r.time}`;
+  if (!r.remind) return 'Пора сделать';
   if (r.remind === 1440) return `Завтра в ${r.time}`;
-  return 'Пора сделать';
+  return `Через ${taskInterval(r.remind)}, в ${r.time}`;
 }
 
 function taskPayload(list) {
-  if (list.length === 1) return { title: list[0].text, body: taskBody(list[0]), tag: 'task-' + list[0].id, task: true, ids: ['task:' + list[0].id] };
-  return { title: `Задачи: ${list.length}`, body: list.map(r => r.text).join(', '), tag: 'tasks-' + list[0].day, task: true, ids: [] };
+  const vis = list.filter(r => !r.private);
+  if (!vis.length) return { title: 'Трекер привычек', body: 'Пора заглянуть в приложение', tag: 'task-private', task: true, ids: [] };
+  if (vis.length === 1) return { title: vis[0].text, body: taskBody(vis[0]), tag: 'task-' + vis[0].id, task: true, ids: ['task:' + vis[0].id] };
+  return { title: `Задачи: ${vis.length}`, body: vis.map(r => r.text).join(', '), tag: 'tasks-' + vis[0].day, task: true, ids: [] };
+}
+
+const DUE_REMIND_HOUR = 9;
+const DUE_BEFORE = [0, 1, 3];
+
+function taskDueReminders(data, tz, now) {
+  const local = localNow(tz, now), out = [], at = DUE_REMIND_HOUR * 60;
+  if (local.minutes < at || local.minutes - at >= WINDOW_MIN) return out;
+  for (const t of Array.isArray(data?.tasks) ? data.tasks : []) {
+    if (!t || typeof t.id !== 'string' || t.done === true || t.archivedAt) continue;
+    if (!DATE_RE.test(t.due || '') || !DUE_BEFORE.includes(t.dueRemind)) continue;
+    if (shiftKey(t.due, -t.dueRemind) !== local.day) continue;
+    out.push({ id: t.id, text: String(t.text || 'Задача'), before: t.dueRemind, due: t.due, day: local.day, private: t.private === true, key: `task-due:${t.id}#${t.due}#${t.dueRemind}` });
+  }
+  return out;
+}
+
+function dueTitle(r) {
+  if (!r.before) return `Срок задачи: ${r.text}`;
+  return `Срок через ${r.before} ${ruPlural(r.before, 'день', 'дня', 'дней')}: ${r.text}`;
+}
+
+function duePayload(list) {
+  const vis = list.filter(r => !r.private);
+  if (!vis.length) return { title: 'Трекер привычек', body: 'Пора заглянуть в приложение', tag: 'task-private', task: true, ids: [] };
+  if (vis.length === 1) return { title: dueTitle(vis[0]), body: vis[0].before ? 'Напоминание о сроке' : 'Сегодня последний день', tag: 'task-due-' + vis[0].id, task: true, ids: ['task:' + vis[0].id] };
+  return { title: `Сроки задач: ${vis.length}`, body: vis.map(r => r.text).join(', '), tag: 'tasks-due-' + vis[0].day, task: true, ids: [] };
 }
 
 function safeEqual(a, b) {
@@ -412,15 +448,21 @@ if (typeof Deno !== 'undefined') {
         const { error: dup } = await db.from('push_log').insert({ user_id: row.user_id, habit_id: t.key, day: t.day });
         if (!dup) tasks.push(t);
       }
-      if (!fresh.length && !smart && !goals.length && !tasks.length) continue;
+      const dues = [];
+      for (const t of taskDueReminders(row.data, tz, now)) {
+        const { error: dup } = await db.from('push_log').insert({ user_id: row.user_id, habit_id: t.key, day: t.day });
+        if (!dup) dues.push(t);
+      }
+      if (!fresh.length && !smart && !goals.length && !tasks.length && !dues.length) continue;
       summary.notified++;
       if (smart) summary[smart.kind === 'evening' ? 'smart' : 'repeat']++;
       summary.goals += goals.length;
-      summary.tasks += tasks.length;
+      summary.tasks += tasks.length + dues.length;
       const bodies = [];
       if (fresh.length || smart) bodies.push(JSON.stringify({ ...(smart ? smartPayload(smart.list) : payloadFor(fresh)), url: './' }));
       if (goals.length) bodies.push(JSON.stringify({ ...goalPayload(goals), url: './' }));
       if (tasks.length) bodies.push(JSON.stringify({ ...taskPayload(tasks), url: './' }));
+      if (dues.length) bodies.push(JSON.stringify({ ...duePayload(dues), url: './' }));
       let delivered = 0, transient = 0;
       for (const s of list) {
         for (const body of bodies) {

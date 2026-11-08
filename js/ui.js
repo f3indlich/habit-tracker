@@ -459,7 +459,7 @@ export function askConfirm(title, text, yesLabel, choices = null) {
   $('cChoices').innerHTML = choices ? choices.items.map((c, i) =>
     `<label class="del-check"><input type="radio" name="cChoice" value="${esc(c.v)}"${i ? '' : ' checked'}><span>${esc(c.label)}</span></label>`).join('')
     + (choices.hint ? `<p class="c-hint">${esc(choices.hint)}</p>` : '') : '';
-  $('cYes').className = choices ? 'primary' : 'danger-fill';
+  $('cYes').className = choices || /^(Добавить|Понятно)/.test(yesLabel) ? 'primary' : 'danger-fill';
   $('cYes').innerHTML = (/^Удалить/.test(yesLabel) ? IC.trash : '') + '<span></span>';
   $('cYes').lastChild.textContent = yesLabel;
   openOverlay($('confirm'));

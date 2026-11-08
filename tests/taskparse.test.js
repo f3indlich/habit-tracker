@@ -1,0 +1,112 @@
+window.__errs = [];
+addEventListener('error', e => __errs.push(String(e.message)));
+addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
+const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+const parseQuick = window.parseQuick;
+const NOW = new Date(2026, 10, 7, 14, 30);
+const cases = [
+  ['завтра в 15:00 позвонить в банк', 'позвонить в банк', '2026-11-08', '15:00'],
+  ['Позвонить маме сегодня', 'Позвонить маме', '2026-11-07', undefined],
+  ['послезавтра забрать посылку', 'забрать посылку', '2026-11-09', undefined],
+  ['Купить хлеб на завтра', 'Купить хлеб', '2026-11-08', undefined],
+  ['ЗАВТРА купить хлеб', 'купить хлеб', '2026-11-08', undefined],
+  ['Сдать отчёт через 3 дня', 'Сдать отчёт', '2026-11-10', undefined],
+  ['через 1 день полить цветы', 'полить цветы', '2026-11-08', undefined],
+  ['через 2 дня', null],
+  ['Отпуск через неделю', 'Отпуск', '2026-11-14', undefined],
+  ['через 2 недели к врачу', 'к врачу', '2026-11-21', undefined],
+  ['в понедельник планёрка', 'планёрка', '2026-11-09', undefined],
+  ['во вторник бассейн', 'бассейн', '2026-11-10', undefined],
+  ['в среду сдать книгу', 'сдать книгу', '2026-11-11', undefined],
+  ['Уборка в субботу', 'Уборка', '2026-11-14', undefined],
+  ['в воскресенье гости', 'гости', '2026-11-08', undefined],
+  ['День рождения 5 декабря', 'День рождения', '2026-12-05', undefined],
+  ['Налог 1 декабря 2027 года', 'Налог', '2027-12-01', undefined],
+  ['5.12 встреча', 'встреча', '2026-12-05', undefined],
+  ['Продлить полис 05.12.2026', 'Продлить полис', '2026-12-05', undefined],
+  ['Купить ёлку 30 декабря', 'Купить ёлку', '2026-12-30', undefined],
+  ['Поздравить 6 ноября', 'Поздравить', '2027-11-06', undefined],
+  ['Сегодняшнее 7 ноября', 'Сегодняшнее', '2026-11-07', undefined],
+  ['Праздник 01.01', 'Праздник', '2027-01-01', undefined],
+  ['Оплатить 29.02', 'Оплатить 29.02', undefined, undefined],
+  ['Встреча 32 января', 'Встреча 32 января', undefined, undefined],
+  ['Отчёт 31.02', 'Отчёт 31.02', undefined, undefined],
+  ['Созвон в 15:00', 'Созвон', '2026-11-07', '15:00'],
+  ['Созвон 9:30', 'Созвон', '2026-11-08', '09:30'],
+  ['Пробежка в 9 утра', 'Пробежка', '2026-11-08', '09:00'],
+  ['Кино в 7 вечера', 'Кино', '2026-11-07', '19:00'],
+  ['Обед в 12 дня', 'Обед', '2026-11-08', '12:00'],
+  ['Самолёт в 3 ночи', 'Самолёт', '2026-11-08', '03:00'],
+  ['завтра в 10 стрижка', 'стрижка', '2026-11-08', '10:00'],
+  ['стрижка в 10 завтра', 'стрижка', '2026-11-08', '10:00'],
+  ['Позвонить через час', 'Позвонить', '2026-11-07', '15:30'],
+  ['через 40 минут выключить духовку', 'выключить духовку', '2026-11-07', '15:10'],
+  ['через 2 часа забрать детей', 'забрать детей', '2026-11-07', '16:30'],
+  ['Купить 2 литра молока', 'Купить 2 литра молока', undefined, undefined],
+  ['Позвонить в 3 банка', 'Позвонить в 3 банка', undefined, undefined],
+  ['встреча с Пятницей', 'встреча с Пятницей', undefined, undefined],
+  ['Купить 1.5 литра воды', 'Купить 1.5 литра воды', undefined, undefined],
+  ['Перезавтракать', 'Перезавтракать', undefined, undefined],
+  ['сегодня', null],
+  ['Вторник — день тишины', 'Вторник — день тишины', undefined, undefined],
+  ['Счёт 12:75', 'Счёт 12:75', undefined, undefined],
+  ['Купить в 25:00 хлеб', 'Купить в 25:00 хлеб', undefined, undefined],
+  ['завтра, в 18:30, ужин с друзьями', 'ужин с друзьями', '2026-11-08', '18:30'],
+];
+let bad = 0;
+for (const [input, text, date, time] of cases) {
+  const r = parseQuick(input, NOW);
+  const okRow = text === null ? r.text === input && !r.found.length && !r.date && !r.time : r.text === text && r.date === date && r.time === time;
+  if (!okRow) bad++;
+  ok('parse: ' + input, okRow, r);
+}
+const dueCases = [
+  ['сдать отчёт до пятницы', 'сдать отчёт', undefined, '2026-11-13'],
+  ['оплатить не позже 20 ноября', 'оплатить', undefined, '2026-11-20'],
+  ['дедлайн завтра презентация', 'презентация', undefined, '2026-11-08'],
+  ['срок 5 декабря заявление', 'заявление', undefined, '2026-12-05'],
+  ['срок до 30.11 продлить пропуск', 'продлить пропуск', undefined, '2026-11-30'],
+  ['налог до 01.12.2026', 'налог', undefined, '2026-12-01'],
+  ['Сдать книгу до понедельника', 'Сдать книгу', undefined, '2026-11-09'],
+  ['до субботы прибраться', 'прибраться', undefined, '2026-11-14'],
+  ['Отчёт до послезавтра', 'Отчёт', undefined, '2026-11-09'],
+  ['Заявка до сегодня', 'Заявка', undefined, '2026-11-07'],
+  ['ответить до 3 ноября', 'ответить', undefined, '2027-11-03'],
+  ['срок через 3 дня договор', 'договор', undefined, '2026-11-10'],
+  ['завтра начать, сдать до пятницы', 'начать, сдать', '2026-11-08', '2026-11-13'],
+  ['в понедельник созвон, дедлайн в среду', 'созвон', '2026-11-09', '2026-11-11'],
+  ['ДО ВТОРНИКА купить билеты', 'купить билеты', undefined, '2026-11-10'],
+  ['не позже 5.12 сдать анализы', 'сдать анализы', undefined, '2026-12-05'],
+  ['до 5 литров молока', 'до 5 литров молока', undefined, undefined],
+  ['работать до 18:00', 'работать до 18:00', undefined, undefined],
+  ['спать до 7 утра', 'спать до 7 утра', undefined, undefined],
+  ['до 32 января успеть', 'до 32 января успеть', undefined, undefined],
+  ['дойти до пятницкой', 'дойти до пятницкой', undefined, undefined],
+  ['подождать до завтрака', 'подождать до завтрака', undefined, undefined],
+];
+for (const [input, text, date, due] of dueCases) {
+  const r = parseQuick(input, NOW);
+  ok('due: ' + input, r.text === text && r.date === date && r.due === due, r);
+}
+ok('due table has at least 20 phrases', dueCases.length >= 20);
+ok('table has at least 40 phrases', cases.length >= 40, cases.length);
+const late = new Date(2026, 10, 7, 23, 50);
+const nm = parseQuick('через 40 минут выключить свет', late);
+ok('40 minutes before midnight goes to tomorrow', nm.date === '2026-11-08' && nm.time === '00:30', nm);
+const rd = parseQuick('через 7 минут чай', new Date(2026, 10, 7, 14, 31));
+ok('time is rounded up to 5 minutes', rd.time === '14:40', rd);
+const ny = parseQuick('31 декабря салат', new Date(2026, 11, 31, 10, 0));
+ok('today in late December stays this year', ny.date === '2026-12-31', ny);
+const jan = parseQuick('1 января салют', new Date(2026, 11, 31, 10, 0));
+ok('next January goes to next year', jan.date === '2027-01-01', jan);
+const mon = parseQuick('в субботу рынок', NOW);
+ok('same weekday means next week', mon.date === '2026-11-14', mon);
+const end = parseQuick('завтра в 1 ночи поезд', new Date(2026, 0, 31, 12, 0));
+ok('tomorrow over a month border', end.date === '2026-02-01' && end.time === '01:00', end);
+const f = parseQuick('завтра в 15:00 позвонить в банк', NOW);
+ok('found phrases point into the text', f.found.length === 2 && f.found.every(x => 'завтра в 15:00 позвонить в банк'.slice(x.from, x.to).trim() === x.label), f.found);
+ok('only the first date is taken', parseQuick('завтра или послезавтра', NOW).text === 'или послезавтра');
+ok('markup is kept as plain text', parseQuick('<img src=x onerror=alert(1)> завтра', NOW).text === '<img src=x onerror=alert(1)>');
+ok('empty input is safe', parseQuick('', NOW).text === '' && parseQuick(null, NOW).text === '');
+ok('no page errors', __errs.length === 0, __errs);
+return R.join('\n');

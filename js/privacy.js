@@ -12,6 +12,7 @@ export function setUnlocked(v) { unlocked = !!v; }
 export const isPrivate = h => h?.private === true;
 export const visibleHabits = s => s.habits.filter(h => !isPrivate(h));
 export const privateHabits = s => unlocked ? s.habits.filter(isPrivate) : [];
+export const shownTasks = list => unlocked ? list || [] : (list || []).filter(t => !isPrivate(t));
 
 export function readLock() {
   try { const v = JSON.parse(localStorage.getItem(LOCK_STORE)); if (v && typeof v === 'object') return v; } catch {}

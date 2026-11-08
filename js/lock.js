@@ -7,6 +7,7 @@ import { editingId, form, syncPrivRow } from './form.js?v=3.1';
 import { day, hist, setHist } from './history.js?v=3.1';
 import { exportData } from './settings.js?v=3.1';
 import { goalsLocked } from './goalsui.js?v=3.1';
+import { tasksLocked } from './tasksui.js?v=3.1';
 import { cloud } from './sync.js?v=3.1';
 import { addLongPress, b64, hasPin, IDLE_MS, isPrivate, LOCK_STORE, lockWait, readLock, setPin, setUnlocked, tryPin, unb64, unlocked, validPin, writeLock } from './privacy.js?v=3.1';
 
@@ -91,6 +92,7 @@ function scrub() {
   }
   syncPrivRow();
   goalsLocked();
+  tasksLocked();
   if ($('lockOv')._shown) hideNow($('lockOv'));
   clearBody();
 }

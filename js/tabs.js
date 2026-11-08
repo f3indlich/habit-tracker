@@ -14,6 +14,7 @@ export function addForTab(tab = document.body.dataset.tab) {
   if (tab === 'goals') return openGoalForm();
   if (tab === 'settings') goToday();
   if (tab !== 'tasks') return openForm();
+  if (tv.shared && !$('tShared').hidden) return $('shText').focus();
   const today = todayKey();
   openTaskForm(null, tv.tab === 'month' && tv.day > today ? tv.day : today);
 }

@@ -6,6 +6,7 @@ import { cards, render, setWasAllDone, sparks } from './render.js?v=3.1';
 import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=3.1';
 import { hist, renderHistory } from './history.js?v=3.1';
 import { cloud, deleteAccount, emailMatches, openAccount, renderAccount } from './sync.js?v=3.1';
+import { sharedExport } from './shared.js?v=3.1';
 
 export function applyIcons(style) {
   document.body.dataset.icons = style;
@@ -163,7 +164,8 @@ $('swRow').onclick = e => {
 
 export async function exportData() {
   const name = `habits-${todayKey()}.json`;
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const shared = sharedExport(), data = shared ? { ...state, sharedLists: shared } : state;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
   if (matchMedia('(display-mode: standalone)').matches && navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: 'Трекер привычек' }); return; }

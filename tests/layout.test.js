@@ -237,6 +237,37 @@ for (const [w, h, th] of [[320, 640, 'light'], [393, 852, 'light'], [393, 852, '
 if (theme0) document.documentElement.dataset.theme = theme0; else delete document.documentElement.dataset.theme;
 fe.style.maxWidth = ''; fe.style.width = w0; fe.style.height = h0; await wait(150);
 still.remove(); await closeAll();
+{
+  const until = async (f, ms = 3000) => { const t0 = performance.now(); while (!f()) { if (performance.now() - t0 > ms) return false; await new Promise(r => setTimeout(r, 16)); } return true; };
+  const rules = [...document.styleSheets].flatMap(sh => { try { return [...sh.cssRules]; } catch { return []; } }).map(r => r.cssText).join(' ');
+  const tb = (rules.match(/--tab-bottom: ([^;]+);/) || [])[1] || '';
+  ok('bar offset comes from the safe area', tb.includes('env(safe-area-inset-bottom)') && /\.tabbar \{[^}]*bottom: calc\(var\(--tab-bottom\)/.test(rules), tb);
+  ok('bar offset is never under 10 px', /^max\(10px,/.test(tb), tb);
+  const bar = $('tabbar'), pill = bar.querySelector('.tabs-pill'), fab = $('fab');
+  const gap = () => innerHeight - pill.getBoundingClientRect().bottom;
+  ok('bar sits 10 px above the edge without a home indicator', Math.abs(gap() - 10) <= 1, gap());
+  ok('plus is on the bar line', Math.abs((fab.getBoundingClientRect().top + fab.getBoundingClientRect().bottom) / 2 - (pill.getBoundingClientRect().top + pill.getBoundingClientRect().bottom) / 2) <= 1);
+  const top = () => pill.getBoundingClientRect().top;
+  scrollTo(0, document.documentElement.scrollHeight); await until(() => Math.ceil(scrollY + innerHeight) >= document.documentElement.scrollHeight - 1);
+  const lastHome = [...document.querySelectorAll('.wrap > *')].filter(e => e.getClientRects().length && getComputedStyle(e).position !== 'fixed').pop();
+  ok('home content ends above the bar', lastHome.getBoundingClientRect().bottom <= top() + 1, [lastHome.id || lastHome.className, lastHome.getBoundingClientRect().bottom, top()]);
+  scrollTo(0, 0);
+  for (const id of ['tasksBtn', 'goalsBtn', 'setBtn']) {
+    $(id).click();
+    const ov = shownOverlays().find(o => o.classList.contains('tab-page'));
+    await until(() => ov && ov.classList.contains('open'));
+    await until(() => getComputedStyle(ov).transform === 'none');
+    const sheet = ov.querySelector('.sheet');
+    sheet.scrollTop = sheet.scrollHeight;
+    await until(() => Math.ceil(sheet.scrollTop + sheet.clientHeight) >= sheet.scrollHeight - 1);
+    const last = [...sheet.querySelectorAll('*')].filter(e => e.getClientRects().length && !e.closest('[hidden]')).reduce((m, e) => Math.max(m, e.getBoundingClientRect().bottom), 0);
+    ok(`${id}: last card ends above the bar`, last <= top() + 1, [last, top()]);
+  }
+  toast('Проверка');
+  await until(() => $('toast').classList.contains('show') && !$('toast').getAnimations().length);
+  ok('toast shows above the bar', $('toast').getBoundingClientRect().bottom <= top() - 4, [$('toast').getBoundingClientRect().bottom, top()]);
+  await closeAll();
+}
 window.__layoutProblems = problems;
 ok('no layout problems on any screen', problems.length === 0, problems.slice(0, 60));
 ok('no page errors', __errs.length === 0, __errs);
