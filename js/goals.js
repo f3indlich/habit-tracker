@@ -1,7 +1,7 @@
-import { COLORS, parseKey, plural, todayKey } from './core.js?v=3.2';
-import { ICONS } from './icons.js?v=3.2';
-import { isQuant, targetOn } from './storage.js?v=3.2';
-import { planStats } from './plan.js?v=3.2';
+import { COLORS, parseKey, plural, todayKey } from './core.js?v=3.2a';
+import { ICONS } from './icons.js?v=3.2a';
+import { isQuant, targetOn } from './storage.js?v=3.2a';
+import { planStats } from './plan.js?v=3.2a';
 
 export const GOAL_LIM = { active: 20, total: 100, steps: 30, habits: 3, title: 80, step: 120, note: 1000, unit: 20, history: 20 };
 export const GOAL_TOL = 0.1;

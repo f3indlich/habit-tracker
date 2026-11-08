@@ -1,16 +1,16 @@
-import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, ofDays, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=3.2';
-import { IC, setIcon } from './icons.js?v=3.2';
-import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=3.2';
-import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=3.2';
-import { drawEmptyTpl, openCats, openForm } from './form.js?v=3.2';
-import { day, dayTip, hist, openDay, openHistory, renderDay, renderHistory, setHist } from './history.js?v=3.2';
-import { userName } from './settings.js?v=3.2';
-import { queueTips } from './tips.js?v=3.2';
-import { isPrivate, privateHabits, shownTasks, unlocked, visibleHabits } from './privacy.js?v=3.2';
-import { openLockSettings } from './lock.js?v=3.2';
-import { renderGoalStrip } from './goalsui.js?v=3.2';
-import { dayMarks } from './tasks.js?v=3.2';
-import { dotsOn, renderDayTasks, tasksOf } from './tasksui.js?v=3.2';
+import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, ofDays, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=3.2a';
+import { IC, setIcon } from './icons.js?v=3.2a';
+import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=3.2a';
+import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=3.2a';
+import { drawEmptyTpl, openCats, openForm } from './form.js?v=3.2a';
+import { day, dayTip, hist, openDay, openHistory, renderDay, renderHistory, setHist } from './history.js?v=3.2a';
+import { userName } from './settings.js?v=3.2a';
+import { queueTips } from './tips.js?v=3.2a';
+import { isPrivate, privateHabits, shownTasks, unlocked, visibleHabits } from './privacy.js?v=3.2a';
+import { openLockSettings } from './lock.js?v=3.2a';
+import { renderGoalStrip } from './goalsui.js?v=3.2a';
+import { dayMarks } from './tasks.js?v=3.2a';
+import { dotsOn, renderDayTasks, tasksOf } from './tasksui.js?v=3.2a';
 
 export function paintTaskMarks() {
   const marks = dotsOn() ? dayMarks(shownTasks(tasksOf()), todayKey()) : {};
