@@ -1,5 +1,5 @@
-import { NS } from './core.js?v=3.1';
-import { cloud } from './sync.js?v=3.1';
+import { NS } from './core.js?v=3.2';
+import { cloud } from './sync.js?v=3.2';
 
 export const SHARED_LIM = { lists: 10, members: 5, items: 500, text: 200, name: 40, who: 24, batch: 50 };
 export const SHARED_CACHE = NS + '-shared-cache', SHARED_OK = NS + '-shared-ok';
