@@ -16,9 +16,6 @@ export const WIPE_WORD = 'СТЕРЕТЬ';
 export let lockMode = null;
 let idleTimer = null, waitTimer = null, privBar = null, authBusy = false;
 
-// Face ID / Touch ID здесь — только локальная проверка «владелец у телефона».
-// Подпись от WebAuthn нигде не проверяется на сервере: приложение лишь просит
-// платформенный аутентификатор подтвердить пользователя (флаг UV). PIN остаётся запасным способом.
 export async function faceAvailable() {
   try { return !!window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch { return false; }
 }

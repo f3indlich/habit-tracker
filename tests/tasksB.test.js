@@ -18,7 +18,7 @@ const confirmDown = () => until(() => $('confirm').hidden);
   show({ habits: [], log: {}, tasks: [] });
   openTasks(); await until(() => $('tasksOv')._shown);
   const inp = $('tqText');
-  ok('quick field is on the tasks screen', visible(inp) && inp.placeholder === 'Что нужно сделать? Например: завтра в 15:00 позвонить в банк' && inp.getAttribute('enterkeyhint') === 'send');
+  ok('quick field is on the tasks screen', visible(inp) && inp.placeholder === 'Задача, например: завтра в 15:00' && inp.getAttribute('enterkeyhint') === 'send');
   ok('quick field is 16 px and tall enough', parseFloat(getComputedStyle(inp).fontSize) >= 16 && inp.getBoundingClientRect().height >= 44 && !!inp.getAttribute('aria-label'));
   type('завтра в 15:00 позвонить в банк');
   ok('chip shows what was understood', visible($('tqChip')) && $('tqChipText').textContent === 'Завтра, 15:00 · напоминание в срок', $('tqChipText').textContent);

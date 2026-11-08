@@ -1702,6 +1702,8 @@ body.recede .wrap { transform: scale(var(--recede)); }
 .t-date-btn em { margin-left: auto; font-style: normal; font-weight: 400; color: var(--muted); }
 .t-form-actions button { flex: 1; min-height: 46px; }
 .t-form-actions .primary { flex: 1.6; }
+.form > .t-form-actions button { flex: 0 1 auto; padding: 0 16px; }
+.form > .t-form-actions .primary { flex: 1 1 auto; padding: 0 16px; }
 .pseg.t-limit { flex: none; grid-template-columns: repeat(3, 44px); gap: 2px; padding: 3px; border-radius: 16px; }
 .pseg.t-limit button { height: 36px; border-radius: 9px; }
 @media (max-width: 480px) { .top { position: relative; } .top .today-pill { position: absolute; top: -10px; right: 0; width: auto; height: 28px; padding: 0 10px; gap: 5px; font-size: 13px; } .top .today-pill svg.ic { width: 14px; height: 14px; } }
@@ -1980,6 +1982,8 @@ button { border-radius: 14px; }
 .page-head h2 { font-size: 32px; letter-spacing: -.025em; }
 .overlay.tab-page .page-head { margin-left: calc(-1 * max(16px, env(safe-area-inset-left), (100vw - 640px) / 2)); }
 .t-day-head { min-height: 52px; }
+.t-alldone { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 12px 16px; color: var(--muted); font-size: 15px; font-weight: 500; }
+.t-alldone svg.ic { flex: none; width: 20px; height: 20px; stroke-width: 2.4; }
 .t-ahead { border-radius: var(--r); }
 @media (prefers-reduced-transparency: reduce) {
   .tabs-pill, .menu, .sheet, .overlay:not(.page) .sheet, .top-actions { -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -2045,7 +2049,7 @@ button { border-radius: 14px; }
 .tf-add.tf-more .tf-ic::before { content: "+"; font-size: 26px; font-weight: 300; line-height: 1; }
 .tf-add.tf-more .tf-chev { display: none; }
 .tf-main { display: grid; padding: 2px 0; }
-.tf-main .tf-title { min-height: 52px; padding: 13px 14px; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-size: 18px; font-weight: 600; }
+.tf-main .tf-title { display: block; width: 100%; min-height: 52px; max-height: 30vh; padding: 13px 14px; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-size: 18px; font-weight: 600; line-height: 1.4; resize: none; field-sizing: content; overflow-wrap: anywhere; }
 .tf-main .tf-title::placeholder, .tf-main .tf-note::placeholder { color: var(--faint); font-weight: 400; }
 .tf-main .tf-title[aria-invalid=true]::placeholder { color: var(--danger); }
 .tf-main .tf-title:focus, .tf-main .tf-note:focus { border: 0; box-shadow: none; }
@@ -2064,9 +2068,9 @@ button { border-radius: 14px; }
 .tf-pick .tf-opt svg.ic { flex: none; width: 20px; height: 20px; color: var(--accent); stroke-width: 2.6; opacity: 0; }
 .tf-pick .tf-opt[aria-checked=true] svg.ic { opacity: 1; }
 .tf-pick .tf-opt[aria-checked=true] .tf-lbl { font-weight: 600; }
-.tf-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.tf-quick { display: flex; gap: 6px; margin-bottom: 12px; }
 .tf-quick[hidden] { display: none; }
-.tf-quick .t-chip { min-height: 36px; padding: 6px 12px; font-size: 14px; background: var(--card); }
+.tf-quick .t-chip { flex: 1 1 0; min-width: 0; min-height: 36px; justify-content: center; padding: 6px 4px; font-size: 14px; white-space: nowrap; background: var(--card); }
 .tf-quick .t-chip[aria-pressed=true] { background: var(--accent); }
 .wheels { position: relative; display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr) minmax(0, 1fr); height: 200px; padding: 0 8px; border-radius: 16px; background: var(--card); overflow: hidden; }
 .wheels::before { content: ""; position: absolute; left: 8px; right: 8px; top: 80px; height: 40px; border-radius: 10px; background: var(--track); pointer-events: none; }

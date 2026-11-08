@@ -182,5 +182,110 @@ const undo = async () => { $('toastUndo').click(); await frame(); };
   show({ habits: [], log: {} });
 }
 
+{
+  const resync = () => { setState(normalize(JSON.parse(JSON.stringify(state)))); renderTasks(); };
+  show({ habits: [], log: {}, tasks: [A('a', { date: shift(-1) }), A('b', { date: shift(-2) }), A('c', { date: T })] });
+  await openPage();
+  archiveTask(findTask('a'));
+  resync();
+  await undo();
+  ok('undo of archive works after a sync replaced the task', !findTask('a').archivedAt);
+  moveTasks([findTask('b')], shift(3));
+  resync();
+  await undo();
+  ok('undo of a move works after a sync replaced the task', findTask('b').date === shift(-2));
+  doneDelay.ms = 120;
+  tapDone(findTask('c'));
+  resync();
+  await until(() => findTask('c').done, 1500);
+  ok('delayed tick completes the task after a sync replaced it', findTask('c').done === true);
+  doneDelay.ms = 0;
+  await closePage();
+}
+
+{
+  show({ habits: [], log: {}, tasks: [A('due', { due: shift(-3) }), A('both', { date: shift(-2), due: shift(-1) }), A('fut', { date: shift(2), due: shift(-1) }), A('ok', { date: shift(-1), due: shift(4) })] });
+  await openPage();
+  allToToday();
+  ok('everything to today clears overdue deadlines too', ['due', 'both', 'fut', 'ok'].every(id => !isOverdue(findTask(id), T)));
+  ok('task with only a deadline keeps no date', !('date' in findTask('due')) && findTask('due').due === T);
+  ok('future date is not pulled back', findTask('fut').date === shift(2) && findTask('fut').due === T);
+  ok('future deadline is kept', findTask('ok').date === T && findTask('ok').due === shift(4));
+  await undo();
+  ok('undo restores dates and deadlines', findTask('due').due === shift(-3) && !('date' in findTask('due')) && findTask('both').date === shift(-2) && findTask('both').due === shift(-1) && findTask('fut').date === shift(2) && findTask('ok').date === shift(-1));
+  await closePage();
+}
+
+{
+  show({ habits: [], log: {}, tasks: [A('l', { date: T, time: '23:30' })] });
+  await openPage();
+  const q = $('tqText'), cv = document.createElement('canvas').getContext('2d'), cs = getComputedStyle(q);
+  cv.font = cs.font;
+  ok('quick add hint fits the field', cv.measureText(q.placeholder).width <= q.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), [cv.measureText(q.placeholder).width, q.clientWidth]);
+  openTaskForm(findTask('l'));
+  await until(() => $('tFormOv')._shown);
+  const ti = $('tfText'), h0 = ti.getBoundingClientRect().height;
+  ti.value = 'Очень длинное название задачи, которое должно быть видно целиком и переноситься на новые строки в форме';
+  ti.dispatchEvent(new Event('input'));
+  await frame();
+  ok('long title wraps instead of hiding', ti.tagName === 'TEXTAREA' && ti.getBoundingClientRect().height > h0 + 20 && ti.scrollHeight <= ti.clientHeight + 2, [h0, ti.getBoundingClientRect().height]);
+  ti.value = 'Первая\nвторая';
+  ti.dispatchEvent(new Event('input'));
+  ok('title stays one paragraph', ti.value === 'Первая вторая');
+  const save = [...$('tFormOv').querySelectorAll('.t-form-actions button')].find(b => b.textContent.trim() === 'Сохранить');
+  ok('save button has room around its label', parseFloat(getComputedStyle(save).paddingLeft) >= 16 && save.scrollWidth <= save.clientWidth);
+  ti.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await until(() => $('tFormOv').hidden);
+  ok('enter in the title saves the task', $('tFormOv').hidden && findTask('l').text === 'Первая вторая');
+  openTaskForm(findTask('l'));
+  await until(() => $('tFormOv')._shown);
+  $('tfRemAdd').click();
+  await until(() => $('tRemOv')._shown);
+  const chips = [...$('trmQuick').querySelectorAll('.t-chip')];
+  ok('reminder presets fit one row', chips.length === 4 && new Set(chips.map(c => Math.round(c.getBoundingClientRect().top))).size === 1 && chips.every(c => c.scrollWidth <= c.clientWidth));
+  closeOverlay($('tRemOv')); await until(() => $('tRemOv').hidden);
+  closeOverlay($('tFormOv')); await until(() => $('tFormOv').hidden);
+  await closePage();
+}
+
+
+{
+  const homeRow = id => $('dayTasks').querySelector(`.t-row[data-id="${id}"]`);
+  show({ habits: [], log: {}, tasks: [A('a', { date: T }), A('b', { date: T }), A('f', { date: T, done: true, doneAt: T }), A('p', { date: shift(-1), done: true, doneAt: shift(-1) }), A('n', { date: shift(1) }), A('m', { date: shift(1), done: true, doneAt: T })] });
+  ok('home block hides tasks finished today', !homeRow('f') && !!homeRow('a') && !!homeRow('b'));
+  ok('home block counts what is left', $('dayTasks').querySelector('.t-day-head .cnt').textContent === '2');
+  doneDelay.ms = 120;
+  homeRow('a').querySelector('.t-box').click();
+  ok('ticked task waits before leaving', homeRow('a').classList.contains('t-pend'));
+  await until(() => !homeRow('a'), 2000);
+  ok('ticked task leaves the home block', !homeRow('a') && findTask('a').done === true);
+  ok('toast offers to undo the tick', toastText() === 'Задача выполнена' && visible($('toastUndo')));
+  await undo();
+  ok('undo brings the task back', findTask('a').done === false && !!homeRow('a'));
+  homeRow('b').querySelector('.t-box').click();
+  homeRow('b').querySelector('.t-box').click();
+  await new Promise(r => setTimeout(r, 300));
+  ok('second tap keeps the task', findTask('b').done === false && !!homeRow('b'));
+  doneDelay.ms = 0;
+  homeRow('a').querySelector('.t-box').click();
+  homeRow('b').querySelector('.t-box').click();
+  await frame();
+  ok('all done shows one quiet line', visible($('dayTasks')) && $('dayTasks').querySelector('.t-alldone')?.textContent === 'Все задачи на сегодня выполнены' && !$('dayTasks').querySelector('.t-row'));
+  viewDate = new Date(parseKey(shift(-1))); render(); await frame();
+  ok('past day keeps finished tasks as history', !!homeRow('p') && homeRow('p').classList.contains('done'));
+  viewDate = new Date(parseKey(shift(1))); render(); await frame();
+  ok('future day hides finished tasks', !!homeRow('n') && !homeRow('m'));
+  viewDate = new Date(parseKey(shift(2))); render(); await frame();
+  ok('day without tasks has no block', $('dayTasks').hidden);
+  viewDate = new Date(); render();
+  show({ habits: [], log: {}, tasks: [A('s', { date: T })] });
+  await openPage();
+  hideToast();
+  $('toastText').textContent = '';
+  rowOf('s').querySelector('.t-box').click();
+  await frame();
+  ok('ticking on the tasks screen shows no extra toast', toastText() !== 'Задача выполнена' && findTask('s').done);
+  await closePage();
+}
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

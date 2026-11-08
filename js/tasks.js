@@ -17,7 +17,6 @@ export function remindLabel(m) {
   if (m % 60 === 0) return `За ${m / 60} ч`;
   return `За ${Math.floor(m / 60)} ч ${m % 60} мин`;
 }
-// Должна совпадать с WINDOW_MIN в supabase/functions/send-reminders/index.ts
 export const REMIND_WINDOW = 30;
 export const REMINDS_MAX = 5, REMIND_DAYS_MAX = 30;
 const ABS_RE = /^(\d{1,2})@([01]\d|2[0-3]):([0-5]\d)$/;

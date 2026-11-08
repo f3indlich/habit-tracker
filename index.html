@@ -974,7 +974,7 @@
       <button type="button" class="t-link" id="tsClose">Отмена</button>
     </div>
     <form class="t-quick" id="tQuick" novalidate>
-      <input type="text" id="tqText" maxlength="200" enterkeyhint="send" autocomplete="off" placeholder="Что нужно сделать? Например: завтра в 15:00 позвонить в банк" aria-label="Быстро добавить задачу" aria-describedby="tqChip">
+      <input type="text" id="tqText" maxlength="200" enterkeyhint="send" autocomplete="off" placeholder="Задача, например: завтра в 15:00" aria-label="Быстро добавить задачу" aria-describedby="tqChip">
       <div class="t-qchip" id="tqChip" role="status" hidden><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><span id="tqChipText"></span><button type="button" class="ghost icon-btn" id="tqNo" aria-label="Не распознавать"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     </form>
     <div class="seg t-tabs" id="tTabs" role="group" aria-label="Как показать задачи">
@@ -1010,7 +1010,7 @@
     </div>
     <form class="form t-form" id="tForm" novalidate>
       <div class="tf-grp tf-main">
-        <input type="text" id="tfText" class="tf-title" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="Что сделать" aria-label="Что сделать">
+        <textarea id="tfText" class="tf-title" rows="1" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="Что сделать" aria-label="Что сделать"></textarea>
         <div class="t-qchip t-fchip" id="tfParse" role="status" hidden><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><span id="tfParseText"></span><button type="button" class="t-link" id="tfParseOk">Применить</button></div>
         <div class="t-subs-edit" id="tfSubs" role="list" aria-label="Подзадачи"></div>
         <button type="button" class="tf-subadd" id="tfSubAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Подзадача</span></button>

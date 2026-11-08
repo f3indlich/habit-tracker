@@ -278,7 +278,8 @@ function shiftTask(t, next) {
   t.updatedAt = Date.now();
 }
 function undoRepeat(t, was) {
-  if (!findTask(t.id)) return;
+  t = findTask(t.id);
+  if (!t) return;
   for (const k of ['date', 'due', 'subs', 'doneCount', 'lastDone', 'archivedAt']) { if (was[k] === undefined) delete t[k]; else t[k] = was[k]; }
   t.updatedAt = Date.now();
   touchTasks();
@@ -299,15 +300,34 @@ function markPending(id, on) {
     row.querySelector('.t-box')?.setAttribute('aria-checked', on);
   }
 }
+function finishHome(t, from) {
+  const was = t.done;
+  toggleTask(t, from);
+  if (was || !t.done) return;
+  toast('Задача выполнена', () => { const cur = findTask(t.id); if (cur?.done) toggleTask(cur); });
+}
+function collapseHome(id, then) {
+  const rows = [...$('dayTasks').querySelectorAll(`.t-row[data-id="${CSS.escape(id)}"]`)];
+  if (reducedMotion || !rows.length || $('dayTasks').hidden) return then();
+  let left = rows.length;
+  for (const row of rows) {
+    row.style.overflow = 'hidden';
+    row.animate({ height: [row.offsetHeight + 'px', '0px'], opacity: [1, 0] }, { duration: 240, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'forwards' }).onfinish = () => { if (!--left) then(); };
+  }
+}
 export function tapDone(t, from) {
   if (pendingDone.has(t.id)) { clearTimeout(pendingDone.get(t.id)); pendingDone.delete(t.id); return markPending(t.id, false); }
-  if (t.done || !doneDelay.ms) return toggleTask(t, from);
+  const home = !!from?.closest?.('#dayTasks') && key(viewDate) >= todayKey();
+  if (t.done || !doneDelay.ms) return home ? finishHome(t, from) : toggleTask(t, from);
   markPending(t.id, true);
   if (from && !reducedMotion && isVivid()) sparks(from, 'var(--good)');
   navigator.vibrate?.(8);
   pendingDone.set(t.id, setTimeout(() => {
     pendingDone.delete(t.id);
-    if (findTask(t.id) && !t.done) toggleTask(t); else markPending(t.id, false);
+    const cur = findTask(t.id);
+    if (!cur || cur.done) return markPending(t.id, false);
+    if (!home) return toggleTask(cur);
+    collapseHome(t.id, () => { const x = findTask(t.id); if (x && !x.done) finishHome(x); else renderDayTasks(); });
   }, doneDelay.ms));
 }
 export function toggleTask(t, from) {
@@ -333,8 +353,9 @@ export async function deleteTask(t) {
 }
 const snapTasks = list => list.map(t => [t, JSON.parse(JSON.stringify(t))]);
 function undoSnap(snap) {
-  for (const [t, was] of snap) {
-    if (!findTask(t.id)) continue;
+  for (const [old, was] of snap) {
+    const t = findTask(old.id);
+    if (!t) continue;
     for (const k of Object.keys(t)) delete t[k];
     Object.assign(t, was, { updatedAt: Date.now() });
   }
@@ -368,11 +389,22 @@ export function openMove(list, done = null) {
   pickDate(one ? (one.someday ? SOMEDAY : one.date) : null, v => { moveTasks(list, v); done?.(); }, 'move', { rep: list.some(t => t.rep) });
 }
 export function allToToday() {
-  const today = todayKey(), now = Date.now(), moved = screenTasks().filter(t => isOverdue(t, today)).map(t => [t, t.date]);
-  for (const [t] of moved) { t.date = today; t.updatedAt = now; }
+  const today = todayKey(), now = Date.now(), moved = screenTasks().filter(t => isOverdue(t, today)).map(t => [t.id, t.date, t.due]);
+  for (const [id] of moved) {
+    const t = findTask(id);
+    if (t.date && t.date < today) t.date = today;
+    if (t.due && t.due < today) t.due = today;
+    t.updatedAt = now;
+  }
   touchTasks();
   if (moved.length) toast('Перенесено на сегодня', () => {
-    for (const [t, d] of moved) if (findTask(t.id)) { t.date = d; t.updatedAt = Date.now(); }
+    for (const [id, d, due] of moved) {
+      const t = findTask(id);
+      if (!t) continue;
+      if (d === undefined) delete t.date; else t.date = d;
+      if (due === undefined) delete t.due; else t.due = due;
+      t.updatedAt = Date.now();
+    }
     touchTasks();
   });
 }
@@ -383,7 +415,8 @@ export function archiveTask(t) {
   toast('Задача в архиве', () => restoreTask(t));
 }
 export function restoreTask(t) {
-  if (!findTask(t.id)) return;
+  t = findTask(t.id);
+  if (!t) return;
   delete t.archivedAt;
   t.updatedAt = Date.now();
   touchTasks();
@@ -393,7 +426,7 @@ export function archiveOverdue() {
   for (const t of moved) { t.archivedAt = today; t.updatedAt = now; }
   touchTasks();
   if (moved.length) toast('Просроченные задачи в архиве', () => {
-    for (const t of moved) if (findTask(t.id)) { delete t.archivedAt; t.updatedAt = Date.now(); }
+    for (const x of moved) { const t = findTask(x.id); if (t) { delete t.archivedAt; t.updatedAt = Date.now(); } }
     touchTasks();
   });
 }
@@ -761,11 +794,29 @@ export function openTaskForm(t = null, date = null) {
   paintTfParse();
   tf.base = tfSnap();
   openOverlay($('tFormOv'));
+  fitTitle();
   if (!t) setTimeout(() => $('tfText').focus({ preventScroll: true }), 60);
 }
+function fitTitle() {
+  if (window.CSS?.supports?.('field-sizing', 'content')) return;
+  const el = $('tfText');
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
 $('tFormOv')._guard = () => tfSnap() === tf.base || askConfirm('Закрыть без сохранения?', tf.id ? 'Изменения в задаче не сохранятся.' : 'Новая задача не будет добавлена.', 'Закрыть');
-$('tfText').addEventListener('input', () => $('tfText').removeAttribute('aria-invalid'));
+$('tfText').addEventListener('input', () => {
+  const el = $('tfText');
+  el.removeAttribute('aria-invalid');
+  if (/[\r\n]/.test(el.value)) el.value = el.value.replace(/\s*[\r\n]+\s*/g, ' ');
+  fitTitle();
+});
+$('tfText').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.isComposing) return;
+  e.preventDefault();
+  $('tForm').requestSubmit();
+});
 function paintTfParse() {
+  fitTitle();
   const r = !tf.id && !tf.touched && $('tfText').value.trim() ? parseQuick($('tfText').value) : null;
   tf.parsed = r && r.found.length ? r : null;
   $('tfParse').hidden = !tf.parsed;
@@ -1185,7 +1236,7 @@ export function toggleSub(t, sid) {
   t.updatedAt = Date.now();
   touchTasks();
   const st = subStats(t);
-  if (s.done && st.done === st.total && !t.done) toast('Все подзадачи выполнены', () => { if (findTask(t.id) && !t.done) toggleTask(t); }, 'Завершить задачу');
+  if (s.done && st.done === st.total && !t.done) toast('Все подзадачи выполнены', () => { const cur = findTask(t.id); if (cur && !cur.done) toggleTask(cur); }, 'Завершить задачу');
 }
 
 function syncTaskPriv() {
@@ -1636,11 +1687,13 @@ export function renderDayTasks() {
   badge.textContent = left > 9 ? '9+' : left;
   $('tasksBtn').setAttribute('aria-label', left ? `Задачи, на сегодня: ${left}` : 'Задачи');
   if ($('tasksOv')._shown) renderTasks();
-  const list = dayOn() ? dayTasks(visTasks(), k, today) : [];
+  const raw = dayOn() ? dayTasks(visTasks(), k, today) : [], list = k >= today ? raw.filter(t => !t.done) : raw;
+  const allDone = !list.length && k === today && raw.length > 0;
   const anchor = dayPos() === 'bottom' ? $('archive') : $('futureNote');
   if (box.nextElementSibling !== anchor) anchor.before(box);
-  box.hidden = !list.length;
+  box.hidden = !list.length && !allDone;
   closeRow();
+  if (allDone) { box.innerHTML = `<div class="card t-alldone" role="status">${IC_CHECK}<span>Все задачи на сегодня выполнены</span></div>`; return; }
   if (!list.length) { box.innerHTML = ''; return; }
   const limit = dayLimit(), all = tv.dayOpen === k, shown = all ? list : list.slice(0, limit), rest = list.length - shown.length;
   const done = list.filter(t => t.done).length;

@@ -89,7 +89,7 @@ const wheelTo = (el, i) => { el.dispatchEvent(new KeyboardEvent('keydown', { key
   ok('month rows have the same buttons', acts($('tMonthItems'), 'fut') === 'move,arch,del');
   closeOverlay($('tasksOv'));
   await until(() => $('tasksOv').hidden);
-  ok('home block rows have the same buttons', acts($('dayTasks'), 'act') === 'move,arch,del' && acts($('dayTasks'), 'fin') === 'del');
+  ok('home block rows have the same buttons', acts($('dayTasks'), 'act') === 'move,arch,del' && !$('dayTasks').querySelector('[data-id=fin]'));
 }
 
 {

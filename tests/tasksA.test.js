@@ -56,7 +56,7 @@ const med = a => [...a].sort((x, y) => x - y)[a.length >> 1];
   show({ habits: [{ id: 'h', name: 'Вода', icon: 'water', color: '#3b82f6', created: shift(-5) }], log: {}, tasks: [A('d', { date: T }), A('w', { date: shift(1) })] });
   const before = $('days').querySelector('.today');
   const t0 = performance.now(); toggleTask(findTask('d')); const dt = performance.now() - t0;
-  ok('checking a task updates the badge and the home block without a full redraw', $('tasksBadge').hidden && $('dayTasks').querySelector('[data-id=d]').classList.contains('done') && $('days').querySelector('.today') === before, dt);
+  ok('checking a task updates the badge and the home block without a full redraw', $('tasksBadge').hidden && !$('dayTasks').querySelector('[data-id=d]') && !!$('dayTasks').querySelector('.t-alldone') && $('days').querySelector('.today') === before, dt);
   ok('week dots follow the change', !$('days').querySelector('.today').classList.contains('has-tasks'));
   toggleTask(findTask('d'));
   ok('week dots come back', $('days').querySelector('.today').classList.contains('has-tasks'));
