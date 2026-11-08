@@ -1,11 +1,11 @@
-import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=3.2a';
-import { setIcon } from './icons.js?v=3.2a';
-import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=3.2a';
-import { askConfirm, closeMenu, countTo, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=3.2a';
-import { catName, changeCount } from './render.js?v=3.2a';
-import { openForm } from './form.js?v=3.2a';
-import { queueTips } from './tips.js?v=3.2a';
-import { fmtNum, HIST_RANGES, HIST_STORE, planBar, planStats, unitChanged } from './plan.js?v=3.2a';
+import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=3.2b';
+import { setIcon } from './icons.js?v=3.2b';
+import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=3.2b';
+import { askConfirm, closeMenu, countTo, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=3.2b';
+import { catName, changeCount } from './render.js?v=3.2b';
+import { openForm } from './form.js?v=3.2b';
+import { queueTips } from './tips.js?v=3.2b';
+import { fmtNum, HIST_RANGES, HIST_STORE, planBar, planStats, unitChanged } from './plan.js?v=3.2b';
 
 export let hist = null;
 export const IC_I = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg>';
