@@ -14,6 +14,9 @@ const closePage = async () => { closeOverlay($('tasksOv')); await until(() => $(
 const openForm = async t => { openTaskForm(t); await until(() => $('tFormOv')._shown); };
 const closeForm = async () => { $('tFormOv')._guard = null; closeOverlay($('tFormOv')); await until(() => $('tFormOv').hidden); };
 const pressed = box => [...box.querySelectorAll('[aria-pressed=true]')].map(b => b.textContent).join();
+const pick = async (btn, v) => { btn.click(); await until(() => $('tPickOv')._shown); $('tpList').querySelector(`[data-v="${v}"]`).click(); await until(() => $('tPickOv').hidden); };
+const opts = () => [...$('tpList').querySelectorAll('.tf-lbl')].map(x => x.textContent).join();
+const optOn = () => $('tpList').querySelector('[aria-checked=true] .tf-lbl')?.textContent;
 
 {
   const n = normTasks([A('a', { due: shift(5), dueRemind: 1 }), A('b', { due: '2026-02-30', dueRemind: 1 }), A('c', { dueRemind: 0 }), A('d', { due: shift(2), dueRemind: 2 }), A('e', { due: shift(2), dueRemind: 3 })], T);
@@ -70,23 +73,24 @@ const pressed = box => [...box.querySelectorAll('[aria-pressed=true]')].map(b =>
 {
   show({ habits: [], log: {}, tasks: [A('e', { date: shift(5) })] });
   await openForm(findTask('e'));
-  ok('date row is called When', $('tfDate').querySelector('span').textContent === 'Когда');
-  ok('due row shows Not set without a box', $('tfDueVal').textContent === 'Не задан' && !visible($('tfDueClear')) && !visible($('tfDueRemRow')));
+  ok('date row is called When', $('tfDate').querySelector('.tf-lbl').textContent === 'Когда');
+  ok('due row shows Not set without a box', $('tfDueVal').textContent === 'Не задан' && !visible($('tfDueClear')) && !visible($('tfDueRemBtn')));
   ok('due controls have labels and size', $('tfDueClear').getAttribute('aria-label') === 'Сбросить срок' && $('tfDue').getBoundingClientRect().height >= 44);
   $('tfDue').click(); await until(() => $('tDateOv')._shown);
-  ok('due sheet has its quick choices', $('tdTitle').textContent === 'Срок' && [...$('tdQuick').querySelectorAll('button')].map(b => b.textContent).join() === 'Сегодня,Завтра,Через неделю,Конец месяца');
-  $('tdQuick').querySelector(`[data-v="${shift(1)}"]`).click(); $('tdOk').click(); await until(() => $('tDateOv').hidden);
-  ok('picked due is shown with reset', $('tfDueVal').textContent.startsWith('Завтра') && visible($('tfDueClear')) && visible($('tfDueRemRow')));
+  ok('due sheet has its quick choices', $('tdTitle').textContent === 'Срок' && [...$('tdQuick').querySelectorAll('.tf-lbl')].map(b => b.textContent).join() === 'Сегодня,Завтра,Через неделю,Конец месяца,Без срока');
+  $('tdQuick').querySelector(`[data-v="${shift(1)}"]`).click(); await until(() => $('tDateOv').hidden);
+  ok('picked due is shown with reset', $('tfDueVal').textContent.startsWith('Завтра') && visible($('tfDueClear')) && visible($('tfDueRemBtn')));
   ok('due earlier than when shows a hint', visible($('tfDueLate')) && $('tfDueLate').textContent === 'Срок раньше даты: задача сразу окажется просроченной.');
-  ok('reminder chips', [...$('tfDueRem').querySelectorAll('button')].map(b => b.textContent).join() === 'Нет,В день срока,За день,За 3 дня' && pressed($('tfDueRem')) === 'Нет');
-  $('tfDueRem').querySelector('[data-v="1"]').click();
-  ok('reminder choice shows the 09:00 hint', pressed($('tfDueRem')) === 'За день' && $('tfDueHint').textContent === 'Напоминание придёт в 09:00.');
+  $('tfDueRemBtn').click(); await until(() => $('tPickOv')._shown);
+  ok('reminder options', opts() === 'Нет,В день срока,За день,За 3 дня' && optOn() === 'Нет' && $('tpTitle').textContent === 'Напомнить о сроке');
+  $('tpList').querySelector('[data-v="1"]').click(); await until(() => $('tPickOv').hidden);
+  ok('reminder choice shows the 09:00 hint', $('tfDueRemVal').textContent === 'За день' && $('tfDueHint').textContent === 'Напоминание придёт в 09:00.');
   $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
   ok('due and reminder are saved', findTask('e').due === shift(1) && findTask('e').dueRemind === 1);
   await openForm(findTask('e'));
-  ok('due comes back', $('tfDueVal').textContent.startsWith('Завтра') && pressed($('tfDueRem')) === 'За день');
+  ok('due comes back', $('tfDueVal').textContent.startsWith('Завтра') && $('tfDueRemVal').textContent === 'За день');
   $('tfDueClear').click();
-  ok('reset brings Not set back and hides the reminder', $('tfDueVal').textContent === 'Не задан' && !visible($('tfDueRemRow')) && !visible($('tfDueLate')));
+  ok('reset brings Not set back and hides the reminder', $('tfDueVal').textContent === 'Не задан' && !visible($('tfDueRemBtn')) && !visible($('tfDueLate')));
   $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
   ok('reset removes due and reminder', !('due' in findTask('e')) && !('dueRemind' in findTask('e')));
   $('tfDate').click(); await until(() => $('tDateOv')._shown);

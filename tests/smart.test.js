@@ -77,6 +77,23 @@ const ids = l => l.map(h => h.id).join();
   ok('several tasks go in one message', pm.title === 'Задачи: 2' && pm.body === 'Дело a, Дело b' && !pm.ids.length, pm);
   ok('changing the time gives a new reminder key', r1[0].key !== S.taskReminders({ tasks: [K('a', { remind: 60, time: '15:00' })] }, 'UTC', new Date('2026-10-17T14:00:00Z'))[0].key);
   ok('tasks in old data do not break reminders', S.taskReminders({}, 'UTC', new Date()).length === 0 && S.taskReminders({ tasks: 'x' }, 'UTC', new Date()).length === 0);
+  const M = (list, x = {}) => K('m', { remind: undefined, reminds: list, ...x });
+  ok('each reminder of a list fires', at('2026-10-17T13:30:00Z', [M([60, 0])]) === 'm' && at('2026-10-17T14:30:00Z', [M([60, 0])]) === 'm' && at('2026-10-17T13:59:00Z', [M([60, 0])]) === 'm' && at('2026-10-17T14:00:00Z', [M([60, 0])]) === '' && at('2026-10-17T12:00:00Z', [M([60, 0])]) === '');
+  ok('clock reminder fires on its day', at('2026-10-16T09:00:00Z', [M(['1@09:00'])]) === 'm' && at('2026-10-17T09:00:00Z', [M(['1@09:00'])]) === '');
+  ok('clock reminder works without a task time', at('2026-10-17T08:10:00Z', [M(['0@08:00'], { time: undefined })]) === 'm' && at('2026-10-17T08:10:00Z', [M([0], { time: undefined })]) === '');
+  ok('bad list entries are skipped', at('2026-10-17T14:30:00Z', [M(['31@14:30', '0@25:00', 'x', 1.5])]) === '');
+  ok('only the first five are used', at('2026-10-17T14:30:00Z', [M([600, 500, 400, 300, 200, 0])]) === '');
+  const two = S.taskReminders({ tasks: [M([15, 0])] }, 'UTC', new Date('2026-10-17T14:30:00Z'));
+  ok('two reminders in one window give one push with the latest first', two.length === 1 && two[0].keys.length === 2 && two[0].key === 'task:m#2026-10-17#14:30#0' && two[0].keys[1] === 'task:m#2026-10-17#14:30#15', two);
+  const later = S.taskReminders({ tasks: [M([15, 0])] }, 'UTC', new Date('2026-10-17T14:20:00Z'));
+  ok('earlier reminder has its own key', later[0].key === 'task:m#2026-10-17#14:30#15');
+  const ck = S.taskReminders({ tasks: [M(['1@20:00'])] }, 'UTC', new Date('2026-10-16T20:05:00Z'));
+  ok('clock reminder key and body', ck[0].key === 'task:m#2026-10-17#14:30#1@20:00' && S.taskBody(ck[0]) === 'Через 18 часов 30 минут, в 14:30', S.taskBody(ck[0]));
+  const nt = S.taskReminders({ tasks: [M(['1@20:00'], { time: undefined })] }, 'UTC', new Date('2026-10-16T20:05:00Z'));
+  ok('without time the body names the day', S.taskBody(nt[0]) === 'Завтра' && nt[0].key === 'task:m#2026-10-17##1@20:00', nt[0]);
+  ok('same day without time says today', S.taskBody(S.taskReminders({ tasks: [M(['0@08:00'], { time: undefined })] }, 'UTC', new Date('2026-10-17T08:00:00Z'))[0]) === 'Сегодня');
+  ok('reminder after the task time says it is time', S.taskBody(S.taskReminders({ tasks: [M(['0@15:00'])] }, 'UTC', new Date('2026-10-17T15:00:00Z'))[0]) === 'Пора сделать');
+  ok('list wins over the old field', at('2026-10-17T14:30:00Z', [K('a', { remind: 0, reminds: [60] })]) === '');
 }
 
 const rnd = (seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647)(7);

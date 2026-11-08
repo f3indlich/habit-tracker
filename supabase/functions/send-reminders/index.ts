@@ -307,12 +307,29 @@ function goalPayload(list) {
 }
 
 const TASK_BEFORE_MAX = 43200;
+const TASK_REMINDS_MAX = 5;
+const TASK_ABS_DAYS = 30;
+const TASK_ABS_RE = /^(\d{1,2})@([01]\d|2[0-3]):([0-5]\d)$/;
 const isTaskBefore = v => Number.isInteger(v) && v >= 0 && v <= TASK_BEFORE_MAX;
+const isTaskAbs = v => typeof v === 'string' && TASK_ABS_RE.test(v) && +v.split('@')[0] <= TASK_ABS_DAYS;
 
-function taskFireAt(t) {
-  const at = toMin(t?.time);
-  if (at == null || !DATE_RE.test(t?.date || '') || !isTaskBefore(t?.remind)) return null;
-  let day = t.date, min = at - t.remind;
+function taskRemindList(t) {
+  if (Array.isArray(t?.reminds)) return t.reminds.slice(0, TASK_REMINDS_MAX);
+  return t?.remind === undefined ? [] : [t.remind];
+}
+
+function taskFireAt(t, r = taskRemindList(t)[0]) {
+  if (!DATE_RE.test(t?.date || '')) return null;
+  let min;
+  if (isTaskBefore(r)) {
+    const at = toMin(t.time);
+    if (at == null) return null;
+    min = at - r;
+  } else if (isTaskAbs(r)) {
+    const [d, hm] = r.split('@');
+    min = toMin(hm) - +d * 1440;
+  } else return null;
+  let day = t.date;
   while (min < 0) { day = shiftKey(day, -1); min += 1440; }
   return { day, min };
 }
@@ -321,9 +338,17 @@ function taskReminders(data, tz, now) {
   const local = localNow(tz, now), out = [];
   for (const t of Array.isArray(data?.tasks) ? data.tasks : []) {
     if (!t || typeof t.id !== 'string' || t.done === true || t.archivedAt) continue;
-    const fire = taskFireAt(t);
-    if (!fire || fire.day !== local.day || local.minutes < fire.min || local.minutes - fire.min >= WINDOW_MIN) continue;
-    out.push({ id: t.id, text: String(t.text || 'Задача'), time: t.time, remind: t.remind, day: local.day, private: t.private === true, key: `task:${t.id}#${t.date}#${t.time}#${t.remind}` });
+    const keys = [];
+    let first = null;
+    for (const r of taskRemindList(t)) {
+      const fire = taskFireAt(t, r);
+      if (!fire || fire.day !== local.day || local.minutes < fire.min || local.minutes - fire.min >= WINDOW_MIN) continue;
+      const k = `task:${t.id}#${t.date}#${t.time ?? ''}#${r}`;
+      if (!first || fire.min > first.fire.min) { first = { r, fire }; keys.unshift(k); } else keys.push(k);
+    }
+    if (!first) continue;
+    const at = toMin(t.time), left = at == null ? null : daysBetween(t.date, first.fire.day) * 1440 + at - first.fire.min;
+    out.push({ id: t.id, text: String(t.text || 'Задача'), time: t.time ?? null, remind: left, days: daysBetween(t.date, first.fire.day), day: local.day, private: t.private === true, key: keys[0], keys });
   }
   return out;
 }
@@ -336,7 +361,13 @@ function taskInterval(m) {
 }
 
 function taskBody(r) {
-  if (!r.remind) return 'Пора сделать';
+  if (r.time == null || r.remind == null) {
+    const d = r.days || 0;
+    if (!d) return 'Сегодня';
+    if (d === 1) return 'Завтра';
+    return `Через ${d} ${ruPlural(d, 'день', 'дня', 'дней')}`;
+  }
+  if (r.remind <= 0) return 'Пора сделать';
   if (r.remind === 1440) return `Завтра в ${r.time}`;
   return `Через ${taskInterval(r.remind)}, в ${r.time}`;
 }
@@ -446,6 +477,7 @@ if (typeof Deno !== 'undefined') {
       const tasks = [];
       for (const t of taskReminders(row.data, tz, now)) {
         const { error: dup } = await db.from('push_log').insert({ user_id: row.user_id, habit_id: t.key, day: t.day });
+        if (t.keys.length > 1) await db.from('push_log').upsert(t.keys.slice(1).map(k => ({ user_id: row.user_id, habit_id: k, day: t.day })), { onConflict: 'user_id,habit_id,day', ignoreDuplicates: true });
         if (!dup) tasks.push(t);
       }
       const dues = [];
@@ -484,7 +516,7 @@ if (typeof Deno !== 'undefined') {
         for (const h of fresh) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', h.day).in('habit_id', h.slotKeys);
         if (smart) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', smart.day).eq('habit_id', smart.key);
         for (const g of goals) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', g.day).eq('habit_id', g.key);
-        for (const t of tasks) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', t.day).eq('habit_id', t.key);
+        for (const t of tasks) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', t.day).in('habit_id', t.keys);
       }
     }
 

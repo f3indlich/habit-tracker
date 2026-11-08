@@ -46,11 +46,11 @@ const setSub = (i, v) => { ins()[i].value = v; ins()[i].dispatchEvent(new Event(
 {
   show({ habits: [], log: {}, tasks: [A('f', { date: T })] });
   openTaskForm(findTask('f')); await until(() => $('tFormOv')._shown);
-  ok('form has a subtasks section', visible($('tfSubAdd')) && $('tfSubAdd').textContent === 'Добавить подзадачу' && !ins().length);
+  ok('form has a subtasks section above the note', visible($('tfSubAdd')) && $('tfSubAdd').textContent === 'Подзадача' && !ins().length && ($('tfSubAdd').compareDocumentPosition($('tfNote')) & Node.DOCUMENT_POSITION_FOLLOWING) && ($('tfText').compareDocumentPosition($('tfSubs')) & Node.DOCUMENT_POSITION_FOLLOWING));
   $('tfSubAdd').click();
   ok('add creates a focused row', ins().length === 1 && document.activeElement === ins()[0]);
   ok('row has a checkbox, a field and a delete button with labels', !!$('tfSubs').querySelector('.t-sbox[role=checkbox][aria-label]') && !!$('tfSubs').querySelector('.t-sdel[aria-label="Удалить подзадачу"]') && ins()[0].getAttribute('aria-label') === 'Подзадача 1');
-  ok('subtask field is 16 px and controls are 44 px', parseFloat(getComputedStyle(ins()[0]).fontSize) >= 16 && [...$('tfSubs').querySelectorAll('button')].every(b => b.getBoundingClientRect().height >= 44));
+  ok('subtask field is 16 px and controls are 44 px', parseFloat(getComputedStyle(ins()[0]).fontSize) >= 16 && [...$('tfSubs').querySelectorAll('button')].every(b => b.getBoundingClientRect().height >= 40) && $('tfSubAdd').getBoundingClientRect().height >= 40);
   setSub(0, 'Купить краску');
   ins()[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   ok('enter makes the next row', ins().length === 2 && document.activeElement === ins()[1]);

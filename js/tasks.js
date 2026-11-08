@@ -19,11 +19,49 @@ export function remindLabel(m) {
 }
 // Должна совпадать с WINDOW_MIN в supabase/functions/send-reminders/index.ts
 export const REMIND_WINDOW = 30;
-export function remindState(date, time, remind, now = new Date()) {
-  if (!date || !time || !isRemind(remind)) return 'ok';
-  const [y, mo, d] = date.split('-').map(Number), [h, mi] = time.split(':').map(Number);
-  const fire = new Date(y, mo - 1, d, h, mi - remind).getTime(), past = (now.getTime() - fire) / 60000;
+export const REMINDS_MAX = 5, REMIND_DAYS_MAX = 30;
+const ABS_RE = /^(\d{1,2})@([01]\d|2[0-3]):([0-5]\d)$/;
+export const isAbsRemind = v => typeof v === 'string' && ABS_RE.test(v) && +v.split('@')[0] <= REMIND_DAYS_MAX;
+export const absRemind = (days, hhmm) => `${days}@${hhmm}`;
+const toMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+export function remindOffset(time, r) {
+  if (isRemind(r)) return time && HHMM.test(time) ? toMin(time) - r : null;
+  if (isAbsRemind(r)) { const [d, t] = r.split('@'); return toMin(t) - +d * 1440; }
+  return null;
+}
+export function normReminds(list, time) {
+  const seen = new Set(), out = [];
+  for (const r of Array.isArray(list) ? list : []) {
+    const off = remindOffset(time, r);
+    if (off == null || seen.has(off)) continue;
+    seen.add(off);
+    out.push([off, r]);
+  }
+  return out.sort((a, b) => a[0] - b[0]).slice(0, REMINDS_MAX).map(x => x[1]);
+}
+export const remindsOf = t => Array.isArray(t?.reminds) ? t.reminds : [];
+export function remindAt(date, time, r) {
+  const off = date ? remindOffset(time, r) : null;
+  if (off == null) return null;
+  const [y, mo, d] = date.split('-').map(Number);
+  return new Date(y, mo - 1, d, 0, off);
+}
+export function remindState(date, time, r, now = new Date()) {
+  const fire = remindAt(date, time, r);
+  if (!fire) return 'ok';
+  const past = (now.getTime() - fire.getTime()) / 60000;
   return past < 0 ? 'ok' : past < REMIND_WINDOW ? 'soon' : 'missed';
+}
+export function remDay(k, today = todayKey()) {
+  if (k === today) return 'Сегодня';
+  if (k === tomorrowOf(today)) return 'Завтра';
+  return `${WEEKDAYS[weekday(parseKey(k))]}, ${dayShort(k, today)}`;
+}
+export function remindText(date, time, r, today = todayKey()) {
+  const at = remindAt(date, time, r);
+  if (!at) return '';
+  const s = `${remDay(key(at), today)}, ${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+  return isRemind(r) ? `${s} · ${(TASK_REMINDS.find(x => x[0] === r)?.[1] || remindLabel(r)).toLowerCase()}` : s;
 }
 
 export const DUE_SOON_DAYS = 2;
@@ -63,13 +101,15 @@ function normTask(x, ids, today) {
   const o = { id, text, done: x.done === true, createdAt: num(x.createdAt), updatedAt: num(x.updatedAt) };
   if (isKey(x.date)) o.date = x.date;
   if (o.date && typeof x.time === 'string' && HHMM.test(x.time)) o.time = x.time;
-  if (o.time && isRemind(x.remind)) o.remind = x.remind;
+  const rs = o.date ? normReminds(Array.isArray(x.reminds) ? x.reminds : isRemind(x.remind) ? [x.remind] : [], o.time) : [];
+  if (rs.length) o.reminds = rs;
   if (isDay(x.due)) o.due = x.due;
   const rep = o.date ? normRep(x.rep) : null;
   if (rep) o.rep = rep;
   if (Number.isInteger(x.doneCount) && x.doneCount > 0) o.doneCount = Math.min(x.doneCount, 100000);
   if (isDay(x.lastDone)) o.lastDone = x.lastDone;
   if (o.due && DUE_REMIND_VALUES.includes(x.dueRemind)) o.dueRemind = x.dueRemind;
+  if (!o.date && !o.due && x.someday === true) o.someday = true;
   if (typeof x.note === 'string' && x.note.trim()) o.note = x.note.slice(0, TASK_LIM.note);
   const subs = normSubs(x.subs);
   if (subs.length) o.subs = subs;
@@ -141,7 +181,8 @@ export function taskGroups(tasks = [], today = todayKey()) {
     overdue: active.filter(t => isOverdue(t, today)).sort(byKey(t => overdueDay(t, today))),
     today: [...rest.filter(soon).sort(byDate), ...done.filter(t => t.doneAt === today)],
     upcoming: rest.filter(t => effDay(t) && effDay(t) > today && !soon(t)).sort(byDate),
-    nodate: rest.filter(t => !t.date && !t.due).sort(byDay),
+    nodate: rest.filter(t => !t.date && !t.due && !t.someday).sort(byDay),
+    someday: rest.filter(t => !t.date && !t.due && t.someday).sort(byDay),
     done: done.sort((a, b) => a.doneAt < b.doneAt ? 1 : a.doneAt > b.doneAt ? -1 : num(b.updatedAt) - num(a.updatedAt)),
     archived: tasks.filter(t => !t.done && t.archivedAt).sort((a, b) => a.archivedAt < b.archivedAt ? 1 : a.archivedAt > b.archivedAt ? -1 : a.date < b.date ? 1 : a.date > b.date ? -1 : 0),
   };
@@ -179,7 +220,7 @@ export function smartFilter(id, tasks = [], today = todayKey(), { unlocked = fal
   if (id === 'due') return list.filter(t => act(t) && t.due).sort(byKey(t => t.due));
   if (id === 'imp') return list.filter(t => act(t) && t.important).sort(byDate);
   if (id === 'late') return list.filter(t => isOverdue(t, today)).sort(byKey(t => overdueDay(t, today)));
-  if (id === 'nodate') return list.filter(t => act(t) && !t.date && !t.due).sort(byDay);
+  if (id === 'nodate') return list.filter(t => act(t) && !t.date && !t.due && !t.someday).sort(byDay);
   if (id === 'rep') return list.filter(t => act(t) && t.rep).sort(byDate);
   if (id === 'priv') return unlocked ? list.filter(t => act(t) && t.private === true).sort(byDate) : [];
   if (id === 'week') return list.filter(t => (t.done && t.doneAt >= from && t.doneAt <= today) || (!t.done && t.rep && t.lastDone && t.lastDone >= from && t.lastDone <= today)).sort((a, b) => { const x = a.done ? a.doneAt : a.lastDone, y = b.done ? b.doneAt : b.lastDone; return x < y ? 1 : x > y ? -1 : 0; });
@@ -223,6 +264,15 @@ export function doneHeading(k, today = todayKey()) {
   return dayLong(k, today);
 }
 export const nextMonday = (today = todayKey()) => key(addDays(monday(parseKey(today)), 7));
+export const nextWeekend = (today = todayKey()) => { const d = parseKey(today), w = weekday(d); return key(addDays(d, w >= 5 ? 7 - w + 5 : 5 - w)); };
+export const SOMEDAY = 'someday';
+export function moveLabel(v, today = todayKey()) {
+  if (v === SOMEDAY) return 'Когда-нибудь';
+  if (!v) return 'Без даты';
+  if (v === today) return 'на сегодня';
+  if (v === tomorrowOf(today)) return 'на завтра';
+  return `на ${WEEKDAYS[weekday(parseKey(v))].toLowerCase()}, ${dayShort(v, today)}`;
+}
 export const tomorrowOf = (today = todayKey()) => key(addDays(parseKey(today), 1));
 export const monthEnd = (today = todayKey()) => { const d = parseKey(today); return key(new Date(d.getFullYear(), d.getMonth() + 1, 0)); };
 export function dueWhen(k, today = todayKey()) {

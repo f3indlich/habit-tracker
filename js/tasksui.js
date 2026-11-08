@@ -1,4 +1,4 @@
-import { $, addDays, COLORS, esc, getPref, isVivid, key, plural, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday } from './core.js?v=3.2';
+import { $, addDays, COLORS, esc, getPref, isVivid, key, plural, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday, WEEKDAYS } from './core.js?v=3.2';
 import { IC } from './icons.js?v=3.2';
 import { save, state } from './storage.js?v=3.2';
 import { askConfirm, closeMenu, closeOverlay, openOverlay, toast } from './ui.js?v=3.2';
@@ -8,15 +8,16 @@ import { pushState } from './push.js?v=3.2';
 import { parseQuick } from './taskparse.js?v=3.2';
 import { firstOn, nextOccurrence, normRep, REP_MAX, REP_UNITS, repLabel, WD_SHORT } from './repeat.js?v=3.2';
 import { isPrivate, shownTasks, unlocked } from './privacy.js?v=3.2';
-import { daysBetween, dayLong, dayMarks, dayShort, ghostMarks, SMART, smartCounts, smartFilter, effDay, dayTasks, doneHeading, DUE_REMIND_HOUR, DUE_REMINDS, dueLabel, dueWhen, isOverdue, monthEnd, overdueText, isPresetRemind, newListId, newSubId, newTaskId, normSubs, orderOf, nextMonday, pendingToday, REMIND_MAX, remindLabel, remindState, TASK_LIM, TASK_REMINDS, subStats, taskGroups, taskWhen, tomorrowOf } from './tasks.js?v=3.2';
+import { absRemind, moveLabel, nextWeekend, SOMEDAY, daysBetween, dayLong, dayMarks, dayShort, ghostMarks, SMART, smartCounts, smartFilter, effDay, dayTasks, doneHeading, DUE_REMIND_HOUR, DUE_REMINDS, dueLabel, dueWhen, isOverdue, isRemind, monthEnd, overdueText, newListId, newSubId, newTaskId, normReminds, normSubs, orderOf, nextMonday, pendingToday, remDay, REMIND_DAYS_MAX, remindAt, remindOffset, remindsOf, remindState, remindText, REMINDS_MAX, TASK_LIM, TASK_REMINDS, subStats, taskGroups, taskWhen, tomorrowOf } from './tasks.js?v=3.2';
+import { makeWheel } from './wheel.js?v=3.2';
 
 export const TASKS_DAY_STORE = NS + '-tasks-day', TASKS_DOTS_STORE = NS + '-tasks-dots', TASKS_LIMIT_STORE = NS + '-tasks-limit', TASKS_FOLD_STORE = NS + '-tasks-fold', TASKS_POS_STORE = NS + '-tasks-pos', TASKS_LIST_STORE = NS + '-tasks-list';
 export const TASK_POSITIONS = [['top', 'Над привычками'], ['bottom', 'Под привычками']];
 export const LIST_STEP = 20;
 export const TASK_LIMITS = [3, 5, 10];
 export const SWIPE_BTN = 72, DONE_CAN_ARCHIVE = false;
-export const swipeW = n => n * SWIPE_BTN + 8;
-export const SWIPE_W = swipeW(2);
+export const swipeW = n => n * SWIPE_BTN + 14;
+export const SWIPE_W = swipeW(3);
 const DONE_STEP = 5;
 const IC_CHECK = '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const IC_LIST = '<svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l.8.8L6.3 5M4 12l.8.8 1.5-1.8M4 18l.8.8 1.5-1.8"/></svg>';
@@ -27,11 +28,14 @@ const IC_FLAG = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 21V4.5M6 4.5h11
 const IC_REP = '<svg class="ic" viewBox="0 0 24 24"><path d="M17 2.5l3 3-3 3M4 11.5v-1a5 5 0 0 1 5-5h11M7 21.5l-3-3 3-3M20 12.5v1a5 5 0 0 1-5 5H4"/></svg>';
 const IC_BELL = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 21h4"/></svg>';
 const IC_DOWN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+const IC_MOVE = '<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4M10 13.5l2.5 2-2.5 2"/></svg>';
 const IC_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>';
 
 const monthOf = k => { const d = parseKey(k); return new Date(d.getFullYear(), d.getMonth(), 1); };
 
-export const tv = { tab: 'list', day: todayKey(), month: monthOf(todayKey()), doneOpen: false, doneShown: DONE_STEP, archOpen: false, archShown: DONE_STEP, dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
+export const tv = { sel: null, someOpen: false, tab: 'list', day: todayKey(), month: monthOf(todayKey()), doneOpen: false, doneShown: DONE_STEP, archOpen: false, archShown: DONE_STEP, dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
+export const doneDelay = { ms: 600 };
+const pendingDone = new Map();
 export const taskHooks = { chips: () => '', render: null, open: null, select: null, leave: null };
 export const tasksOf = (s = state) => s.tasks || (s.tasks = []);
 export const findTask = id => tasksOf().find(t => t.id === id);
@@ -62,15 +66,15 @@ function metaHTML(t, mode, today) {
   else if (t.time && !t.done) parts.push(`<span>${t.time}</span>`);
   if (!t.done && t.due && mode !== 'dueday' && !(late && t.due < today)) { const d = dueLabel(t, today); parts.push(`<span class="t-due${d.tone ? ' ' + d.tone : ''}">${IC_FLAG}${esc(d.text)}</span>`); }
   if (t.rep && !t.done) parts.push(`<span class="t-rep">${IC_REP}<span>${esc(repLabel(t.rep))}</span></span>`);
-  if (!t.done && t.remind != null) parts.push(`<span class="t-mbell" aria-label="Есть напоминание">${IC_BELL}</span>`);
+  if (!t.done && remindsOf(t).length) parts.push(`<span class="t-mbell" aria-label="Есть напоминание">${IC_BELL}</span>`);
   return parts.length ? `<span class="t-meta">${parts.join('')}</span>` : '';
 }
 
 export function taskActs(t) {
   if (t.done) return DONE_CAN_ARCHIVE ? ['arch', 'del'] : ['del'];
-  return [t.archivedAt ? 'restore' : 'arch', 'del'];
+  return t.archivedAt ? ['restore', 'del'] : ['move', 'arch', 'del'];
 }
-const ACTS = { arch: [IC.archive, 'В архив'], restore: [IC.reset, 'Вернуть'], del: [IC.trash.replace(' del-ic', ''), 'Удалить'] };
+const ACTS = { move: [IC_MOVE, 'Перенести'], arch: [IC.archive, 'В архив'], restore: [IC.reset, 'Вернуть'], del: [IC.trash.replace(' del-ic', ''), 'Удалить'] };
 const actsHTML = list => list.map(a => `<button type="button" data-act="${a}"><i aria-hidden="true">${ACTS[a][0]}</i><span>${ACTS[a][1]}</span></button>`).join('');
 
 function subsHTML(t, mode) {
@@ -86,12 +90,14 @@ function subListHTML(t, mode) {
 }
 
 function rowHTML(t, mode, today) {
-  const acts = taskActs(t);
-  return `<div class="t-row${t.done ? ' done' : ''}" data-id="${esc(t.id)}" style="--sw:${swipeW(acts.length)}px">
+  const acts = taskActs(t), sel = tv.sel && mode !== 'day', on = sel && tv.sel.has(t.id), pend = pendingDone.has(t.id);
+  const box = sel ? `<button type="button" class="t-box t-selbox" role="checkbox" aria-checked="${on}" aria-label="Выбрать: ${esc(t.text)}">${IC_CHECK}</button>`
+    : `<button type="button" class="t-box" role="checkbox" aria-checked="${t.done || pend}" aria-label="${esc(t.text)}">${IC_CHECK}</button>`;
+  return `<div class="t-row${t.done ? ' done' : ''}${pend ? ' t-pend' : ''}${sel ? ' t-sel' : ''}${on ? ' on' : ''}" data-id="${esc(t.id)}" style="--sw:${swipeW(acts.length)}px">
     <div class="t-acts">${actsHTML(acts)}</div>
 
     <div class="t-fg">
-      <button type="button" class="t-box" role="checkbox" aria-checked="${t.done}" aria-label="${esc(t.text)}">${IC_CHECK}</button>
+      ${box}
       <button type="button" class="t-main"><span class="t-text">${t.important && !t.done ? '<span class="t-imp" role="img" aria-label="Важная">!</span>' : ''}${isPrivate(t) ? `<span class="t-lock" role="img" aria-label="Личная">${IC.lock}</span>` : ''}${esc(t.text)}${t.note ? `<span class="t-mnote" aria-label="Есть заметка">${IC.note}</span>` : ''}</span>${metaHTML(t, mode, today)}</button>${subsHTML(t, mode)}
     </div>
   </div>${subListHTML(t, mode)}`;
@@ -125,6 +131,14 @@ function archiveHTML(list, today) {
   return `<section class="t-group open">${head}<div class="card t-list">${list.slice(0, tv.archShown).map(t => rowHTML(t, 'none', today)).join('')}</div>${more}</section>`;
 }
 
+function somedayHTML(list, today) {
+  if (!list.length) return '';
+  const head = `<button type="button" class="t-done-head" data-act="some-toggle" aria-expanded="${tv.someOpen}"><span>Когда-нибудь</span><span class="cnt">${list.length}</span>${IC_DOWN}</button>`;
+  if (!tv.someOpen) return `<section class="t-group">${head}</section>`;
+  const lim = tv.shown.someday ||= LIST_STEP, more = list.length > lim ? `<button type="button" class="t-more-btn" data-act="more" data-g="someday">Показать ещё ${Math.min(list.length - lim, LIST_STEP)}</button>` : '';
+  return `<section class="t-group open">${head}<div class="card t-list">${list.slice(0, lim).map(t => rowHTML(t, 'none', today)).join('')}</div>${more}</section>`;
+}
+
 function emptyHTML() {
   return `<div class="empty t-empty"><div class="t-empty-ic">${IC_LIST}</div><b>Здесь будут Ваши дела</b><p>Нажмите «+», запишите первое дело и выберите день, когда им заняться. Оно появится на экране этого дня.</p></div>`;
 }
@@ -137,6 +151,7 @@ function renderList() {
     groupHTML('Сегодня', g.today, 'none', today, { g: 'today', count: g.today.filter(t => !t.done).length }),
     groupHTML('Предстоящие', g.upcoming, 'when', today, { g: 'upcoming' }),
     groupHTML('Без даты', g.nodate, 'none', today, { g: 'nodate' }),
+    somedayHTML(g.someday, today),
     doneHTML(g.done.filter(t => t.doneAt !== today), today),
     archiveHTML(g.archived, today),
   ].join('');
@@ -176,6 +191,8 @@ function renderMonth() {
 export function renderTasks() {
   for (const b of $('tTabs').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.t === tv.tab);
   $('tShared').hidden = !tv.shared;
+  if (tv.sel && (tv.shared || (!tv.smart && tv.tab !== 'list'))) exitSelect(false);
+  $('tSelBtn').hidden = !!tv.shared || (!tv.smart && tv.tab !== 'list');
   if (tv.shared) {
     for (const id of ['tTabs', 'tSmartBar', 'tListView', 'tMonthView', 'tQuick', 'tsResults']) $(id).hidden = true;
     paintListChips();
@@ -194,6 +211,7 @@ export function renderTasks() {
 }
 
 export function openTasks() {
+  exitSelect(false);
   tv.tab = 'list';
   tv.shown = {};
   tv.smart = null;
@@ -210,6 +228,7 @@ $('tasksBtn').onclick = () => openTasks();
 $('tTabs').onclick = e => {
   const b = e.target.closest('button[data-t]');
   if (!b || b.dataset.t === tv.tab) return;
+  exitSelect(false);
   tv.tab = b.dataset.t;
   renderTasks();
 };
@@ -274,6 +293,23 @@ export function skipRepeat(t, today = todayKey()) {
   toast(`Пропущено. Следующий раз: ${dayShort(next, today)}`, () => undoRepeat(t, was));
   return next;
 }
+function markPending(id, on) {
+  for (const row of document.querySelectorAll(`.t-row[data-id="${CSS.escape(id)}"]`)) {
+    row.classList.toggle('t-pend', on);
+    row.querySelector('.t-box')?.setAttribute('aria-checked', on);
+  }
+}
+export function tapDone(t, from) {
+  if (pendingDone.has(t.id)) { clearTimeout(pendingDone.get(t.id)); pendingDone.delete(t.id); return markPending(t.id, false); }
+  if (t.done || !doneDelay.ms) return toggleTask(t, from);
+  markPending(t.id, true);
+  if (from && !reducedMotion && isVivid()) sparks(from, 'var(--good)');
+  navigator.vibrate?.(8);
+  pendingDone.set(t.id, setTimeout(() => {
+    pendingDone.delete(t.id);
+    if (findTask(t.id) && !t.done) toggleTask(t); else markPending(t.id, false);
+  }, doneDelay.ms));
+}
 export function toggleTask(t, from) {
   if (!t.done && t.rep && completeRepeat(t)) { if (from && !reducedMotion && isVivid()) sparks(from, 'var(--good)'); return; }
   const was = t.done;
@@ -294,6 +330,42 @@ export async function deleteTask(t) {
     tasksOf().splice(Math.min(i, tasksOf().length), 0, { ...t, updatedAt: Date.now() });
     touchTasks();
   });
+}
+const snapTasks = list => list.map(t => [t, JSON.parse(JSON.stringify(t))]);
+function undoSnap(snap) {
+  for (const [t, was] of snap) {
+    if (!findTask(t.id)) continue;
+    for (const k of Object.keys(t)) delete t[k];
+    Object.assign(t, was, { updatedAt: Date.now() });
+  }
+  touchTasks();
+}
+export function moveTasks(list, v, today = todayKey()) {
+  const some = v === SOMEDAY, clear = some || !v;
+  list = list.filter(t => t && !t.done && !(clear && t.rep));
+  if (!list.length) return 0;
+  const snap = snapTasks(list), now = Date.now();
+  let late = false;
+  for (const t of list) {
+    if (clear) {
+      for (const k of ['date', 'time', 'reminds', 'rep', ...(some ? ['due', 'dueRemind'] : [])]) delete t[k];
+      if (some) t.someday = true; else delete t.someday;
+    } else {
+      t.date = v;
+      delete t.someday;
+      if (t.due && v > t.due) late = true;
+    }
+    delete t.archivedAt;
+    t.updatedAt = now;
+  }
+  touchTasks();
+  const n = list.length, base = some ? 'Отложено: когда-нибудь' : !v ? 'Дата убрана' : `Перенесено ${moveLabel(v, today)}`;
+  toast(base + (n > 1 ? ` · ${n} ${plural(n, 'задача', 'задачи', 'задач')}` : '') + (late ? ' · позже срока' : ''), () => undoSnap(snap));
+  return n;
+}
+export function openMove(list, done = null) {
+  const one = list.length === 1 ? list[0] : null;
+  pickDate(one ? (one.someday ? SOMEDAY : one.date) : null, v => { moveTasks(list, v); done?.(); }, 'move', { rep: list.some(t => t.rep) });
 }
 export function allToToday() {
   const today = todayKey(), now = Date.now(), moved = screenTasks().filter(t => isOverdue(t, today)).map(t => [t, t.date]);
@@ -341,7 +413,7 @@ function bindList(box) {
   let s = null;
   box.addEventListener('pointerdown', e => {
     const fg = e.target.closest('.t-fg');
-    if (!fg || e.button !== 0 || e.target.closest('.t-box')) return;
+    if (!fg || e.button !== 0 || e.target.closest('.t-box') || (tv.sel && box.id !== 'dayTasks')) return;
     const row = fg.parentElement;
     const w = swipeW(row.querySelectorAll('.t-acts button').length);
     if (s?.lp) clearTimeout(s.lp);
@@ -417,6 +489,8 @@ function bindList(box) {
   box.addEventListener('pointercancel', end);
   box.addEventListener('click', e => {
     if (box._swiped) return;
+    const selRow = tv.sel && box.id !== 'dayTasks' && e.target.closest('.t-row');
+    if (selRow) return toggleSel(selRow.dataset.id);
     const act = e.target.closest('[data-act]');
     if (act) return listAct(act);
     const row = e.target.closest('.t-row');
@@ -425,7 +499,7 @@ function bindList(box) {
     if (!t) return;
     if (row.classList.contains('open') && !e.target.closest('.t-acts')) return closeRow();
     const box2 = e.target.closest('.t-box');
-    if (box2) return toggleTask(t, box2);
+    if (box2) return tapDone(t, box2);
     if (e.target.closest('.t-main')) openTaskForm(t);
   });
 }
@@ -452,6 +526,8 @@ function listAct(el) {
   if (a === 'more') { tv.shown[el.dataset.g] = (tv.shown[el.dataset.g] || LIST_STEP) + LIST_STEP; return renderList(); }
   if (a === 'all-today') return allToToday();
   if (a === 'all-arch') return archiveOverdue();
+  if (a === 'some-toggle') { tv.someOpen = !tv.someOpen; return renderList(); }
+  if (a === 'move' && t) { closeRow(); return openMove([t]); }
   if (a === 'arch' && t) { closeRow(); return archiveTask(t); }
   if (a === 'restore' && t) { closeRow(); return restoreTask(t); }
   if (a === 'add') return openTaskForm(null, el.dataset.k);
@@ -461,121 +537,210 @@ function listAct(el) {
 }
 for (const id of ['tItems', 'tMonthItems', 'dayTasks']) bindList($(id));
 
-const ds = { sel: null, month: monthOf(todayKey()), cb: null, due: false };
-function renderPick() {
-  const today = todayKey(), tom = tomorrowOf(today), mon = nextMonday(today);
-  const quick = ds.due ? [['Сегодня', today], ['Завтра', tom], ['Через неделю', key(addDays(parseKey(today), 7))], ['Конец месяца', monthEnd(today)]] : [['Сегодня', today], ['Завтра', tom], ['В понедельник', mon], ['Без даты', '']];
-  $('tdTitle').textContent = ds.due ? 'Срок' : 'Когда сделать';
-  $('tdQuick').innerHTML = quick.map(([l, v]) => `<button type="button" class="t-chip" data-v="${v}" aria-pressed="${(ds.sel || '') === v}"><span>${l}</span></button>`).join('');
-  $('tdCal').innerHTML = calHTML(ds.month, ds.sel, dayMarks(visTasks(), today), today);
-  $('tdOk').textContent = ds.sel ? `Выбрать: ${dayShort(ds.sel, today)}` : ds.due ? 'Без срока' : 'Выбрать: без даты';
+const CAL_SVG = '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/>';
+const IC_D = {
+  today: `<svg class="ic" viewBox="0 0 24 24">${CAL_SVG}<circle cx="12" cy="15" r="1.4"/></svg>`,
+  tom: '<svg class="ic" viewBox="0 0 24 24"><path d="M12 4.5v2.5M5.9 7.4l1.7 1.7M18.1 7.4l-1.7 1.7M3.5 15.5H6M18 15.5h2.5M8 15.5a4 4 0 0 1 8 0M3.5 19.5h17"/></svg>',
+  wknd: '<svg class="ic" viewBox="0 0 24 24"><path d="M5.5 11V8.5a2.5 2.5 0 0 1 2.5-2.5h8a2.5 2.5 0 0 1 2.5 2.5V11M4 12a1.5 1.5 0 0 1 3 0v2h10v-2a1.5 1.5 0 0 1 3 0v6H4zM6 18v2M18 18v2"/></svg>',
+  week: IC_MOVE,
+  month: `<svg class="ic" viewBox="0 0 24 24">${CAL_SVG}<path d="M15.5 16.5h.01"/></svg>`,
+  someday: '<svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1.3"/><path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4"/></svg>',
+  none: `<svg class="ic" viewBox="0 0 24 24">${CAL_SVG}<path d="M4.5 4.5l15 15"/></svg>`,
+};
+const PICK_TITLE = { when: 'Когда сделать', due: 'Срок', until: 'Повторять до', move: 'Перенести' };
+const ds = { sel: null, month: monthOf(todayKey()), cb: null, mode: 'when', rep: false };
+export const pickDayText = (k, today = todayKey()) => `${WEEKDAYS[weekday(parseKey(k))]}, ${dayShort(k, today)}`;
+function pickOpts(today) {
+  const tom = tomorrowOf(today);
+  if (ds.mode === 'due' || ds.mode === 'until') return [[IC_D.today, 'Сегодня', today], [IC_D.tom, 'Завтра', tom], [IC_D.week, 'Через неделю', key(addDays(parseKey(today), 7))], [IC_D.month, 'Конец месяца', monthEnd(today)], null, [IC_D.none, ds.mode === 'due' ? 'Без срока' : 'Без ограничения', '']];
+  const mon = nextMonday(today), week = mon === tom ? key(addDays(parseKey(mon), 7)) : mon;
+  const out = [[IC_D.today, 'Сегодня', today], [IC_D.tom, 'Завтра', tom], [IC_D.wknd, 'Выходные', nextWeekend(today)], [IC_D.week, 'Следующая неделя', week]];
+  if (!ds.rep) out.push(null, [IC_D.someday, 'Когда-нибудь', SOMEDAY], [IC_D.none, 'Без даты', '']);
+  return out;
 }
-export function pickDate(sel, cb, due = false) {
+function renderPick() {
+  const today = todayKey(), cur = ds.sel || '';
+  $('tdTitle').textContent = PICK_TITLE[ds.mode] || PICK_TITLE.when;
+  $('tdQuick').innerHTML = pickOpts(today).map(o => !o ? '<div class="tf-div" role="separator"></div>'
+    : `<button type="button" class="tf-row tf-opt" data-v="${o[2]}" aria-pressed="${cur === o[2]}"><span class="tf-ic">${o[0]}</span><span class="tf-lbl">${o[1]}</span>${o[2] && o[2] !== SOMEDAY ? `<em>${esc(pickDayText(o[2], today))}</em>` : ''}${IC_CHECK}</button>`).join('');
+  $('tdCal').innerHTML = calHTML(ds.month, cur && cur !== SOMEDAY ? cur : null, dayMarks(visTasks(), today), today);
+}
+export function pickDate(sel, cb, mode = 'when', opts = {}) {
   closeMenu();
-  ds.due = due;
+  ds.mode = mode === true ? 'due' : mode || 'when';
+  ds.rep = !!opts.rep;
   ds.sel = sel || null;
-  ds.month = monthOf(sel || todayKey());
+  ds.month = monthOf(sel && sel !== SOMEDAY ? sel : todayKey());
   ds.cb = cb;
   renderPick();
   openOverlay($('tDateOv'));
 }
+function pickDone(v) {
+  const cb = ds.cb;
+  ds.cb = null;
+  closeOverlay($('tDateOv'));
+  cb?.(v || null);
+}
 $('tdQuick').onclick = e => {
   const b = e.target.closest('[data-v]');
-  if (!b) return;
-  ds.sel = b.dataset.v || null;
-  if (ds.sel) ds.month = monthOf(ds.sel);
-  renderPick();
+  if (b) pickDone(b.dataset.v);
 };
 $('tdCal').onclick = e => {
   const nav = e.target.closest('[data-nav]');
   if (nav) { ds.month = new Date(ds.month.getFullYear(), ds.month.getMonth() + +nav.dataset.nav, 1); return renderPick(); }
   const c = e.target.closest('[data-k]');
-  if (!c) return;
-  ds.sel = c.dataset.k;
-  ds.month = monthOf(ds.sel);
-  renderPick();
-};
-$('tdOk').onclick = () => {
-  const cb = ds.cb;
-  ds.cb = null;
-  closeOverlay($('tDateOv'));
-  cb?.(ds.sel);
+  if (c) pickDone(c.dataset.k);
 };
 
-const tf = { id: null, date: null, time: null, remind: null, base: '', arch: false, closed: false, remOpen: false, remUnit: 1, touched: false, parsed: null, subs: [], priv: false, imp: false, due: null, dueRemind: null, rep: null, skip: false };
-export const REMIND_UNITS = [[1, 'мин'], [60, 'ч'], [1440, 'дн']];
-const tfSnap = () => JSON.stringify([$('tfText').value, $('tfNote').value, tf.date, tf.time, tf.remind, tf.subs.filter(s => s.text.trim()).map(s => [s.text.trim(), s.done]), tf.priv, tf.imp, $('tfList').value, tf.due, tf.dueRemind, tf.rep]);
+function selRows() { return [...$('tItems').querySelectorAll('.t-row.t-sel')]; }
+function selTasks() { return [...(tv.sel || [])].map(findTask).filter(Boolean); }
+export function enterSelect() {
+  if (tv.shared) return;
+  closeRow();
+  closeSearch();
+  tv.sel = new Set();
+  document.body.classList.add('t-selecting');
+  renderTasks();
+  paintSel();
+  $('tSelDone').focus({ preventScroll: true });
+}
+export function exitSelect(render = true) {
+  if (!tv.sel) return;
+  tv.sel = null;
+  document.body.classList.remove('t-selecting');
+  paintSel();
+  if (render) renderTasks();
+}
+function toggleSel(id) {
+  if (!tv.sel || !findTask(id)) return;
+  if (tv.sel.has(id)) tv.sel.delete(id); else tv.sel.add(id);
+  const on = tv.sel.has(id);
+  for (const row of $('tItems').querySelectorAll(`.t-row[data-id="${CSS.escape(id)}"]`)) {
+    row.classList.toggle('on', on);
+    row.querySelector('.t-selbox')?.setAttribute('aria-checked', on);
+  }
+  paintSel();
+}
+function paintSel() {
+  const n = tv.sel?.size || 0, sel = !!tv.sel;
+  $('tTitle').textContent = sel ? (n ? `Выбрано: ${n}` : 'Выберите задачи') : 'Задачи';
+  $('tSelAll').hidden = $('tSelDone').hidden = !sel;
+  $('tSelBar').hidden = !sel;
+  if (!sel) return;
+  const open = selRows().filter(r => !r.classList.contains('done'));
+  $('tSelAll').textContent = open.length && open.every(r => tv.sel.has(r.dataset.id)) ? 'Снять' : 'Все';
+  const list = selTasks(), act = list.filter(t => !t.done);
+  for (const b of $('tSelBar').querySelectorAll('button')) b.disabled = !(b.dataset.s === 'del' ? list.length : act.length);
+  $('tSelBar').querySelector('[data-s=list]').hidden = !listsOf().length;
+}
+$('tSelBtn').onclick = () => enterSelect();
+$('tSelDone').onclick = () => exitSelect();
+$('tSelAll').onclick = () => {
+  const open = selRows().filter(r => !r.classList.contains('done')), all = open.length && open.every(r => tv.sel.has(r.dataset.id));
+  for (const r of open) { if (all) tv.sel.delete(r.dataset.id); else tv.sel.add(r.dataset.id); }
+  renderTasks();
+  paintSel();
+};
+$('tasksOv')._guard = () => { if (!tv.sel) return true; exitSelect(); return false; };
+function selDone(snap, text) {
+  touchTasks();
+  exitSelect();
+  toast(text, () => undoSnap(snap));
+}
+$('tSelBar').onclick = async e => {
+  const b = e.target.closest('[data-s]');
+  if (!b || b.disabled || !tv.sel) return;
+  const list = selTasks(), act = list.filter(t => !t.done), n = act.length, today = todayKey(), now = Date.now();
+  const cnt = k => `${k} ${plural(k, 'задача', 'задачи', 'задач')}`;
+  if (b.dataset.s === 'move') return openMove(act, () => exitSelect());
+  if (b.dataset.s === 'list') {
+    const cur = new Set(act.map(t => t.list || ''));
+    return openPick('В список', [{ v: '', label: 'Без списка' }, ...listsOf().map(l => ({ v: l.id, label: l.name }))].map(x => ({ ...x, on: cur.size === 1 && cur.has(x.v) })), v => {
+      const snap = snapTasks(act);
+      for (const t of act) { if (v) t.list = v; else delete t.list; t.updatedAt = now; }
+      selDone(snap, `${cnt(n)} · ${v ? findList(v)?.name || 'список' : 'без списка'}`);
+    }, b);
+  }
+  if (b.dataset.s === 'done') {
+    const snap = snapTasks(act);
+    for (const t of act) {
+      const next = t.rep ? nextOccurrence(t.rep, t.date || today, today) : null;
+      if (next && !(t.rep.until && next > t.rep.until)) { shiftTask(t, next); t.doneCount = (t.doneCount || 0) + 1; t.lastDone = today; }
+      else { t.done = true; t.doneAt = today; delete t.archivedAt; t.updatedAt = now; }
+    }
+    return selDone(snap, `Выполнено: ${cnt(n)}`);
+  }
+  if (b.dataset.s === 'arch') {
+    const snap = snapTasks(act);
+    for (const t of act) { t.archivedAt = today; t.updatedAt = now; }
+    return selDone(snap, `В архиве: ${cnt(n)}`);
+  }
+  if (b.dataset.s === 'del') {
+    const k = list.length;
+    if (!(await askConfirm(`Удалить ${cnt(k).replace(/задача$/, 'задачу')}?`, 'Сразу после удаления их можно вернуть кнопкой «Отменить».', 'Удалить'))) return;
+    const all = tasksOf(), gone = list.map(t => [t, all.indexOf(t)]).filter(x => x[1] >= 0).sort((x, y) => x[1] - y[1]);
+    for (const [t] of [...gone].reverse()) all.splice(all.indexOf(t), 1);
+    touchTasks();
+    exitSelect();
+    toast(`Удалено: ${cnt(k)}`, () => {
+      const cur = tasksOf();
+      for (const [t, i] of gone) if (!findTask(t.id)) cur.splice(Math.min(i, cur.length), 0, { ...t, updatedAt: Date.now() });
+      touchTasks();
+    });
+  }
+};
+
+const tf = { id: null, date: null, someday: false, time: null, reminds: [], base: '', arch: false, closed: false, touched: false, parsed: null, subs: [], priv: false, imp: false, due: null, dueRemind: null, rep: null, skip: false };
+const tfSnap = () => JSON.stringify([$('tfText').value, $('tfNote').value, tf.date, tf.someday, tf.time, tf.reminds, tf.subs.filter(s => s.text.trim()).map(s => [s.text.trim(), s.done]), tf.priv, tf.imp, $('tfList').value, tf.due, tf.dueRemind, tf.rep]);
 export function taskRemindHint(st = pushState()) {
   if (st === 'on' || st === 'off') return '';
   if (st === 'ios') return 'Напоминание придёт только в приложении, установленном на экран «Домой».';
   return 'Чтобы напоминание пришло, включите уведомления в Настройках.';
 }
-const remChip = (v, label, on, cls = '') => `<button type="button" class="t-chip${cls}" role="radio" data-v="${v}" aria-pressed="${on}" aria-checked="${on}"><span>${esc(label)}</span></button>`;
+const DUE_HINT = () => `Напоминание придёт в ${String(DUE_REMIND_HOUR).padStart(2, '0')}:00.`;
 function paintTfDue() {
   $('tfDueVal').textContent = tf.due ? taskWhen(tf.due) : 'Не задан';
   $('tfDueRow').classList.toggle('empty', !tf.due);
   $('tfDueClear').hidden = !tf.due;
-  $('tfDueRemRow').hidden = !tf.due;
-  $('tfDueRem').innerHTML = DUE_REMINDS.map(([v, l]) => remChip(v ?? '', l, tf.dueRemind === v)).join('');
+  $('tfDueRemBtn').hidden = !tf.due;
+  $('tfDueRemVal').textContent = DUE_REMINDS.find(x => x[0] === tf.dueRemind)?.[1] || 'Нет';
   $('tfDueLate').hidden = !(tf.due && tf.date && tf.due < tf.date);
-  $('tfDueHint').textContent = tf.dueRemind !== null ? `Напоминание придёт в ${String(DUE_REMIND_HOUR).padStart(2, '0')}:00.` : '';
+  $('tfDueHint').textContent = tf.due && tf.dueRemind !== null ? DUE_HINT() : '';
 }
+const remLate = r => !tf.closed && remindState(tf.date, tf.time, r) === 'missed';
 function paintTfDate() {
   paintTfDue();
   paintTfRep();
-  $('tfDateVal').textContent = tf.date ? taskWhen(tf.date) : 'Без даты';
+  if (tf.date || tf.due) tf.someday = false;
+  $('tfDateVal').textContent = tf.date ? taskWhen(tf.date) : tf.someday ? 'Когда-нибудь' : 'Без даты';
   $('tfTimeRow').hidden = !tf.date;
   $('tfTimeRow').classList.toggle('empty', !tf.time);
-  $('tfRemRow').hidden = !tf.time;
   if (document.activeElement !== $('tfTime') || !tf.time) $('tfTime').value = tf.time || '';
   $('tfTimeClear').hidden = !tf.time;
-  const custom = tf.remind !== null && !isPresetRemind(tf.remind);
-  $('tfRem').innerHTML = TASK_REMINDS.map(([v, l]) => remChip(v ?? '', l, tf.remind === v)).join('')
-    + `<button type="button" class="t-chip t-chip-other" data-v="other" aria-expanded="${tf.remOpen}" aria-controls="tfRemCustom"><span>Другое…</span></button>`
-    + (custom ? remChip(tf.remind, remindLabel(tf.remind), true, ' t-chip-wide') : '');
-  $('tfRemCustom').hidden = !tf.remOpen;
-  for (const b of $('tfRemUnit').querySelectorAll('button')) b.setAttribute('aria-checked', +b.dataset.u === tf.remUnit);
-  $('tfRemHint').textContent = tf.time && tf.remind !== null ? taskRemindHint() : '';
-  paintRemLate();
-}
-function paintRemLate() {
-  const late = !tf.closed && !!tf.time && tf.remind !== null && remindState(tf.date, tf.time, tf.remind) === 'missed';
-  $('tfRemLate').hidden = !late;
-}
-function openRemCustom() {
-  tf.remOpen = true;
-  const m = tf.remind;
-  if (m > 0) {
-    tf.remUnit = [...REMIND_UNITS].reverse().find(([u]) => m % u === 0)[0];
-    $('tfRemNum').value = m / tf.remUnit;
-  } else $('tfRemNum').value = '';
-  $('tfRemErr').hidden = true;
-  paintTfDate();
-  $('tfRemNum').focus({ preventScroll: true });
-}
-function applyRemCustom() {
-  const raw = $('tfRemNum').value.trim(), n = Number(raw), err = $('tfRemErr');
-  if (!/^\d+$/.test(raw) || n < 1) { err.textContent = 'Введите целое число от 1'; err.hidden = false; return $('tfRemNum').focus(); }
-  if (n * tf.remUnit > REMIND_MAX) { err.textContent = 'Не больше 30 дней'; err.hidden = false; return $('tfRemNum').focus(); }
-  err.hidden = true;
-  tf.remind = n * tf.remUnit;
-  tf.remOpen = false;
-  paintTfDate();
+  tf.reminds = tf.date ? normReminds(tf.reminds, tf.time) : [];
+  $('tfRemRow').hidden = !tf.date;
+  $('tfRems').innerHTML = tf.reminds.map((r, i) => `<div class="tf-row tf-rem${remLate(r) ? ' late' : ''}" role="listitem"><button type="button" class="tf-rem-pick" data-i="${i}"><span class="tf-ic">${IC_BELL}</span><span class="tf-lbl">${esc(remindText(tf.date, tf.time, r))}</span></button><button type="button" class="ghost icon-btn tf-x" data-del="${i}" aria-label="Удалить напоминание">${IC_X}</button></div>`).join('');
+  const n = tf.reminds.length;
+  $('tfRemAdd').hidden = n >= REMINDS_MAX;
+  $('tfRemAdd').classList.toggle('tf-more', n > 0);
+  $('tfRemAddLbl').textContent = n ? 'Ещё напоминание' : 'Напоминание';
+  $('tfRemAddVal').textContent = n ? '' : 'Нет';
+  $('tfRemHint').textContent = n ? taskRemindHint() : '';
+  $('tfRemLate').hidden = !tf.reminds.some(remLate);
 }
 export function openTaskForm(t = null, date = null) {
   closeMenu();
   tf.id = t?.id || null;
   tf.date = t ? t.date || null : date;
+  tf.someday = !!t?.someday;
   tf.time = t?.time || null;
-  tf.remind = t?.remind ?? null;
+  tf.reminds = [...remindsOf(t)];
   tf.due = t?.due || null;
   tf.rep = t?.rep ? { ...t.rep, wd: t.rep.wd && [...t.rep.wd] } : null;
   tf.repStat = t?.doneCount ? [t.doneCount, t.lastDone] : null;
   tf.repDone = !!t?.done;
   tf.dueRemind = t?.dueRemind ?? null;
   tf.closed = !!t && (t.done || !!t.archivedAt);
-  tf.remOpen = false;
-  tf.remUnit = 1;
   $('tfTitle').textContent = t ? 'Задача' : 'Новая задача';
   $('tfSubmit').textContent = t ? 'Сохранить' : 'Добавить';
   $('tfDelete').hidden = !t;
@@ -584,7 +749,6 @@ export function openTaskForm(t = null, date = null) {
   $('tfText').value = t?.text || '';
   $('tfNote').value = t?.note || '';
   $('tfText').removeAttribute('aria-invalid');
-  $('tfRemErr').hidden = true;
   tf.touched = false;
   tf.subs = (t?.subs || []).map(s => ({ ...s }));
   tf.priv = isPrivate(t);
@@ -613,9 +777,10 @@ $('tfParseOk').onclick = () => {
   if (!r) return;
   $('tfText').value = r.text;
   if (r.date) tf.date = r.date;
+  if (r.someday) tf.someday = true;
   if (r.due) tf.due = r.due;
   if (r.rep) tf.rep = r.rep;
-  if (r.time) { tf.time = r.time; tf.remind = 0; }
+  if (r.time) { tf.time = r.time; if (!tf.reminds.length) tf.reminds = [0]; }
   if (r.important) { tf.imp = true; paintImp(); }
   tf.touched = true;
   paintTfDate();
@@ -653,59 +818,142 @@ $('tfDueClear').onclick = () => {
   paintTfDate();
   $('tfDue').focus({ preventScroll: true });
 };
-$('tfDueRem').onclick = e => {
-  const b = e.target.closest('[data-v]');
-  if (!b) return;
-  tf.dueRemind = b.dataset.v === '' ? null : +b.dataset.v;
+$('tfDueRemBtn').onclick = () => openPick('Напомнить о сроке', DUE_REMINDS.map(([v, l]) => ({ v: v ?? '', label: l, on: tf.dueRemind === v })), v => {
+  tf.dueRemind = v === '' ? null : +v;
   paintTfDue();
-};
-$('tfDate').onclick = () => pickDate(tf.date, d => {
-  tf.date = d;
+}, $('tfDueRemBtn'));
+$('tfDate').onclick = () => pickDate(tf.someday ? SOMEDAY : tf.date, d => {
+  tf.someday = d === SOMEDAY;
+  tf.date = tf.someday ? null : d;
+  if (tf.someday) { tf.due = null; tf.dueRemind = null; }
   if (!d) tf.rep = null;
   tf.touched = true;
   paintTfParse();
-  if (!d) { tf.time = null; tf.remind = null; tf.remOpen = false; }
+  if (!d) { tf.time = null; tf.reminds = []; }
   paintTfDate();
 });
 $('tfTime').addEventListener('input', e => {
   const v = e.target.value || null;
   tf.touched = true;
   paintTfParse();
-  if (v && !tf.time) tf.remind = 0;
-  if (!v) { tf.remind = null; tf.remOpen = false; }
+  if (v && !tf.time && !tf.reminds.length) tf.reminds = [0];
+  if (!v) tf.reminds = tf.reminds.filter(r => !isRemind(r));
   tf.time = v;
   paintTfDate();
 });
 $('tfTimeClear').onclick = e => {
   e.preventDefault();
   tf.time = null;
-  tf.remind = null;
-  tf.remOpen = false;
+  tf.reminds = tf.reminds.filter(r => !isRemind(r));
   paintTfDate();
   $('tfTime').focus({ preventScroll: true });
 };
-$('tfRem').onclick = e => {
+$('tfRems').onclick = e => {
+  const del = e.target.closest('[data-del]'), pick = e.target.closest('[data-i]');
+  if (del) {
+    const i = +del.dataset.del;
+    tf.reminds.splice(i, 1);
+    paintTfDate();
+    const rows = $('tfRems').querySelectorAll('.tf-rem-pick');
+    return (rows[Math.min(i, rows.length - 1)] || $('tfRemAdd')).focus({ preventScroll: true });
+  }
+  if (pick) openRemSheet(+pick.dataset.i);
+};
+$('tfRemAdd').onclick = () => openRemSheet(null);
+
+const pk = { cb: null, back: null };
+export function openPick(title, items, cb, back = null) {
+  pk.cb = cb;
+  pk.back = back;
+  $('tpTitle').textContent = title;
+  $('tpList').innerHTML = items.map(x => `<button type="button" class="tf-row tf-opt" role="radio" data-v="${esc(x.v)}" aria-checked="${!!x.on}"><span class="tf-lbl">${esc(x.label)}</span>${IC_CHECK}</button>`).join('');
+  openOverlay($('tPickOv'));
+  ($('tpList').querySelector('[aria-checked=true]') || $('tpList').firstElementChild)?.focus({ preventScroll: true });
+}
+$('tpList').onclick = e => {
   const b = e.target.closest('[data-v]');
   if (!b) return;
-  if (b.dataset.v === 'other') {
-    if (!tf.remOpen) return openRemCustom();
-    tf.remOpen = false;
-    return paintTfDate();
-  }
-  tf.remind = b.dataset.v === '' ? null : +b.dataset.v;
-  tf.remOpen = false;
-  paintTfDate();
+  const cb = pk.cb, back = pk.back;
+  pk.cb = null;
+  closeOverlay($('tPickOv'));
+  cb?.(b.dataset.v);
+  back?.focus({ preventScroll: true });
 };
-$('tfRemUnit').onclick = e => {
-  const b = e.target.closest('[data-u]');
+
+const rm = { i: null, quick: null, days: [] };
+const pad2 = n => String(n).padStart(2, '0');
+const HOURS = Array.from({ length: 24 }, (_, h) => ({ v: h, label: pad2(h) }));
+const MINS = Array.from({ length: 12 }, (_, m) => ({ v: m * 5, label: pad2(m * 5) }));
+const wDay = makeWheel($('trmDay'), () => remWheel());
+const wH = makeWheel($('trmH'), () => remWheel());
+const wM = makeWheel($('trmM'), () => remWheel());
+function remWheel() {
+  rm.quick = null;
+  paintRemSheet();
+}
+function remDays() {
+  const today = todayKey(), last = tf.date, first = [key(addDays(parseKey(last), -REMIND_DAYS_MAX)), last < today ? last : today].sort()[1];
+  const out = [];
+  for (let d = first; d <= last; d = key(addDays(parseKey(d), 1))) out.push({ v: d, label: remDay(d, today) });
+  return out;
+}
+function setWheels(at) {
+  const k = key(at);
+  wDay.set(Math.max(0, rm.days.findIndex(x => x.v === k)));
+  wH.set(at.getHours());
+  wM.set(Math.round(at.getMinutes() / 5) % 12);
+}
+const wheelRemind = () => absRemind(daysBetween(tf.date, wDay.value()), `${pad2(wH.value())}:${pad2(wM.value())}`);
+const sheetRemind = () => rm.quick ?? wheelRemind();
+function paintRemSheet() {
+  $('trmQuick').hidden = !tf.time;
+  $('trmQuick').innerHTML = tf.time ? TASK_REMINDS.filter(x => x[0] !== null).map(([v, l]) => `<button type="button" class="t-chip" data-q="${v}" aria-pressed="${rm.quick === v}">${esc(l)}</button>`).join('') : '';
+  $('trmLate').hidden = !remLate(sheetRemind());
+}
+function defaultRemind() {
+  if (tf.time) return TASK_REMINDS.map(x => x[0]).find(v => v !== null && !tf.reminds.includes(v)) ?? 15;
+  if (tf.date > todayKey()) return absRemind(0, '09:00');
+  const now = new Date(), m = Math.min(23 * 60 + 55, Math.ceil((now.getHours() * 60 + now.getMinutes() + 60) / 5) * 5);
+  return absRemind(0, `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`);
+}
+function openRemSheet(i) {
+  if (!tf.date) return;
+  rm.i = i;
+  const r = i == null ? defaultRemind() : tf.reminds[i];
+  rm.quick = isRemind(r) ? r : null;
+  rm.days = remDays();
+  $('trmTitle').textContent = i == null ? 'Новое напоминание' : 'Напоминание';
+  $('trmDel').hidden = i == null;
+  openOverlay($('tRemOv'));
+  wDay.fill(rm.days);
+  wH.fill(HOURS);
+  wM.fill(MINS);
+  setWheels(remindAt(tf.date, tf.time, r) || remindAt(tf.date, null, absRemind(0, '09:00')));
+  paintRemSheet();
+  ($('trmQuick').querySelector('[aria-pressed=true]') || $('trmDay')).focus({ preventScroll: true });
+}
+$('trmQuick').onclick = e => {
+  const b = e.target.closest('[data-q]');
   if (!b) return;
-  tf.remUnit = +b.dataset.u;
-  $('tfRemErr').hidden = true;
-  paintTfDate();
+  rm.quick = +b.dataset.q;
+  const at = remindAt(tf.date, tf.time, rm.quick);
+  if (at) setWheels(at);
+  paintRemSheet();
 };
-$('tfRemOk').onclick = () => applyRemCustom();
-$('tfRemNum').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyRemCustom(); } });
-$('tfRemNum').addEventListener('input', () => { $('tfRemErr').hidden = true; });
+$('trmOk').onclick = () => {
+  const r = sheetRemind(), off = remindOffset(tf.time, r);
+  if (tf.reminds.some((x, n) => n !== rm.i && remindOffset(tf.time, x) === off)) return toast('Такое напоминание уже есть');
+  if (rm.i == null) tf.reminds.push(r); else tf.reminds[rm.i] = r;
+  closeOverlay($('tRemOv'));
+  paintTfDate();
+  ($('tfRemAdd').hidden ? $('tfRems').querySelector('.tf-rem-pick') : $('tfRemAdd'))?.focus({ preventScroll: true });
+};
+$('trmDel').onclick = () => {
+  if (rm.i != null) tf.reminds.splice(rm.i, 1);
+  closeOverlay($('tRemOv'));
+  paintTfDate();
+  $('tfRemAdd').focus({ preventScroll: true });
+};
 $('tfDelete').onclick = () => {
   const t = findTask(tf.id);
   tf.base = tfSnap();
@@ -740,8 +988,11 @@ $('tForm').onsubmit = e => {
   if (lid && findList(lid)) target.list = lid; else delete target.list;
   if (tf.date) target.date = tf.date; else delete target.date;
   if (tf.date && tf.time) target.time = tf.time; else delete target.time;
-  if (tf.date && tf.time && tf.remind !== null) target.remind = tf.remind; else delete target.remind;
+  const rems = tf.date ? normReminds(tf.reminds, tf.time) : [];
+  if (rems.length) target.reminds = rems; else delete target.reminds;
+  delete target.remind;
   if (tf.due) target.due = tf.due; else delete target.due;
+  if (tf.someday && !tf.date && !tf.due) target.someday = true; else delete target.someday;
   const rep = tf.date ? normRep(tf.rep) : null;
   if (rep) target.rep = rep; else delete target.rep;
   if (tf.due && tf.dueRemind !== null) target.dueRemind = tf.dueRemind; else delete target.dueRemind;
@@ -759,6 +1010,7 @@ export function quickLabel(r, today = todayKey()) {
   if (r?.date) parts.push((r.date === today ? 'Сегодня' : r.date === tomorrowOf(today) ? 'Завтра' : taskWhen(r.date, today)) + (r.time ? `, ${r.time} · напоминание в срок` : ''));
   if (r?.due) parts.push(`Срок: ${dueWhen(r.due, today)}`);
   if (r?.rep) parts.push(`Повтор: ${repLabel(r.rep).toLowerCase()}`);
+  if (r?.someday) parts.push('Когда-нибудь');
   if (r?.important) parts.push('Важная');
   return parts.join(' · ');
 }
@@ -782,12 +1034,13 @@ function paintQuick() {
 }
 function quickFields(r, today) {
   const extra = {}, v = curList();
-  if (r.time) { extra.time = r.time; extra.remind = 0; }
+  if (r.time) { extra.time = r.time; extra.reminds = [0]; }
   if (r.important) extra.important = true;
   if (findList(v)) extra.list = v;
   if (r.due) extra.due = r.due;
   if (r.rep) extra.rep = r.rep;
-  return [r.text, r.date || (r.rep ? firstOn(r.rep, today) : r.due ? null : today), extra];
+  if (r.someday) extra.someday = true;
+  return [r.text, r.date || (r.rep ? firstOn(r.rep, today) : r.due || r.someday ? null : today), extra];
 }
 $('tqText').addEventListener('input', paintQuick);
 $('tqNo').onclick = () => {
@@ -938,12 +1191,12 @@ export function toggleSub(t, sid) {
 function syncTaskPriv() {
   const slot = $('tfPrivSlot');
   if (!unlocked) { slot.innerHTML = ''; return; }
-  if (!slot.firstChild) slot.innerHTML = `<div class="rem priv-rem"><div class="rem-head"><span class="rem-ic">${IC.lock}</span><span class="rem-tt"><b id="tfPrivLbl">Личная задача</b><small>Видна, только когда личное открыто</small></span><button type="button" class="switch" id="tfPriv" role="switch" aria-labelledby="tfPrivLbl"><span></span></button></div></div>`;
-  slot.querySelector('.rem').classList.toggle('on', tf.priv);
+  if (!slot.firstChild) slot.innerHTML = `<div class="tf-row tf-priv"><span class="tf-ic">${IC.lock}</span><span class="tf-lbl"><b id="tfPrivLbl">Личная</b><small>Видна, только когда личное открыто</small></span><button type="button" class="switch" id="tfPriv" role="switch" aria-labelledby="tfPrivLbl"><span></span></button></div>`;
+  slot.firstChild.classList.toggle('on', tf.priv);
   $('tfPriv').setAttribute('aria-checked', tf.priv);
 }
 $('tfPrivSlot').onclick = e => {
-  if (!e.target.closest('.rem-head') || !unlocked) return;
+  if (!e.target.closest('.tf-priv') || !unlocked) return;
   tf.priv = !tf.priv;
   syncTaskPriv();
 };
@@ -1169,6 +1422,7 @@ function renderSearch() {
   }
 }
 export function openSearch() {
+  exitSelect(false);
   if (tv.shared) { tv.shared = null; renderTasks(); }
   $('tSearch').hidden = false;
   $('tQuick').hidden = true;
@@ -1223,10 +1477,7 @@ function repPresetOf(rep) {
   return 'custom';
 }
 function paintTfRep() {
-  const cur = repPresetOf(tf.rep);
-  $('tfRep').innerHTML = [['', 'Нет'], ['d', 'Каждый день'], ['w', 'Каждую неделю'], ['mo', 'Каждый месяц']].map(([v, l]) => remChip(v, l, cur === v)).join('')
-    + `<button type="button" class="t-chip t-chip-other" data-v="other" aria-haspopup="dialog"><span>Другое…</span></button>`
-    + (cur === 'custom' ? remChip('custom', repLabel(tf.rep) + (tf.rep.until ? ` до ${dayShort(tf.rep.until)}` : ''), true, ' t-chip-wide') : '');
+  $('tfRepVal').textContent = repText();
   $('tfSkip').hidden = !tf.id || !tf.rep || tf.repDone;
   const st = tf.repStat;
   $('tfRepStat').hidden = !st;
@@ -1237,12 +1488,17 @@ function setRep(rep) {
   if (rep && !tf.date) tf.date = todayKey();
   paintTfDate();
 }
-$('tfRep').onclick = e => {
-  const b = e.target.closest('[data-v]');
-  if (!b) return;
-  if (b.dataset.v === 'other') return openRepSheet();
-  if (b.dataset.v === 'custom') return;
-  setRep(repPreset(b.dataset.v));
+const REP_OPTS = [['', 'Нет'], ['d', 'Каждый день'], ['w', 'Каждую неделю'], ['mo', 'Каждый месяц']];
+const repText = () => !tf.rep ? 'Нет' : repLabel(tf.rep) + (tf.rep.until ? ` до ${dayShort(tf.rep.until)}` : '');
+$('tfRepBtn').onclick = () => {
+  const cur = repPresetOf(tf.rep);
+  const items = REP_OPTS.map(([v, label]) => ({ v, label, on: cur === v }));
+  if (cur === 'custom') items.push({ v: 'custom', label: repText(), on: true });
+  items.push({ v: 'other', label: 'Другое…' });
+  openPick('Повтор', items, v => {
+    if (v === 'other') return openRepSheet();
+    if (v !== 'custom') setRep(repPreset(v));
+  }, $('tfRepBtn'));
 };
 $('tfSkip').onclick = () => {
   tf.skip = true;
@@ -1292,7 +1548,7 @@ $('trWd').onclick = e => {
 $('trMd').onclick = e => { const b = e.target.closest('[data-md]'); if (!b) return; rs.last = b.dataset.md === 'last'; paintRepSheet(); };
 $('trN').addEventListener('input', () => { $('trErr').hidden = true; paintRepSheet(); });
 $('trN').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('trOk').click(); } });
-$('trUntil').onclick = () => pickDate(rs.until, d => { rs.until = d; paintRepSheet(); });
+$('trUntil').onclick = () => pickDate(rs.until, d => { rs.until = d; paintRepSheet(); }, 'until');
 $('trUntilClear').onclick = () => { rs.until = null; paintRepSheet(); $('trUntil').focus({ preventScroll: true }); };
 $('trOk').onclick = () => {
   const raw = $('trN').value.trim(), n = Number(raw), err = $('trErr');
@@ -1320,6 +1576,7 @@ export function openSmartSheet() {
   openOverlay($('tSmartOv'));
 }
 export function setSmart(id) {
+  exitSelect(false);
   tv.smart = id;
   if (id) tv.shared = null;
   tv.smartShown = LIST_STEP;

@@ -14,6 +14,9 @@ const closePage = async () => { closeOverlay($('tasksOv')); await until(() => $(
 const openForm = async (t, d) => { openTaskForm(t, d); await until(() => $('tFormOv')._shown); };
 const closeForm = async () => { $('tFormOv')._guard = null; closeOverlay($('tFormOv')); await until(() => $('tFormOv').hidden); };
 const pressed = box => [...box.querySelectorAll('[aria-pressed=true]')].map(b => b.textContent).join();
+const pick = async (btn, v) => { btn.click(); await until(() => $('tPickOv')._shown); $('tpList').querySelector(`[data-v="${v}"]`).click(); await until(() => $('tPickOv').hidden); };
+const opts = () => [...$('tpList').querySelectorAll('.tf-lbl')].map(x => x.textContent).join();
+const optOn = () => $('tpList').querySelector('[aria-checked=true] .tf-lbl')?.textContent;
 const C = (n, u, x = {}) => ({ m: 'cal', n, u, ...x }), F = (n, u) => ({ m: 'after', n, u });
 
 {
@@ -64,7 +67,7 @@ const C = (n, u, x = {}) => ({ m: 'cal', n, u, ...x }), F = (n, u) => ({ m: 'aft
   $('tItems').querySelector('.t-row[data-id=r] .t-box').click();
   const t = findTask('r');
   ok('checking a repeat keeps the task and moves its date', !t.done && t.date === shift(1) && state.tasks.length === 1);
-  ok('due moves by the same days, time and reminder stay', t.due === shift(3) && t.time === '09:00' && t.remind === 0);
+  ok('due moves by the same days, time and reminder stay', t.due === shift(3) && t.time === '09:00' && J(t.reminds) === '[0]');
   ok('subtasks are cleared, count grows', t.subs.every(s => !s.done) && t.doneCount === 5 && t.lastDone === T);
   ok('toast says the next time', $('toastText').textContent === 'Следующий раз: ' + dayShort(shift(1), T) && $('toastUndo').textContent === 'Отменить');
   ok('row shows the repeat', !!$('tItems').querySelector('.t-row[data-id=r] .t-rep') && $('tItems').querySelector('.t-row[data-id=r] .t-rep').textContent === 'Каждый день');
@@ -113,14 +116,18 @@ const C = (n, u, x = {}) => ({ m: 'cal', n, u, ...x }), F = (n, u) => ({ m: 'aft
 {
   show({ habits: [], log: {}, tasks: [A('f', { date: T }), A('z')] });
   await openForm(findTask('f'));
-  ok('repeat chips', [...$('tfRep').querySelectorAll('button')].map(b => b.textContent).join() === 'Нет,Каждый день,Каждую неделю,Каждый месяц,Другое…' && pressed($('tfRep')) === 'Нет');
-  $('tfRep').querySelector('[data-v=w]').click();
-  ok('weekly preset uses the weekday of When', pressed($('tfRep')) === 'Каждую неделю');
+  ok('repeat row says no', $('tfRepVal').textContent === 'Нет');
+  $('tfRepBtn').click(); await until(() => $('tPickOv')._shown);
+  ok('repeat options', opts() === 'Нет,Каждый день,Каждую неделю,Каждый месяц,Другое…' && optOn() === 'Нет' && $('tpTitle').textContent === 'Повтор');
+  ok('options are tall enough', [...$('tpList').querySelectorAll('button')].every(b => b.getBoundingClientRect().height >= 44));
+  $('tpList').querySelector('[data-v=w]').click(); await until(() => $('tPickOv').hidden);
+  ok('weekly preset uses the weekday of When', $('tfRepVal').textContent === repLabel(C(1, 'w', { wd: [weekday(parseKey(T))] })), $('tfRepVal').textContent);
   $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
   ok('weekly repeat is saved', J(findTask('f').rep) === J(C(1, 'w', { wd: [weekday(parseKey(T))] })));
   await openForm(findTask('f'));
-  ok('preset comes back', pressed($('tfRep')) === 'Каждую неделю');
-  $('tfRep').querySelector('[data-v=other]').click(); await until(() => $('tRepOv')._shown);
+  $('tfRepBtn').click(); await until(() => $('tPickOv')._shown);
+  ok('preset comes back', optOn() === 'Каждую неделю');
+  $('tpList').querySelector('[data-v=other]').click(); await until(() => $('tRepOv')._shown);
   ok('other opens the repeat sheet from the saved value', $('trN').value === '1' && $('trUnit').querySelector('[aria-checked=true]').dataset.u === 'w' && visible($('trWd')) && $('trWd').querySelector('[aria-pressed=true]').dataset.wd === String(weekday(parseKey(T))));
   ok('sheet controls are big enough and labelled', [...$('trWd').querySelectorAll('button')].every(b => b.getBoundingClientRect().height >= 44 && b.getAttribute('aria-label')) && parseFloat(getComputedStyle($('trN')).fontSize) >= 16);
   $('trWd').querySelectorAll('button').forEach(b => { if (b.getAttribute('aria-pressed') === 'true') b.click(); });
@@ -137,8 +144,10 @@ const C = (n, u, x = {}) => ({ m: 'cal', n, u, ...x }), F = (n, u) => ({ m: 'aft
   $('trN').value = '2'; $('trN').dispatchEvent(new Event('input', { bubbles: true }));
   ok('after mode hides weekdays and reads well', !visible($('trWd')) && $('trPreview').textContent === 'Через 2 недели после выполнения' && $('trEvery').textContent === 'Через');
   $('trOk').click(); await until(() => $('tRepOv').hidden);
-  ok('custom value is a separate chip', pressed($('tfRep')) === 'Через 2 недели после выполнения' && !!$('tfRep').querySelector('.t-chip-wide'));
-  $('tfRep').querySelector('[data-v=other]').click(); await until(() => $('tRepOv')._shown);
+  ok('custom value is shown in the row', $('tfRepVal').textContent === 'Через 2 недели после выполнения');
+  $('tfRepBtn').click(); await until(() => $('tPickOv')._shown);
+  ok('custom value is a separate checked option', optOn() === 'Через 2 недели после выполнения' && opts().endsWith('Через 2 недели после выполнения,Другое…'));
+  $('tpList').querySelector('[data-v=other]').click(); await until(() => $('tRepOv')._shown);
   $('trMode').querySelector('[data-m=cal]').click();
   $('trUnit').querySelector('[data-u=mo]').click();
   $('trN').value = '1'; $('trN').dispatchEvent(new Event('input', { bubbles: true }));
@@ -149,11 +158,11 @@ const C = (n, u, x = {}) => ({ m: 'cal', n, u, ...x }), F = (n, u) => ({ m: 'aft
   $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
   ok('custom repeat is saved', J(findTask('f').rep) === J(C(1, 'mo', { md: 'last' })));
   await openForm(findTask('z'));
-  $('tfRep').querySelector('[data-v=d]').click();
+  await pick($('tfRepBtn'), 'd');
   ok('repeat without When sets today', $('tfDateVal').textContent === 'Сегодня');
   $('tfDate').click(); await until(() => $('tDateOv')._shown);
-  $('tdQuick').querySelector('[data-v=""]').click(); $('tdOk').click(); await until(() => $('tDateOv').hidden);
-  ok('removing When removes the repeat', pressed($('tfRep')) === 'Нет');
+  $('tdQuick').querySelector('[data-v=""]').click(); await until(() => $('tDateOv').hidden);
+  ok('removing When removes the repeat', $('tfRepVal').textContent === 'Нет');
   await closeForm();
 }
 
@@ -236,7 +245,7 @@ const C = (n, u, x = {}) => ({ m: 'cal', n, u, ...x }), F = (n, u) => ({ m: 'aft
   $('tItems').querySelector('.t-row[data-id=x] .t-box').click();
   ok('repeat rows and toast are escaped', !document.querySelector('#tItems img, #dayTasks img, #toast img'));
   await openForm(findTask('x'));
-  $('tfRep').querySelector('[data-v=other]').click(); await until(() => $('tRepOv')._shown);
+  await pick($('tfRepBtn'), 'other'); await until(() => $('tRepOv')._shown);
   ok('repeat form and sheet are escaped', !document.querySelector('#tFormOv img, #tRepOv img'));
   closeOverlay($('tRepOv')); await until(() => $('tRepOv').hidden);
   await closeForm();

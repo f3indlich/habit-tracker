@@ -9,7 +9,7 @@ const SHELL_FILES = [
   './index.html',
   `./styles.css?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
-  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide', 'privacy', 'lock', 'plan', 'goals', 'goalsui', 'tasks', 'tasksui', 'taskparse', 'repeat', 'shared', 'sharedui', 'tabs'].map(m => `./js/${m}.js?v=${VERSION}`),
+  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide', 'privacy', 'lock', 'plan', 'goals', 'goalsui', 'tasks', 'tasksui', 'taskparse', 'repeat', 'wheel', 'shared', 'sharedui', 'tabs'].map(m => `./js/${m}.js?v=${VERSION}`),
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/apple-touch-icon.png',

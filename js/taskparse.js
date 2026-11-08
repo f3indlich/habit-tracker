@@ -126,6 +126,8 @@ export function parseQuick(text, now = new Date()) {
       else if (before) { time = hhmm(+before[1], 0); taken.push([before.index, dayWord.from]); }
     }
   }
+  let someday = false;
+  if (!date && !time && !due && !rep) { const sd = first([[/(?<![\p{L}\p{N}])когда[\s-]?нибудь(?![\p{L}\p{N}])/gu, () => true]]); if (sd) { someday = true; taken.push([sd.from, sd.to]); } }
   if (time && !date) date = time < hhmm(Math.floor(nowMin / 60), nowMin % 60) ? addDays(today, 1) : today;
   if (!taken.length) return none;
   taken.sort((a, b) => a[0] - b[0]);
@@ -145,5 +147,6 @@ export function parseQuick(text, now = new Date()) {
   if (date) res.date = key(date);
   if (due) res.due = key(due);
   if (time) res.time = time;
+  if (someday) res.someday = true;
   return res;
 }

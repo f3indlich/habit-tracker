@@ -953,10 +953,20 @@
 
 <div class="overlay page tab-page" id="tasksOv" data-tab="tasks" hidden>
   <div class="sheet" id="tSheet" role="dialog" aria-labelledby="tTitle">
+    <div class="t-selbar" id="tSelBar" role="toolbar" aria-label="Действия с выбранными задачами" hidden>
+      <button type="button" data-s="move"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4M10 13.5l2.5 2-2.5 2"/></svg><span>Перенести</span></button>
+      <button type="button" data-s="list"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg><span>В список</span></button>
+      <button type="button" data-s="done"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/></svg><span>Выполнено</span></button>
+      <button type="button" data-s="arch"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="4.5" rx="1.3"/><path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4"/></svg><span>В архив</span></button>
+      <button type="button" data-s="del" class="t-sel-del"><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V5h5v2M6.5 7l.9 12a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12M10 11v6M14 11v6"/></svg><span>Удалить</span></button>
+    </div>
     <div class="page-head">
       <button class="ghost icon-btn" data-close title="Назад" aria-label="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button type="button" class="t-link t-sel-x" id="tSelAll" hidden>Все</button>
       <h2 id="tTitle">Задачи</h2>
-      <button type="button" class="ghost icon-btn t-search-btn" id="tSmartBtn" aria-label="Срезы" aria-haspopup="dialog" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
+      <button type="button" class="t-link t-sel-x" id="tSelDone" hidden>Готово</button>
+      <button type="button" class="ghost icon-btn t-search-btn" id="tSelBtn" aria-label="Выбрать задачи"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/></svg></button>
+      <button type="button" class="ghost icon-btn" id="tSmartBtn" aria-label="Срезы" aria-haspopup="dialog" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
       <button type="button" class="ghost icon-btn" id="tSearchBtn" aria-label="Поиск задач" aria-expanded="false" aria-controls="tSearch"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
     </div>
     <div class="t-search" id="tSearch" hidden>
@@ -999,64 +1009,80 @@
       <button type="submit" form="tForm" class="icon-btn sheet-ok" aria-label="Сохранить" title="Сохранить"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
     </div>
     <form class="form t-form" id="tForm" novalidate>
-      <div class="field">
-        <label class="lbl" for="tfText">Что сделать</label>
-        <input type="text" id="tfText" maxlength="200" enterkeyhint="done" autocomplete="off">
+      <div class="tf-grp tf-main">
+        <input type="text" id="tfText" class="tf-title" maxlength="200" enterkeyhint="done" autocomplete="off" placeholder="Что сделать" aria-label="Что сделать">
         <div class="t-qchip t-fchip" id="tfParse" role="status" hidden><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><span id="tfParseText"></span><button type="button" class="t-link" id="tfParseOk">Применить</button></div>
+        <div class="t-subs-edit" id="tfSubs" role="list" aria-label="Подзадачи"></div>
+        <button type="button" class="tf-subadd" id="tfSubAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Подзадача</span></button>
+        <textarea id="tfNote" class="tf-note" maxlength="1000" rows="1" placeholder="Заметка" aria-label="Заметка"></textarea>
       </div>
-      <div class="field">
-        <label class="lbl" for="tfNote">Заметка</label>
-        <textarea id="tfNote" maxlength="1000" rows="2"></textarea>
+      <div class="tf-sec">
+        <div class="tf-grp">
+          <button type="button" class="tf-row" id="tfDate"><span class="tf-ic"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span><span class="tf-lbl">Когда</span><em id="tfDateVal"></em><svg class="ic tf-chev" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+          <div class="tf-row t-time-row" id="tfTimeRow" hidden>
+            <span class="tf-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+            <label class="tf-lbl" for="tfTime">Время</label>
+            <span class="t-time-box"><input type="time" id="tfTime" step="300" aria-describedby="tfTimePh"><span class="t-time-ph" id="tfTimePh">Не задано</span></span>
+            <button type="button" class="ghost icon-btn tf-x" id="tfTimeClear" aria-label="Убрать время" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div class="tf-rems" id="tfRemRow" role="group" aria-label="Напоминания" hidden>
+            <div id="tfRems" role="list"></div>
+            <button type="button" class="tf-row tf-add" id="tfRemAdd"><span class="tf-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0"/></svg></span><span class="tf-lbl" id="tfRemAddLbl">Напоминание</span><em id="tfRemAddVal"></em><svg class="ic tf-chev" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+          </div>
+          <button type="button" class="tf-row" id="tfRepBtn" aria-haspopup="dialog"><span class="tf-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 11V9.5a3 3 0 0 1 3-3h11M15.5 3.5l3 3-3 3M19.5 13v1.5a3 3 0 0 1-3 3h-11M8.5 20.5l-3-3 3-3"/></svg></span><span class="tf-lbl">Повтор</span><em id="tfRepVal"></em><svg class="ic tf-chev" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        </div>
+        <p class="field-hint t-rem-late" id="tfRemLate" role="status" hidden>Время напоминания уже прошло — уведомление не придёт.</p>
+        <p class="field-hint" id="tfRemHint"></p>
+        <p class="field-hint" id="tfRepStat" hidden></p>
+        <button type="button" class="t-link t-skip" id="tfSkip" hidden>Пропустить этот раз</button>
       </div>
-      <button type="button" class="t-date-btn" id="tfDate"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><span>Когда</span><em id="tfDateVal"></em></button>
-      <div class="t-date-btn t-time-row" id="tfTimeRow" hidden>
-        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
-        <label for="tfTime">Время</label>
-        <span class="t-time-box"><input type="time" id="tfTime" step="300" aria-describedby="tfTimePh"><span class="t-time-ph" id="tfTimePh">Не задано</span></span>
-        <button type="button" class="ghost icon-btn" id="tfTimeClear" aria-label="Убрать время" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      </div>
-      <div class="t-date-btn t-due-row" id="tfDueRow">
-        <button type="button" class="t-due-pick" id="tfDue"><svg class="ic" viewBox="0 0 24 24"><path d="M6 21V4.5M6 4.5h11l-2.4 4 2.4 4H6"/></svg><span>Срок</span><em id="tfDueVal"></em></button>
-        <button type="button" class="ghost icon-btn" id="tfDueClear" aria-label="Сбросить срок" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      </div>
-      <p class="field-hint t-rem-late" id="tfDueLate" role="status" hidden>Срок раньше даты: задача сразу окажется просроченной.</p>
-      <div class="field" id="tfDueRemRow" hidden>
-        <span class="lbl" id="tfDueRemLbl">Напомнить о сроке</span>
-        <div class="t-chips t-rem-chips t-due-chips" id="tfDueRem" role="radiogroup" aria-labelledby="tfDueRemLbl"></div>
+      <div class="tf-sec">
+        <div class="tf-grp">
+          <div class="tf-row t-due-row" id="tfDueRow">
+            <button type="button" class="t-due-pick" id="tfDue"><span class="tf-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 21V4.5M6 4.5h11l-2.4 4 2.4 4H6"/></svg></span><span class="tf-lbl">Срок</span><em id="tfDueVal"></em></button>
+            <button type="button" class="ghost icon-btn tf-x" id="tfDueClear" aria-label="Сбросить срок" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <button type="button" class="tf-row" id="tfDueRemBtn" aria-haspopup="dialog" hidden><span class="tf-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0"/></svg></span><span class="tf-lbl">Напомнить о сроке</span><em id="tfDueRemVal"></em><svg class="ic tf-chev" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        </div>
+        <p class="field-hint t-rem-late" id="tfDueLate" role="status" hidden>Срок раньше даты: задача сразу окажется просроченной.</p>
         <p class="field-hint" id="tfDueHint"></p>
       </div>
-      <div class="field" id="tfRemRow" hidden>
-        <span class="lbl" id="tfRemLbl">Напоминание</span>
-        <div class="t-chips t-rem-chips" id="tfRem" role="radiogroup" aria-labelledby="tfRemLbl"></div>
-        <div class="t-rem-custom" id="tfRemCustom" hidden>
-          <input type="number" id="tfRemNum" inputmode="numeric" min="1" step="1" enterkeyhint="done" aria-label="Сколько времени до срока" aria-describedby="tfRemErr">
-          <div class="pseg t-rem-unit" id="tfRemUnit" role="radiogroup" aria-label="Единица времени"><button type="button" role="radio" data-u="1" aria-label="минут">мин</button><button type="button" role="radio" data-u="60" aria-label="часов">ч</button><button type="button" role="radio" data-u="1440" aria-label="дней">дн</button></div>
-          <button type="button" class="primary" id="tfRemOk">Готово</button>
-        </div>
-        <p class="field-hint t-rem-err" id="tfRemErr" role="alert" hidden></p>
-        <p class="field-hint t-rem-late" id="tfRemLate" role="status" hidden>Это время уже прошло — уведомление не придёт. Выберите «В срок» или другое время.</p>
-        <p class="field-hint" id="tfRemHint"></p>
+      <div class="tf-grp">
+        <div class="tf-row t-imp-row" id="tfImpRow"><span class="tf-ic"><span class="t-imp-ic" aria-hidden="true">!</span></span><span class="tf-lbl" id="tfImpLbl">Важная</span><button type="button" class="switch" id="tfImp" role="switch" aria-checked="false" aria-labelledby="tfImpLbl"><span></span></button></div>
+        <label class="tf-row t-list-row" id="tfListRow" for="tfList" hidden><span class="tf-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg></span><span class="tf-lbl">Список</span><select id="tfList"></select></label>
+        <div class="tf-slot" id="tfPrivSlot"></div>
       </div>
-      <div class="field" id="tfRepRow">
-        <span class="lbl" id="tfRepLbl">Повтор</span>
-        <div class="t-chips t-rem-chips t-rep-chips" id="tfRep" role="radiogroup" aria-labelledby="tfRepLbl"></div>
-        <button type="button" class="t-link t-skip" id="tfSkip" hidden>Пропустить этот раз</button>
-        <p class="field-hint" id="tfRepStat" hidden></p>
-      </div>
-      <div class="field">
-        <span class="lbl" id="tfSubsLbl">Подзадачи</span>
-        <div class="t-subs-edit" id="tfSubs" role="list" aria-labelledby="tfSubsLbl"></div>
-        <button type="button" class="t-subadd" id="tfSubAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Добавить подзадачу</span></button>
-      </div>
-      <div class="t-date-btn t-imp-row" id="tfImpRow"><span class="t-imp-ic" aria-hidden="true">!</span><span id="tfImpLbl">Важная</span><button type="button" class="switch" id="tfImp" role="switch" aria-checked="false" aria-labelledby="tfImpLbl"><span></span></button></div>
-      <label class="t-date-btn t-list-row" id="tfListRow" for="tfList" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg><span>Список</span><select id="tfList"></select></label>
-      <div class="field" id="tfPrivSlot"></div>
       <div class="form-actions t-form-actions">
         <button type="button" class="danger" id="tfDelete">Удалить</button>
         <button type="button" id="tfArchive" hidden>В архив</button>
         <button type="submit" class="primary" id="tfSubmit">Сохранить</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="overlay" id="tPickOv" hidden>
+  <div class="card sheet tf-pick" role="dialog" aria-modal="true" aria-labelledby="tpTitle">
+    <div class="sheet-head"><h2 id="tpTitle"></h2></div>
+    <div class="tf-grp" id="tpList" role="radiogroup" aria-labelledby="tpTitle"></div>
+  </div>
+</div>
+
+<div class="overlay" id="tRemOv" hidden>
+  <div class="card sheet tf-remsheet" role="dialog" aria-modal="true" aria-labelledby="trmTitle">
+    <div class="sheet-head"><h2 id="trmTitle">Напоминание</h2></div>
+    <div class="tf-quick" id="trmQuick" role="group" aria-label="Быстрый выбор"></div>
+    <div class="wheels" id="trmWheels">
+      <div class="wheel wheel-day" id="trmDay" tabindex="0" role="spinbutton" aria-label="День"></div>
+      <div class="wheel" id="trmH" tabindex="0" role="spinbutton" aria-label="Часы"></div>
+      <div class="wheel" id="trmM" tabindex="0" role="spinbutton" aria-label="Минуты"></div>
+    </div>
+    <p class="field-hint t-rem-late" id="trmLate" role="status" hidden>Это время уже прошло — уведомление не придёт.</p>
+    <div class="form-actions t-form-actions">
+      <button type="button" class="danger" id="trmDel" hidden>Удалить</button>
+      <button type="button" data-close>Отмена</button>
+      <button type="button" class="primary" id="trmOk">Готово</button>
+    </div>
   </div>
 </div>
 
@@ -1124,12 +1150,8 @@
 <div class="overlay" id="tDateOv" hidden>
   <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="tdTitle">
     <div class="sheet-head"><h2 id="tdTitle">Когда сделать</h2></div>
-    <div class="t-chips t-chips-on" id="tdQuick"></div>
-    <div class="t-cal t-cal-flat" id="tdCal"></div>
-    <div class="form-actions t-form-actions">
-      <button type="button" data-close>Отмена</button>
-      <button type="button" class="primary" id="tdOk"></button>
-    </div>
+    <div class="tf-grp t-dq" id="tdQuick" role="group" aria-labelledby="tdTitle"></div>
+    <div class="tf-grp t-cal t-cal-flat t-dcal" id="tdCal"></div>
   </div>
 </div>
 
