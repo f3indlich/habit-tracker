@@ -297,20 +297,6 @@ $('gStripSwitch').click(); await wait(100);
 ok('setting turns strip on', !$('goalStrip').hidden);
 ok('strip does not change ring and N of M', JSON.stringify(heroBefore()) === JSON.stringify(heroNow));
 
-const goalsSaved = state.goals;
-state.goals = []; save();
-openSummary(); await wait(900);
-const sumNo = [$('sTiles').textContent, $('sSum').textContent, $('sHabits').textContent];
-ok('summary goals block hidden without goals', $('sGoals').hidden);
-closeOverlay($('sumOv')); await wait(400);
-state.goals = goalsSaved; save();
-openSummary(); await wait(900);
-const c = goalCounts();
-ok('summary goals block shows counts', !$('sGoals').hidden && $('sGoals').textContent.includes('Активные' + c.active) && $('sGoals').textContent.includes('Выполнено' + c.done) && $('sGoals').textContent.includes('Отстают' + c.late), [$('sGoals').textContent, c]);
-ok('summary percentages unchanged by goals', JSON.stringify([$('sTiles').textContent, $('sSum').textContent, $('sHabits').textContent]) === JSON.stringify(sumNo));
-$('sGoals').click(); await wait(500);
-ok('summary goals block opens goals', $('goalsOv')._shown && !$('gListView').hidden);
-$('gClose').click(); closeOverlay($('sumOv')); await wait(400);
 
 const json = JSON.stringify(state);
 ok('export contains goals', JSON.parse(json).goals.length === state.goals.length && state.goals.length > 0);

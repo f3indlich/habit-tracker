@@ -194,7 +194,7 @@ async function pass(label) {
     openHistory(h.id); await wait(250);
     await audit(`${label} habit «${h.name.slice(0, 12)}»`);
     await segments(`${label} habit «${h.name.slice(0, 12)}»`, $('hSheet'));
-    for (const i of [...$('hSheet').querySelectorAll('.tile-i, .plan-i')].slice(0, 2)) { i.click(); await wait(300); await audit(`${label} habit popover`); dropMenus(); await wait(150); }
+    for (const i of [...$('hSheet').querySelectorAll('#hHow, #hInfo')].slice(0, 2)) { i.click(); await wait(300); await audit(`${label} habit popover`); dropMenus(); await wait(150); }
     await closeAll();
   }
   openDay('z', addDays(new Date(), -1)); await wait(250); await audit(`${label} day sheet`); await closeAll();

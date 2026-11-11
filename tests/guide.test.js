@@ -92,7 +92,7 @@ resetTips();
 await wait(1600);
 document.querySelector('.hero-ring').click(); await wait(500);
 await runTips(); await wait(300);
-ok('summary gets the ⓘ tip', tip?.id === 'sum' && inside(document.querySelector('.tip-spot').getBoundingClientRect(), $('sSheet').querySelector('.tile-i').getBoundingClientRect()), tip?.id);
+ok('summary gets the reading tip on its days', tip?.id === 'sum' && inside(document.querySelector('.tip-spot').getBoundingClientRect(), $('sDays').getBoundingClientRect()), tip?.id);
 $('tipOk').click(); await wait(300);
 closeOverlay($('sumOv')); await wait(400);
 

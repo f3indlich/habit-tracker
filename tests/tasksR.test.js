@@ -196,17 +196,31 @@ const C = (n, u, x = {}) => ({ m: 'cal', n, u, ...x }), F = (n, u) => ({ m: 'aft
     ['полить кактус через месяц после выполнения', 'полить кактус', F(1, 'mo'), '2026-11-07'],
     ['каждый день в 8 утра зарядка', 'зарядка', C(1, 'd'), '2026-11-08'],
     ['с понедельника каждую среду йога', 'с понедельника йога', C(1, 'w', { wd: [2] }), '2026-11-11'],
+    ['каждое утро зарядка', 'зарядка', C(1, 'd'), '2026-11-08'],
+    ['каждое утро в 7 зарядка', 'зарядка', C(1, 'd'), '2026-11-08'],
+    ['каждый вечер чтение', 'чтение', C(1, 'd'), '2026-11-07'],
+    ['через день полив', 'полив', C(2, 'd'), '2026-11-07'],
+    ['каждые две недели стрижка', 'стрижка', C(2, 'w', { wd: [5] }), '2026-11-07'],
+    ['раз в три месяца фильтр', 'фильтр', C(3, 'mo', { md: 7 }), '2026-11-07'],
+    ['по понедельникам и средам йога', 'йога', C(1, 'w', { wd: [0, 2] }), '2026-11-09'],
+    ['каждый вт и чт бассейн', 'бассейн', C(1, 'w', { wd: [1, 3] }), '2026-11-10'],
+    ['по пн, ср и пт зал', 'зал', C(1, 'w', { wd: [0, 2, 4] }), '2026-11-09'],
+    ['каждую среду и пятницу английский', 'английский', C(1, 'w', { wd: [2, 4] }), '2026-11-11'],
+    ['каждые выходные дача', 'дача', C(1, 'w', { wd: [5, 6] }), '2026-11-07'],
+    ['полив через день после выполнения', 'полив', F(1, 'd'), '2026-11-07'],
   ];
   for (const [input, text, rep, date] of cases) { const r = P(input); ok('repeat: ' + input, r.text === text && J(r.rep) === J(rep) && r.date === date, r); }
+  ok('morning repeat brings its time, an hour overrides it', P('каждое утро зарядка').time === '09:00' && P('каждое утро в 7 зарядка').time === '07:00' && P('каждый вечер чтение').time === '19:00');
   const neg = ['каждый раз проверять почту', 'отправить каждому коллеге', 'по пятницам не работает', 'каждые выходные', 'каждые 400 дней', 'каждый день', 'через неделю после выполнения', 'каждыйдень тест'];
   for (const s of neg) { const r = P(s); ok('no repeat: ' + s, !r.rep && r.text === s, r); }
   ok('repeat table has at least 25 phrases', cases.length + neg.length >= 25);
   show({ habits: [], log: {}, tasks: [] });
   await openPage();
-  $('tqText').value = 'бассейн каждую пятницу'; $('tqText').dispatchEvent(new Event('input', { bubbles: true }));
-  ok('chip shows the repeat', $('tqChipText').textContent.includes('Повтор: каждую пятницу'));
-  $('tQuick').requestSubmit();
-  ok('quick add saves the repeat with the nearest date', J(state.tasks.at(-1).rep) === J(C(1, 'w', { wd: [4] })) && weekday(parseKey(state.tasks.at(-1).date)) === 4 && state.tasks.at(-1).date >= T);
+  openTaskForm(null, T); await until(() => $('tFormOv')._shown);
+  $('tfText').value = 'бассейн каждую пятницу'; $('tfText').dispatchEvent(new Event('input', { bubbles: true }));
+  ok('chip shows the repeat', $('tfParseText').textContent.includes('Повтор: каждую пятницу'));
+  $('tfParseOk').click(); $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
+  ok('card phrase saves the repeat with the nearest date', J(state.tasks.at(-1).rep) === J(C(1, 'w', { wd: [4] })) && weekday(parseKey(state.tasks.at(-1).date)) === 4 && state.tasks.at(-1).date >= T);
   await closePage();
 }
 

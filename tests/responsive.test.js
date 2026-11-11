@@ -130,24 +130,6 @@ fe.style.maxWidth = ''; fe.style.width = w0; fe.style.height = h0; await wait(15
   ok('badge stays inside meta', warn && warn.getBoundingClientRect().right <= meta.getBoundingClientRect().right + 1);
 }
 
-{
-  const probe = w => {
-    const box = document.createElement('div');
-    box.className = 'tiles';
-    box.style.cssText = `position:fixed;left:0;top:0;width:${w * 2 + 8}px;grid-template-columns:repeat(2,1fr)`;
-    box.innerHTML = '<div class="tile"><div class="l"><span>✅</span>Выполнено</div><div class="v">50%</div></div>';
-    document.body.append(box);
-    const sp = box.querySelector('.l span'), l = box.querySelector('.l');
-    const r = { shown: getComputedStyle(sp).display !== 'none', fits: l.scrollWidth <= l.clientWidth + 1 };
-    box.remove();
-    return r;
-  };
-  const phone = probe(170), mini = probe(150), tiny = probe(132);
-  ok('tile emoji shown on regular iPhone width', phone.shown && phone.fits, phone);
-  ok('tile emoji shown on small iPhone width', mini.shown && mini.fits, mini);
-  ok('tile emoji hidden only on very narrow screens', !tiny.shown && tiny.fits, tiny);
-}
-
 ok('iOS sheets add no history entry, so the system back swipe cannot show a second screen', usesHistory(true) === false && usesHistory(false) === true);
 {
   const rows = els => { const m = new Map(); els.forEach(e => { const r = e.getBoundingClientRect(), k = Math.round(r.top); m.set(k, [...(m.get(k) || []), r]); }); return [...m.values()]; };

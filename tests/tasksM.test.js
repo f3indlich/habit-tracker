@@ -88,10 +88,11 @@ const undo = async () => { $('toastUndo').click(); await frame(); };
   $('tdQuick').querySelector('[data-v=someday]').click(); await until(() => $('tDateOv').hidden);
   $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
   ok('card saves Someday', findTask('n').someday === true && !findTask('n').date);
-  $('tqText').value = 'когда-нибудь съездить на Байкал';
-  $('tQuick').requestSubmit(); await frame();
+  openTaskForm(null, T); await until(() => $('tFormOv')._shown);
+  $('tfText').value = 'когда-нибудь съездить на Байкал'; $('tfText').dispatchEvent(new Event('input', { bubbles: true }));
+  $('tfParseOk').click(); $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
   const q = tasksOf().find(t => t.text === 'съездить на Байкал');
-  ok('quick add creates a someday task', !!q && q.someday === true && !q.date, q);
+  ok('card phrase creates a someday task', !!q && q.someday === true && !q.date, q);
   await closePage();
 }
 

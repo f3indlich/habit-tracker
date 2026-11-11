@@ -65,7 +65,6 @@ const wheelTo = (el, i) => { el.dispatchEvent(new KeyboardEvent('keydown', { key
   const box = $('tItems');
   openArch();
   ok('active row: move, archive, delete', acts(box, 'act') === 'move,arch,del');
-  ok('overdue row: move, archive, delete', acts(box, 'late') === 'move,arch,del');
   ok('future row: move, archive, delete', acts(box, 'fut') === 'move,arch,del');
   ok('row without a date: move, archive, delete', acts(box, 'nod') === 'move,arch,del');
   ok('finished row: delete only', acts(box, 'fin') === 'del');

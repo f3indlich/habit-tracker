@@ -238,7 +238,7 @@ if (usesHistory(isIOS)) {
     openHistory('p1'); await waitFor(() => $('histOv')._shown);
     if (hist.range !== 'week') { $('hTabs').querySelector('[data-r=week]').click(); closeOverlay($('histOv')); await wait(400); openHistory('p1'); await waitFor(() => $('histOv')._shown); }
     ok('Monday habit history opens last week', $('hLabel').textContent === prevWeek && !$('hBack').hidden && $('hBack').textContent.includes('Итоги прошлой недели'));
-    ok('last week history is not empty', !/нет данных/.test($('hTiles').textContent), $('hTiles').textContent);
+    ok('last week history is not empty', !/нет данных/.test($('hRing').textContent + $('hPlan').textContent) && /\d/.test($('hRing').textContent + $('hPlan').textContent), $('hRing').textContent);
     $('hBack').querySelector('button').click(); await wait(100);
     ok('history returns to this week', $('hLabel').textContent === thisWeek && $('hBack').hidden);
     closeOverlay($('histOv')); await wait(400);

@@ -2,7 +2,7 @@ import { $, ACCENT_STORE, DATA_STORE, EASE_STD, esc, getPref, ICON_STORE, isAndr
 import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=3.2d';
 import { normalize, save, setState, state } from './storage.js?v=3.2d';
 import { askConfirm, closeOverlay, morph, openOverlay, toast } from './ui.js?v=3.2d';
-import { CARDS, cards, render, renderViewPage, setReorder, setWasAllDone, sparks } from './render.js?v=3.2d';
+import { CARDS, cards, render, renderViewPage, setWasAllDone, sparks } from './render.js?v=3.2d';
 import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=3.2d';
 import { hist, renderHistory } from './history.js?v=3.2d';
 import { cloud, deleteAccount, emailMatches, openAccount, renderAccount } from './sync.js?v=3.2d';
@@ -96,7 +96,6 @@ function paintViewInfo() {
   $('setViewInfo').textContent = document.body.dataset.cards === 'rings' ? c[0] : `${c[0]} · история: ${(v?.short || 'Неделя').toLowerCase()}`;
 }
 $('setView').onclick = () => { renderViewPage(); openOverlay($('viewOv')); };
-$('setReorder').onclick = () => { closeOverlay($('setOv')); setReorder(true); };
 $('viewOv').addEventListener('click', () => { if (setPage === 'habits') requestAnimationFrame(paintViewInfo); });
 $('setQ').addEventListener('input', () => { setPage = ''; paintSetPage(); });
 $('setOv').addEventListener('click', e => {

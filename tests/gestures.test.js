@@ -112,15 +112,10 @@ ok('styles cleared after pull', hs.style.transform === '' && !$('histOv').style.
 
 document.querySelector('.hero-ring').click(); await wait(600);
 const s0 = $('sLabel').textContent;
-await swipe($('sTiles'), [W * .15, 300], [W * .85, 305]);
+await swipe($('sHero'), [W * .15, 300], [W * .85, 305]);
 ok('summary swipe right shows previous period', $('sLabel').textContent !== s0 && !$('sNext').disabled);
-await swipe($('sTiles'), [W * .85, 300], [W * .15, 305]);
+await swipe($('sHero'), [W * .85, 300], [W * .15, 305]);
 ok('summary swipe left returns', $('sLabel').textContent === s0);
-$('sTabs').querySelector('[data-r=year]').click(); await wait(300);
-const y0 = $('sLabel').textContent, hsc = $('sHeat').querySelector('.hscroll');
-if (hsc) await swipe(hsc, [W * .2, 500], [W * .9, 500]);
-ok('year heatmap scroll does not change period', !hsc || $('sLabel').textContent === y0);
-$('sTabs').querySelector('[data-r=week]').click(); await wait(300);
 await swipe($('sSheet').querySelector('.sheet-head'), [W / 2, 160], [W / 2, 650]);
 ok('pull down closes summary', !$('sumOv')._shown);
 

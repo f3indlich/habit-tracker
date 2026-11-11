@@ -102,11 +102,13 @@ const optOn = () => $('tpList').querySelector('[aria-checked=true] .tf-lbl')?.te
 {
   show({ habits: [], log: {}, tasks: [] });
   await openPage();
-  $('tqText').value = 'сдать отчёт до пятницы'; $('tqText').dispatchEvent(new Event('input', { bubbles: true }));
+  const card = async v => { openTaskForm(null, T); await until(() => $('tFormOv')._shown); $('tfText').value = v; $('tfText').dispatchEvent(new Event('input', { bubbles: true })); };
+  const add = async () => { $('tfParseOk').click(); $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden); };
+  await card('сдать отчёт до пятницы');
   const r = parseQuick('сдать отчёт до пятницы');
-  ok('quick chip shows the due', $('tqChipText').textContent === 'Срок: ' + dueWhen(r.due), $('tqChipText').textContent);
-  $('tQuick').requestSubmit();
-  ok('quick add with due only has no when', state.tasks.at(-1).due === r.due && !('date' in state.tasks.at(-1)) && state.tasks.at(-1).text === 'сдать отчёт');
+  ok('card chip shows the due', $('tfParseText').textContent === 'Срок: ' + dueWhen(r.due), $('tfParseText').textContent);
+  await add();
+  ok('phrase with due only leaves no when', state.tasks.at(-1).due === r.due && !('date' in state.tasks.at(-1)) && state.tasks.at(-1).text === 'сдать отчёт');
   await closePage();
   openTaskForm(null, T); await until(() => $('tFormOv')._shown);
   $('tfText').value = 'оплатить счёт дедлайн завтра'; $('tfText').dispatchEvent(new Event('input', { bubbles: true }));

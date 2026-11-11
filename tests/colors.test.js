@@ -90,13 +90,9 @@ state = normalize({ habits: [{ id: 'w', name: 'Вода', icon: 'water', color: 
 cards.forEach(e => e.remove()); cards.clear(); render(); await wait(200);
 openHistory('w'); await wait(600);
 $('hTabs').querySelector('[data-r=year]').click(); await wait(400);
-const cells = [...$('hSheet').querySelectorAll('rect.cell')].filter(c => /lv\d/.test(c.getAttribute('class')));
-const byLv = lv => cells.find(c => c.classList.contains(lv));
-ok('history heatmap uses data color, not habit color', getComputedStyle(byLv('lv4')).fill === probe('color-mix(in srgb, var(--data) 100%, var(--card))'), byLv('lv4') && getComputedStyle(byLv('lv4')).fill);
-const fills = ['lv0', 'lv1', 'lv2', 'lv3', 'lv4'].map(l => byLv(l) && getComputedStyle(byLv(l)).fill);
-ok('history heatmap has 5 distinct levels', fills.every(Boolean) && new Set(fills).size === 5, fills);
-const lg = [...$('hSheet').querySelectorAll('.legend i')].map(rgb);
-ok('legend matches heatmap levels', lg.length === 5 && lg.every((c, i) => c === fills[i]), [lg, fills]);
+const bar = [...$('hChart').querySelectorAll('.mrow:not(.low):not(.now) .mbar i')][0] || $('hChart').querySelector('.mrow .mbar i');
+const barRow = bar?.closest('.mrow');
+ok('history month rows use data color, not habit color', !!bar && (barRow.classList.contains('low') || barRow.classList.contains('now') || getComputedStyle(bar).backgroundColor === probe('var(--data)')), bar && getComputedStyle(bar).backgroundColor);
 ok('history header keeps habit color', getComputedStyle($('hSheet')).getPropertyValue('--c').trim() === '#0ea5e9');
 closeOverlay($('histOv')); await wait(300);
 

@@ -72,10 +72,6 @@ const wr = dcols[6].querySelector('.dw').getBoundingClientRect(), dr = dcols[6].
 ok('weekday label not overlapped', dr.top - wr.bottom >= 4, { w: wr.bottom, d: dr.top });
 const cr = card('p').getBoundingClientRect(), lr = dcols[6].getBoundingClientRect();
 ok('cur column inside card', lr.right <= cr.right - 8 && lr.left >= cr.left, { lr: lr.right, cr: cr.right });
-const pc = count(findHabit('p'), addDays(new Date(), -1));
-dcols[5].querySelector('.dot').click(); await wait(300);
-ok('tap on a day under the card never marks it', count(findHabit('p'), addDays(new Date(), -1)) === pc);
-if ($('dayOv')._shown) { closeOverlay($('dayOv')); await wait(400); }
 
 const menuItems = () => [...document.querySelectorAll('.menu button')].map(b => b.textContent.trim());
 card('p').querySelector('.more').click(); await wait(250);

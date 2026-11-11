@@ -8,33 +8,38 @@ import { queueTips } from './tips.js?v=3.2d';
 import { fmtNum, HIST_RANGES, HIST_STORE, planBar, planStats, unitChanged } from './plan.js?v=3.2d';
 
 export let hist = null;
-export const IC_I = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></svg>';
-export const STAT_INFO = {
-  streak: {
-    icon: '🔥', title: 'Серия',
-    lead: 'Сколько запланированных дней подряд цель выполнена полностью.',
-    how: 'Дни вне расписания и отмеченные пропуском цепочку не рвут. Сегодняшний день засчитывается после выполнения, а до конца дня серия не сгорает. Один невыполненный день обнуляет счёт. Если цель менялась, каждый день сравнивается с целью, которая действовала в тот день.',
-    why: 'Помогает держать ритм: чем длиннее цепочка, тем жальче её прерывать. Лучшая серия становится рекордом.',
-  },
-  best: {
-    icon: '🏆', title: 'Рекорд',
-    lead: 'Самая длинная серия за всё время существования привычки.',
-    how: 'Считается по тем же правилам, что и серия. Обновляется, когда текущая серия становится длиннее, и не уменьшается после срыва.',
-    why: 'Показывает, на что Вы уже способны, и даёт ориентир, который хочется превзойти.',
-  },
-  done: {
-    icon: '✅', title: 'Выполнено',
-    lead: 'Доля запланированных дней выбранного периода, когда норма выполнена полностью.',
-    how: 'Считается за период, выбранный внизу: неделю, месяц, год или всё время. Полностью выполненные дни делятся на запланированные. Частичное выполнение не засчитывается, пропуски и дни вне расписания не учитываются, сегодняшний день — после первой отметки. Если цель менялась, день сравнивается с целью, действовавшей в тот день.',
-    why: 'Честная общая картина регулярности: один срыв почти не меняет процент, а долгие перерывы заметно его снижают.',
-  },
-  power: {
-    icon: '💪', title: 'Сила',
-    lead: 'Насколько прочно привычка закрепилась именно сейчас.',
-    how: 'Учитывается каждый запланированный день за всю историю, частичное выполнение — частично. Последние дни важнее давних: день двухнедельной давности влияет вдвое меньше вчерашнего. От периода, выбранного внизу, не зависит.',
-    why: 'В отличие от серии, один пропуск лишь немного снижает силу, а не обнуляет её. Регулярность в последние недели поднимает шкалу быстрее всего.',
-  },
-};
+export const HABIT_HOW = [
+  ['Серия', 'Сколько запланированных дней подряд норма выполнена полностью. Дни вне расписания и пропуски цепочку не рвут, сегодняшний день не сгорает до вечера.'],
+  ['Рекорд', 'Самая длинная серия за всё время. Не уменьшается после срыва.'],
+  ['Всего', 'Сколько всего сделано за всё время: дней для привычек «да/нет», количество — для привычек со счётом.'],
+  ['Сделано и норма', 'Для привычек со счётом: всё, что отмечено за период, и в сколько дней норма выполнена полностью. Перевыполнение в один день не закрывает пропуск в другой. Если норма менялась, каждый день сравнивается с нормой того дня.'],
+  ['Выполнено', 'Для привычек «да/нет»: в сколько запланированных дней периода привычка выполнена. Пропуски и дни вне расписания не считаются, сегодняшний — после отметки.'],
+  ['Сравнение', 'С тем же числом дней прошлого периода: в среду неделя сравнивается с понедельником–средой прошлой недели. Не показывается, если в прошлом периоде меньше 3 дней с планом.'],
+  ['По дням недели', 'Появляется, когда в периоде хотя бы 21 день с планом.'],
+];
+export const WD_NOM = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
+const WD_IN = ['в понедельник', 'во вторник', 'в среду', 'в четверг', 'в пятницу', 'в субботу', 'в воскресенье'];
+export const MONTHS_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
+export function compareRange(range, ds, anchor, today = parseKey(todayKey())) {
+  const tk = key(today), elapsed = ds.filter(d => key(d) <= tk), prevAll = rangeDays(range, shiftAnchor(range, anchor, -1));
+  const live = key(ds[ds.length - 1]) > tk && elapsed.length > 0, n = elapsed.length;
+  const prevDs = live ? prevAll.slice(0, n) : prevAll, a = prevDs[0], b = prevDs[prevDs.length - 1];
+  let label;
+  if (range === 'week') label = !live ? 'неделей раньше' : n === 1 ? `в прошлый ${WD_NOM[0]}` : `${WEEKDAYS[0].toLowerCase()}–${WEEKDAYS[n - 1].toLowerCase()} прошлой недели`;
+  else if (range === 'month') label = !live ? `в ${MONTHS_IN[a.getMonth()]}${a.getFullYear() !== today.getFullYear() ? ` ${a.getFullYear()} года` : ''}` : `${n === 1 ? '' : '1–'}${b.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`;
+  else label = live ? `за тот же срок ${a.getFullYear()} года` : `в ${a.getFullYear()} году`;
+  return { cur: elapsed, prev: prevDs, label, live };
+}
+export function compareText(d, label) {
+  if (d == null) return '';
+  if (d > 0) return `▲ на ${d}% лучше, чем ${label}`;
+  if (d < 0) return `▼ на ${-d}% хуже, чем ${label}`;
+  return `Так же, как ${label}`;
+}
+const put = (el, html) => { if (el._html !== html) { el.innerHTML = html; el._html = html; } };
+const fmtDec = x => (Math.round(x * 10) / 10).toLocaleString('ru-RU');
+const daysPct = p => p.plannedDays ? Math.round(p.daysDone / p.plannedDays * 100) : null;
+const RING_R = 15.5, RING_C = 2 * Math.PI * RING_R;
 
 export const IC_GOAL = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg>';
 export const IC_DONE = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.5 2.5 5-5.3"/></svg>';
@@ -49,7 +54,7 @@ export function openHistory(id) {
   hist = { id, range: savedRange(), anchor: parseKey(lifeEnd(h)), back: null };
   const past = lifeEnd(h) === todayKey() && startAnchor(hist.range, h.created);
   if (past) Object.assign(hist, { anchor: past.anchor, back: past.start });
-  $('hTiles')._html = null;
+  for (const id of ['hTrio', 'hWd', 'hNotes']) $(id)._html = null;
   histSlider.reset();
   renderHistory();
   openOverlay($('histOv'));
@@ -101,14 +106,11 @@ export function shiftPeriod(dir) {
 }
 const histSlider = periodSlider({
   sheet: $('hSheet'), zone: '#hSheet .pnav, #hPer', track: $('hPerTrack'), prev: $('hPrev'), next: $('hNext'), tabs: $('hTabs'),
-  active: () => !!hist && hist.range !== 'all', get: () => hist.anchor, set: a => { hist.anchor = a; }, step: (a, s) => shiftAnchor(hist.range, a, s), render: renderHistory, paint: () => paintPeriod(),
+  active: () => !!hist, get: () => hist.anchor, set: a => { hist.anchor = a; }, step: (a, s) => shiftAnchor(hist.range, a, s), render: renderHistory, paint: () => paintPeriod(),
 });
 
 export function periodDays() {
-  if (hist.range !== 'all') return rangeDays(hist.range, hist.anchor);
-  const h = findHabit(hist.id), out = [];
-  for (let d = parseKey(h.created), end = lifeEnd(h); key(d) <= end; d = addDays(d, 1)) out.push(d);
-  return out;
+  return rangeDays(hist.range, hist.anchor);
 }
 export function period() {
   const ds = periodDays();
@@ -163,39 +165,15 @@ export function renderHistory() {
     h.cat && catName(h.cat) ? `<span class="tag cat">${esc(catName(h.cat))}</span>` : '',
   ].join('');
   requestAnimationFrame(() => $('hTags').classList.toggle('overflow', $('hTags').scrollWidth > $('hTags').clientWidth + 1));
-  $('hWhy').hidden = !h.why;
-  $('hWhy').innerHTML = `<b>Зачем мне это</b>${esc(h.why)}`;
-
-  const today = todayKey(), per = period(), p = planStats(h, state, per.start, per.end, today);
-  const pct = p.plannedDays ? Math.round(p.daysDone / p.plannedDays * 100) : 0, strength = Math.round(ls.score * 100);
+  const today = todayKey(), life = planStats(h, state, h.created, lifeEnd(h), today);
   const unitWord = n => isWeekly(h, parseKey(lifeEnd(h))) ? plural(n, 'неделя', 'недели', 'недель') : plural(n, 'день', 'дня', 'дней');
-  const tile = (k, icon, l, v, sub, bar) => `<div class="tile">
-    <div class="l"><span>${icon}</span>${l}</div><div class="v">${v}</div>
-    ${bar != null ? `<div class="bar"><i style="width:${bar}%"></i></div>` : `<div class="s">${sub}</div>`}
-    <button class="tile-i" data-k="${k}" aria-label="Что значит «${l}»" aria-haspopup="dialog">${IC_I}</button></div>`;
-  const tiles = [
-    tile('streak', '🔥', 'Серия', cur, cur ? `${unitWord(cur)} подряд`
-      : h.archived ? 'в архиве' : isDue(h, new Date()) ? 'начните сегодня' : 'пока нет серии'),
-    tile('best', '🏆', 'Рекорд', ls.best, unitWord(ls.best)),
-    tile('done', '✅', 'Выполнено', p.plannedDays ? pct + '%' : '—', p.plannedDays ? `${p.daysDone} из ${ofDays(p.plannedDays)}` : 'нет данных за период'),
-    tile('power', '💪', 'Сила', strength + '%', '', strength)];
-  const box = $('hTiles');
-  if (box._html?.length !== tiles.length) { box.innerHTML = tiles.join(''); box._html = tiles; }
-  else tiles.forEach((t, i) => {
-    if (box._html[i] === t) return;
-    const was = numOf(box.children[i].querySelector('.v').textContent);
-    box.children[i].outerHTML = t; box._html[i] = t;
-    const v = box.children[i].querySelector('.v'), now = numOf(v.textContent);
-    if (was != null && now != null) countTo(v, now, v.textContent.endsWith('%') ? '%' : '', { from: was });
-  });
-  renderPlan(h, p);
-  $('hTiles').onclick = e => {
-    const b = e.target.closest('.tile-i');
-    if (!b) return;
-    if (menuEl?._anchor === b) return closeMenu();
-    const t = STAT_INFO[b.dataset.k];
-    openPopover(b, `<div class="pop-title">${t.icon} ${t.title}</div><p class="pop-lead">${t.lead}</p>
-      <div class="pop-sec"><b>Как считается</b>${t.how}</div><div class="pop-sec"><b>На что влияет</b>${t.why}</div>`, h.color);
+  const total = isQuant(h) ? life.fact : life.daysDone;
+  const totalWord = isQuant(h) ? `${h.unit || 'раз'} всего` : `${plural(total, 'день', 'дня', 'дней')} всего`;
+  put($('hTrio'), `<div><b>🔥 ${cur}</b><small>${cur ? `${unitWord(cur)} подряд` : h.archived ? 'в архиве' : 'серии пока нет'}</small></div>`
+    + `<div><b>${ls.best}</b><small>рекорд</small></div><div><b${String(Math.round(total)).length > 5 ? ' class="long"' : ''}>${fmtNum(total)}</b><small>${esc(totalWord)}</small></div>`);
+  $('hHow').onclick = e => {
+    if (menuEl?._anchor === e.currentTarget) return closeMenu();
+    openPopover(e.currentTarget, `<div class="pop-title">Как считается</div>${HABIT_HOW.filter(([t]) => t !== (isQuant(h) ? 'Выполнено' : 'Сделано и норма')).map(([t, d]) => `<div class="pop-sec"><b>${t}</b>${d}</div>`).join('')}`, h.color);
   };
 
   $('hInfo').onclick = e => {
@@ -217,92 +195,146 @@ export function renderHistory() {
     fact(IC_GOAL, 'Цель', goal) +
     fact(IC_REP, 'Расписание', sched[0].toUpperCase() + sched.slice(1)) +
     fact(IC_BOX.replace('M10 12h4', 'M8 12h8'), 'Категория', catName(h.cat) || 'Без категории') +
+    (h.why ? fact(IC_PEN, 'Зачем', h.why) : '') +
     (h.archived ? fact(IC_BOX, 'В архиве', fmtLong(h.archived), ago(h.archived)) : '');
   };
 
   for (const b of $('hTabs').children) b.setAttribute('aria-pressed', b.dataset.r === hist.range);
 
-  const ds = periodDays(), all = hist.range === 'all';
-  $('hSheet').querySelector('.pnav').hidden = all;
-  $('hLabel').textContent = all ? '' : periodLabel(ds);
-  $('hPrev').disabled = all || key(ds[0]) <= h.created;
-  $('hNext').disabled = all || key(ds[ds.length - 1]) >= lifeEnd(h);
+  const ds = periodDays();
+  $('hLabel').textContent = periodLabel(ds);
+  $('hPrev').disabled = key(ds[0]) <= h.created;
+  $('hNext').disabled = key(ds[ds.length - 1]) >= lifeEnd(h);
   paintBack($('hBack'), hist, hist.range, ds, () => { hist.anchor = parseKey(lifeEnd(h)); renderHistory(); });
   paintPeriod(h, ds);
 }
 
 function paintPeriod(h = findHabit(hist.id), ds = periodDays()) {
   if (!h) return;
-  const all = hist.range === 'all';
-  const bucket = (dd, name) => {
-    const md = dd.filter(d => inLife(h, key(d)) && counts(h, d));
-    const fullM = md.filter(d => count(h, d) >= targetOn(h, d)).length;
-    const v = md.length ? Math.round(md.reduce((s, d) => s + frac(h, d), 0) / md.length * 100) : 0;
-    return { value: v, active: md.length > 0, tip: md.length ? `${name}: ${v}% · выполнено ${fullM} из ${ofDays(md.length)}` : `${name}: нет данных` };
-  };
-  if (hist.range === 'year') {
-    const months = Array.from({ length: 12 }, (_, m) => ({ ...bucket(ds.filter(d => d.getMonth() === m), MONTHS[m]), label: MONTHS_SHORT[m] }));
-    barChart($('hChart'), months, { yMax: 100, ticks: [0, 50, 100], fmt: v => v + '%' });
-    $('hHeatWrap').hidden = false;
-    heatmap($('hHeat'), ds, d => ({ live: inLife(h, key(d)), f: frac(h, d), tip: dayTip(h, d) }));
-  } else if (all) {
-    const byQ = new Set(ds.map(d => d.getFullYear() * 12 + d.getMonth())).size > 24, groups = new Map();
-    for (const d of ds) {
-      const id = byQ ? `${d.getFullYear()}-q${Math.floor(d.getMonth() / 3)}` : `${d.getFullYear()}-${d.getMonth()}`;
-      if (!groups.has(id)) groups.set(id, { d, list: [] });
-      groups.get(id).list.push(d);
-    }
-    const gs = [...groups.values()], many = byQ || gs.length > 12;
-    const items = gs.map(({ d, list }, i) => {
-      const name = byQ ? `${Math.floor(d.getMonth() / 3) + 1}-й квартал ${d.getFullYear()} г.` : `${MONTHS[d.getMonth()]} ${d.getFullYear()} г.`;
-      const newYear = i === 0 || d.getFullYear() !== gs[i - 1].d.getFullYear();
-      return { ...bucket(list, name), label: !many ? MONTHS_SHORT[d.getMonth()] : newYear ? String(d.getFullYear()) : '' };
-    });
-    barChart($('hChart'), items, { yMax: 100, ticks: [0, 50, 100], fmt: v => v + '%' });
-    $('hHeatWrap').hidden = true;
-  } else {
-    $('hChart').innerHTML = (hist.range === 'week' ? weekView(h, ds) : monthView(h, ds)) + '<div class="tip"></div>';
-    $('hHeatWrap').hidden = true;
-  }
+  const today = todayKey(), p = planStats(h, state, key(ds[0]), key(ds[ds.length - 1]), today), quant = isQuant(h);
+  const cmp = compareRange(hist.range, ds, hist.anchor), cur = cmp.cur.length ? planStats(h, state, key(cmp.cur[0]), key(cmp.cur[cmp.cur.length - 1]), today) : p;
+  const prev = planStats(h, state, key(cmp.prev[0]), key(cmp.prev[cmp.prev.length - 1]), today);
+  const d = cur.plannedDays && prev.plannedDays >= 3 ? daysPct(cur) - daysPct(prev) : null, cmpTxt = compareText(d, cmp.label);
+  if (quant) { $('hRing').hidden = true; renderPlan(h, p, cmpTxt, d); }
+  else { $('hPlan').hidden = true; $('hPlan').innerHTML = ''; paintRing(h, ds, p, cmpTxt, d); }
+  $('hDaysTitle').textContent = hist.range === 'year' ? 'По месяцам' : 'По дням';
+  if (hist.range === 'year') $('hChart').innerHTML = yearRows(h, ds);
+  else $('hChart').innerHTML = (hist.range === 'week' ? (quant ? weekBars(h, ds) : weekView(h, ds)) : monthView(h, ds)) + (quant ? chartFoot(h, ds, p) : '') + '<div class="tip"></div>';
+  paintWeekdays(h, cmp.cur);
+  paintNotes(h, ds);
 }
 
-export const PLAN_INFO = 'Сделано — всё, что Вы отметили за период. Полоса показывает норму и то, что сверх неё. Норма считается по каждому дню: перевыполнение в один день не закрывает пропуск в другой.';
+function paintRing(h, ds, p, cmpTxt, d) {
+  const box = $('hRing');
+  box.hidden = false;
+  box.classList.toggle('muted', !p.plannedDays);
+  if (!p.plannedDays) { box.innerHTML = '<p class="s-sum">В этом периоде данных нет</p>'; return; }
+  const pct = daysPct(p), today = todayKey(), tk = parseKey(today);
+  const skips = ds.filter(x => key(x) <= today && inLife(h, key(x)) && isSkipped(h, x)).length;
+  const pending = ds.some(x => key(x) === today) && dayState(h, tk) === 'pending';
+  const sub = [skips ? `${skips} ${plural(skips, 'пропуск', 'пропуска', 'пропусков')}` : '', pending ? 'сегодня ещё впереди' : ''].filter(Boolean).join(', ');
+  box.innerHTML = `<div class="s-ring"><svg viewBox="0 0 36 36" aria-hidden="true"><circle class="s-tr" cx="18" cy="18" r="${RING_R}"/>${pct ? `<circle class="s-pr" cx="18" cy="18" r="${RING_R}" stroke-dasharray="${(pct / 100 * RING_C).toFixed(2)} ${RING_C.toFixed(2)}"/>` : ''}</svg><b>${pct}%</b></div><div class="s-htxt"><p class="s-sum">${p.daysDone} из ${p.plannedDays} ${plural(p.plannedDays, 'дня', 'дней', 'дней')}</p>${sub ? `<p class="s-sub">${sub}</p>` : ''}${cmpTxt ? `<p class="s-cmp${d < 0 ? ' down' : ''}">${cmpTxt}</p>` : ''}</div>`;
+}
+
+function weekBars(h, ds) {
+  const today = todayKey(), tg = targetOn(h, ds[ds.length - 1]);
+  const vals = ds.map(x => key(x) <= today && inLife(h, key(x)) ? count(h, x) : null);
+  const max = Math.max(tg, ...vals.map(v => v || 0)) || 1, H = 112, y = v => Math.round(v / max * H);
+  const cols = ds.map((x, i) => {
+    const v = vals[i], st = dayState(h, x), t = targetOn(h, x);
+    const lab = `<span class="hb-lb${isToday(x) ? ' now' : ''}"><b>${x.getDate()}</b>${WEEKDAYS[weekday(x)]}</span>`;
+    if (v == null) return `<div class="hb-c${dayAttrs(h, x)}><i class="hb-bar fut"></i>${lab}</div>`;
+    const cls = st === 'skip' ? 'skip' : st === 'off' && !v ? 'off' : v >= t ? 'full' : 'part', over = v > t ? y(v - t) : 0;
+    return `<div class="hb-c${dayAttrs(h, x)}><i class="hb-bar ${cls}" style="height:${Math.max(v ? 4 : 0, y(v))}px">${over ? `<span class="hb-ov" style="height:${over}px"></span>` : ''}${v ? `<em>${fmtNum(v)}</em>` : ''}</i>${lab}</div>`;
+  }).join('');
+  return `<div class="hb" style="--h:${H}px"><span class="hb-norm" style="bottom:calc(var(--lb) + ${y(tg)}px)"><span>норма ${fmtNum(tg)}</span></span>${cols}</div>${legend(h)}`;
+}
+
+function chartFoot(h, ds, p) {
+  if (!p.plannedDays) return '';
+  const today = todayKey();
+  let best = null, ties = 0;
+  for (const x of ds) if (key(x) <= today && inLife(h, key(x))) { const c = count(h, x); if (c > 0 && (!best || c > best.c)) { best = { x, c }; ties = 1; } else if (best && c === best.c) ties++; }
+  if (ties > 1) best = null;
+  return `<div class="h-foot"><span>В среднем <b>${fmtDec(p.fact / p.plannedDays)}</b> в день</span>${best ? `<span>Лучший день: <b>${hist.range === 'week' ? WEEKDAYS[weekday(best.x)].toLowerCase() : best.x.getDate() + ' ' + MONTHS_SHORT[best.x.getMonth()]}, ${fmtNum(best.c)}</b></span>` : ''}</div>`;
+}
+
+export function yearRows(h, ds) {
+  const y = ds[0].getFullYear(), today = todayKey(), quant = isQuant(h), rows = [];
+  for (let m = 11; m >= 0; m--) {
+    const a = key(new Date(y, m, 1)), b = key(new Date(y, m + 1, 0));
+    if (a > today || b < h.created || (h.archived && a > h.archived)) continue;
+    const p = planStats(h, state, a, b, today);
+    rows.push({ m, p, pct: daysPct(p), now: a <= today && b >= today });
+  }
+  if (!rows.length) return '<p class="s-empty">В этом году привычки ещё не было</p>';
+  const best = rows.length > 1 ? rows.reduce((a, b) => (b.pct ?? -1) > (a.pct ?? -1) ? b : a) : null;
+  return `<div class="mrows">${rows.map(r => {
+    const tag = r.now ? 'идёт' : r === best && r.pct ? 'лучший' : '';
+    const val = r.pct == null ? 'нет плана' : `${r.p.daysDone} из ${r.p.plannedDays} дн.`;
+    const sub = r.pct == null ? '' : quant ? `${fmtDec(r.p.fact / r.p.plannedDays)} в день` : `${r.pct}%`;
+    return `<button type="button" class="mrow${r.pct != null && r.pct < 60 ? ' low' : ''}${r.now ? ' now' : ''}${tag === 'лучший' ? ' best' : ''}" data-m="${r.m}" aria-label="${esc(`${MONTHS[r.m]}: ${val}${sub ? ', ' + sub : ''}`)}">
+      <b>${MONTHS[r.m]}${tag ? `<small>${tag}</small>` : ''}</b><span class="mbar"><i style="width:${r.pct || 0}%"></i></span><span class="mv">${val}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
+  }).join('')}</div><p class="s-hint">Касание месяца открывает его календарь</p>`;
+}
+
+function paintWeekdays(h, ds) {
+  const today = todayKey(), wd = Array.from({ length: 7 }, () => ({ n: 0, done: 0 }));
+  let total = 0;
+  for (const x of ds) {
+    if (key(x) > today || !inLife(h, key(x)) || isSkipped(h, x) || !isDue(h, x)) continue;
+    const c = count(h, x);
+    if (key(x) === today && !c) continue;
+    const w = wd[weekday(x)];
+    w.n++; total++;
+    if (c >= targetOn(h, x)) w.done++;
+  }
+  $('hWdWrap').hidden = total < 21;
+  if (total < 21) return put($('hWd'), '');
+  const pct = wd.map(w => w.n ? Math.round(w.done / w.n * 100) : null), known = pct.map((v, i) => ({ v, i })).filter(x => x.v != null);
+  const top = known.reduce((a, b) => b.v > a.v ? b : a), bot = known.reduce((a, b) => b.v < a.v ? b : a), spread = top.v - bot.v >= 15;
+  put($('hWd'), `<div class="hwd">${pct.map((v, i) => `<div class="${spread && i === top.i ? 'hw-top' : spread && i === bot.i ? 'hw-bot' : ''}" title="${WD_NOM[i]}: ${v ?? 0}%"><em>${v == null ? '—' : v + '%'}</em><span class="wb"><i style="height:${Math.max(4, v || 0)}%"></i></span><small>${WEEKDAYS[i]}</small></div>`).join('')}</div>
+    <p class="hwd-t">${spread ? `Лучше всего — ${WD_IN[top.i]}, слабее — ${WD_IN[bot.i]}` : 'Все дни недели примерно одинаково'}</p>`);
+}
+
+function paintNotes(h, ds) {
+  const today = todayKey(), list = ds.filter(x => key(x) <= today && inLife(h, key(x)) && noteOf(h, x)).reverse().slice(0, 10);
+  $('hNotesWrap').hidden = !list.length;
+  put($('hNotes'), list.map(x => `<button type="button" class="hn" data-day="${key(x)}"><b>${x.getDate()} ${MONTHS_SHORT[x.getMonth()]}</b><span>${esc(noteOf(h, x))}</span></button>`).join(''));
+}
+
 const fmtShort = k => { const d = parseKey(k); return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`; };
 export function goalSteps(h) {
   const gs = h.goals || [];
   return [{ from: gs.length ? key(addDays(parseKey(gs[gs.length - 1].until), 1)) : h.created, target: h.target, unit: h.unit },
     ...gs.map((g, i) => ({ from: i ? key(addDays(parseKey(gs[i - 1].until), 1)) : h.created, target: g.target, unit: g.unit })).reverse()];
 }
-export function renderPlan(h, p = planStats(h, state, period().start, period().end, todayKey())) {
+export function renderPlan(h, p = planStats(h, state, period().start, period().end, todayKey()), cmpTxt = '', d = null) {
   const box = $('hPlan');
   box.hidden = !isQuant(h);
   if (box.hidden) { box.innerHTML = ''; return; }
   const unit = h.unit ? ' ' + esc(h.unit) : '', steps = h.goals?.length ? goalSteps(h) : null;
-  const info = `<button type="button" class="tile-i plan-i" aria-label="Как считается выполнение плана" aria-haspopup="dialog">${IC_I}</button>`;
   let body;
-  if (!p.plannedDays) body = `<div class="plan-top"><p class="plan-empty">В этом периоде данных нет</p>${info}</div>`;
+  if (!p.plannedDays) body = '<p class="plan-empty">В этом периоде данных нет</p>';
   else {
     const pct = Math.round(p.fact / p.plan * 100), bar = planBar(p);
     const markPos = bar.mark == null ? '' : bar.mark > 85 ? 'end' : bar.mark < 15 ? 'start' : 'mid';
-    body = `<div class="plan-top"><div class="plan-l1">Сделано <b>${fmtNum(p.fact)}</b> из ${fmtNum(p.plan)}${unit} (${pct}%)</div>${info}</div>
-    <div class="plan-l2">Норма выполнена в ${p.daysDone} из ${ofDays(p.plannedDays)}${pct >= 100 && p.daysDone < p.plannedDays ? ', но не во все дни' : ''}</div>
+    body = `<div class="plan-l1">Сделано <b>${fmtNum(p.fact)}</b> из ${fmtNum(p.plan)}${unit} <span class="plan-pct">${pct}%</span></div>
     <div class="plan-meter${bar.mark == null ? '' : ' marked'}">
       ${bar.mark == null ? '' : `<span class="pb-mark pb-${markPos}" style="left:${bar.mark}%"><span>план ${fmtNum(p.plan)}</span></span>`}
       <div class="plan-bar" role="img" aria-label="Сделано ${fmtNum(p.fact)} из ${fmtNum(p.plan)}${p.over ? `, из них сверх нормы ${fmtNum(p.over)}` : ''}"><i class="pb-in" style="width:${bar.inW}%"></i>${p.over ? `<i class="pb-over" style="width:${bar.overW}%"></i>` : ''}</div>
     </div>
-    <div class="plan-lg"><span><i class="pb-dot pb-in"></i>Вошло в норму: ${fmtNum(p.credited)}</span>${p.over ? `<span><i class="pb-dot pb-over"></i>Сверх нормы: ${fmtNum(p.over)}</span>` : ''}</div>
+    ${p.over ? `<div class="plan-lg"><span><i class="pb-dot pb-in"></i>в норму ${fmtNum(p.credited)}</span><span><i class="pb-dot pb-over"></i>сверх нормы ${fmtNum(p.over)}</span></div>` : ''}
+    <div class="plan-l2">Норма выполнена в <b>${p.daysDone} из ${p.plannedDays}</b> ${plural(p.plannedDays, 'дня', 'дней', 'дней')}${pct >= 100 && p.daysDone < p.plannedDays ? ', но не во все дни' : ''}${cmpTxt ? ` <span class="s-cmp${d < 0 ? ' down' : ''}">${cmpTxt}</span>` : ''}</div>
     ${unitChanged(h, period().start) ? '<p class="plan-note">Единица измерения менялась — старые и новые числа могут не совпадать по смыслу</p>' : ''}`;
   }
-  const was = box._id === h.id ? numOf(box.querySelector('.plan-l1 b')?.textContent ?? '') : null;
+  const per = period().start, was = box._id === h.id && box._per === per ? numOf(box.querySelector('.plan-l1 b')?.textContent ?? '') : null;
   box._id = h.id;
-  box.innerHTML = body + (steps ? `<details class="plan-goals"><summary>История целей</summary><ul>${steps.map(s =>
+  box._per = per;
+  box.innerHTML = body + (steps ? `<details class="plan-goals"><summary>Как менялась норма</summary><ul>${steps.map(s =>
       `<li>с ${fmtShort(s.from)} — ${s.target}${s.unit ? ' ' + esc(s.unit) : ''}</li>`).join('')}</ul></details>` : '');
-  const fact = box.querySelector('.plan-l1 b');
-  if (fact && was != null) countTo(fact, Math.round(p.fact), '', { from: was, fmt: fmtNum });
-  box.querySelector('.plan-i').onclick = e => {
-    if (menuEl?._anchor === e.currentTarget) return closeMenu();
-    openPopover(e.currentTarget, `<div class="pop-title">Выполнение плана</div><p class="pop-lead">${PLAN_INFO}</p>`, h.color);
-  };
+  const factEl = box.querySelector('.plan-l1 b');
+  if (factEl && was != null) countTo(factEl, Math.round(p.fact), '', { from: was, fmt: fmtNum });
 }
 
 export function dayState(h, d) {
@@ -341,7 +373,7 @@ export function weekView(h, ds) {
       <div class="wk-wd">${WEEKDAYS[weekday(d)]}</div>
       ${dayRing(h, d, i, 46)}
       <div class="wk-val s-${dayState(h, d)}">${val(d)}</div>${count(h, d) > targetOn(h, d) && inLife(h, key(d)) ? `<div class="wk-over">+${fmtNum(count(h, d) - targetOn(h, d))}</div>` : ''}
-    </div>`).join('')}</div>${legend()}`;
+    </div>`).join('')}</div>${legend(h)}`;
 }
 
 export function monthView(h, ds) {
@@ -349,8 +381,8 @@ export function monthView(h, ds) {
   return `<div class="cal">
     ${WEEKDAYS.map(w => `<div class="cal-wd">${w}</div>`).join('')}
     ${'<div></div>'.repeat(pad)}
-    ${ds.map((d, i) => `<div class="cal-day${isToday(d) ? ' today' : ''}${dayAttrs(h, d)}>${dayRing(h, d, i, 38)}</div>`).join('')}
-  </div>${legend()}`;
+    ${ds.map((d, i) => { const c = count(h, d), show = isQuant(h) && inLife(h, key(d)) && key(d) <= todayKey(); return `<div class="cal-day${isToday(d) ? ' today' : ''}${show && c > targetOn(h, d) ? ' over' : ''}${dayAttrs(h, d)}>${dayRing(h, d, i, 38)}${isQuant(h) ? `<em class="cal-n">${show && c ? fmtNum(c) : ''}</em>` : ''}</div>`; }).join('')}
+  </div>${legend(h)}`;
 }
 
 export function dayAttrs(h, d) {
@@ -461,11 +493,20 @@ $('dNoteDel').onclick = async () => {
 };
 $('dayOv').addEventListener('click', e => { if (e.target === $('dayOv') || e.target.closest('[data-close]')) day = null; });
 $('hChart').addEventListener('click', e => {
+  const mr = e.target.closest('[data-m]');
+  if (mr && hist) {
+    hist.range = 'month';
+    try { localStorage.setItem(HIST_STORE, 'month'); } catch {}
+    hist.anchor = new Date(periodDays()[0].getFullYear(), +mr.dataset.m, 1);
+    hist.back = null;
+    return renderHistory();
+  }
   const t = e.target.closest('[data-day]');
   if (!t || !hist) return;
   $('hChart')._hideTip?.();
   openDay(hist.id, parseKey(t.dataset.day));
 });
+$('hNotes').addEventListener('click', e => { const t = e.target.closest('[data-day]'); if (t && hist) openDay(hist.id, parseKey(t.dataset.day)); });
 $('hChart').addEventListener('keydown', e => {
   const t = e.target.closest?.('[data-day]');
   if (!t || !hist || (e.key !== 'Enter' && e.key !== ' ')) return;
@@ -473,86 +514,11 @@ $('hChart').addEventListener('keydown', e => {
   openDay(hist.id, parseKey(t.dataset.day));
 });
 
-export const legend = () => `<div class="cal-legend">
-  <span><i class="lg full"></i>выполнено</span><span><i class="lg part"></i>частично</span>
-  <span><i class="lg miss"></i>не выполнено</span><span><i class="lg skip"></i>пропуск</span><span><i class="lg off"></i>не в плане</span>
+export const legend = h => isQuant(h) ? `<div class="cal-legend">
+  <span><i class="lg full"></i>норма есть</span><span><i class="lg part"></i>часть нормы</span><span><i class="lg over"></i>сверх нормы</span>
+</div>` : `<div class="cal-legend">
+  <span><i class="lg full"></i>сделано</span><span><i class="lg miss"></i>не сделано</span><span><i class="lg skip"></i>пропуск</span>
 </div>`;
-
-export const svgEl = (w, hgt, inner) => `<svg width="${w}" height="${hgt}" viewBox="0 0 ${w} ${hgt}" role="img">${inner}</svg>`;
-
-export function colPath(x, y, w, hgt) {
-  const r = Math.min(4, w / 2, hgt);
-  return `M${x},${y + hgt}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + hgt}Z`;
-}
-
-export function barChart(box, items, { yMax, ticks, fmt }) {
-  const W = box.clientWidth || 540, H = 200, L = 34, R = 4, T = 10, B = items[0].sub ? 40 : 24;
-  const iw = W - L - R, ih = H - T - B, band = iw / items.length;
-  const bw = Math.max(2, Math.min(24, band - Math.max(2, band * .3)));
-  const y = v => T + ih - ih * Math.min(v / yMax, 1);
-  let s = '';
-  for (const t of ticks) {
-    s += `<line class="${t ? 'gridl' : 'base'}" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/>`;
-    s += `<text x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`;
-  }
-  items.forEach((it, i) => {
-    const cx = L + band * i + band / 2;
-    s += `<rect class="hit" x="${L + band * i}" y="${T}" width="${band}" height="${ih}" data-tip="${esc(it.tip)}"/>`;
-    if (it.active && it.value > 0) {
-      const top = y(it.value);
-      s += `<path class="bar" style="--i:${i}" d="${colPath(cx - bw / 2, top, bw, T + ih - top)}" pointer-events="none"/>`;
-    }
-    const lbl = items.length === 12 && band < 30 ? it.label.slice(0, 1) : it.label;
-    if (lbl) s += `<text x="${cx}" y="${T + ih + 17}" text-anchor="middle">${lbl}</text>`;
-    if (it.sub) s += `<text x="${cx}" y="${T + ih + 33}" text-anchor="middle">${it.sub}</text>`;
-  });
-  box.innerHTML = svgEl(W, H, s) + '<div class="tip"></div>';
-}
-
-export const heatLv = (live, f) => !live ? 'lvx' : f >= 1 ? 'lv4' : f >= .75 ? 'lv3' : f >= .5 ? 'lv2' : f > 0 ? 'lv1' : 'lv0';
-export function heatmap(box, ds, cell) {
-  const LW = 24, L = 0, T = 18, W = (box.clientWidth || 540) - LW;
-  const offset = weekday(ds[0]), cols = Math.ceil((ds.length + offset) / 7);
-  const cs = Math.max(11, Math.min(14, Math.floor(W / cols))), sz = cs - 2;
-  const H = T + cs * 7, SW = L + cols * cs;
-  const tk = todayKey();
-  let s = '', lastX = 0;
-  const labels = `<div class="hlabels" style="width:${LW}px;padding-top:${T}px">${WEEKDAYS.map((w, r) => `<span style="height:${cs}px">${r % 2 ? '' : w}</span>`).join('')}</div>`;
-  ds.forEach((d, i) => {
-    const k = key(d);
-    if (k > tk) return;
-    const col = Math.floor((i + offset) / 7), row = weekday(d);
-    if (d.getDate() === 1 && cs * 4 > 24) s += `<text x="${L + col * cs}" y="${T - 6}">${MONTHS_SHORT[d.getMonth()]}</text>`;
-    const c = cell(d), f = c.f;
-    const lv = heatLv(c.live, f);
-    s += `<rect class="cell ${lv}" style="--i:${col}" x="${L + col * cs}" y="${T + row * cs}" width="${sz}" height="${sz}" rx="2" data-tip="${esc(c.tip)}"/>`;
-    lastX = L + col * cs + cs;
-  });
-  box.innerHTML = `<div class="heatwrap">${labels}<div class="hscroll">${svgEl(SW, H, s)}</div></div><div class="tip"></div>`;
-  const sc = box.querySelector('.hscroll');
-  sc.querySelector('svg')?.classList.add('heat-year');
-  sc.scrollLeft = Math.max(0, lastX + 8 - sc.clientWidth);
-}
-
-export function calendarHeat(box, ds, cell) {
-  const offset = weekday(ds[0]), rows = Math.ceil((ds.length + offset) / 7), tk = todayKey();
-  const LW = 30, T = 18, gap = 3, rh = 20, W = (box.clientWidth || 340) - LW, cw = (W - gap * 6) / 7;
-  let s = WEEKDAYS.map((w, i) => `<text x="${LW + i * (cw + gap) + cw / 2}" y="11" text-anchor="middle">${w}</text>`).join(''), lastM = -1;
-  ds.forEach((d, i) => {
-    const row = Math.floor((i + offset) / 7), y = T + row * (rh + gap);
-    if ((weekday(d) === 0 || i === 0) && d.getMonth() !== lastM) { lastM = d.getMonth(); s += `<text x="0" y="${y + rh / 2 + 4}">${MONTHS_SHORT[lastM]}</text>`; }
-    const x = (LW + weekday(d) * (cw + gap)).toFixed(1), k = key(d);
-    if (k > tk) {
-      const date = d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
-      s += `<rect class="cell fut" style="--i:${row}" x="${+x + .75}" y="${y + .75}" width="${(cw - 1.5).toFixed(1)}" height="${rh - 1.5}" rx="4" data-tip="${esc(date)}: ещё впереди"/>`;
-      return;
-    }
-    const c = cell(d), f = c.f;
-    const lv = heatLv(c.live, f);
-    s += `<rect class="cell ${lv}${k === tk ? ' today' : ''}" style="--i:${row}" x="${x}" y="${y}" width="${cw.toFixed(1)}" height="${rh}" rx="4" data-tip="${esc(c.tip)}"/>`;
-  });
-  box.innerHTML = svgEl(W + LW, T + rows * (rh + gap) - gap, s) + '<div class="tip"></div>';
-}
 
 export const TIP_HOLD = 350, TIP_LINGER = 1200, TIP_TAP = 2500;
 export function bindTips(box) {
@@ -620,6 +586,5 @@ export function bindTips(box) {
   document.addEventListener('pointerdown', e => { if (on && !box.contains(e.target)) hide(); }, true);
 }
 bindTips($('hChart'));
-bindTips($('hHeat'));
 
 export function setHist(v) { hist = v; }

@@ -167,7 +167,7 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   const lid = db.lists[0].id;
   $('tLists').querySelector(`[data-sl="${lid}"]`).click();
   await until(() => !$('tShared').hidden);
-  ok('checklist view replaces the task list', visible($('tShared')) && !visible($('tTabs')) && !visible($('tListView')) && !visible($('tQuick')) && visible($('shText')));
+  ok('checklist view replaces the task list', visible($('tShared')) && !visible($('tTabs')) && !visible($('tListView')) && visible($('shText')));
   $('fab').click();
   ok('plus in a shared list focuses the add field', document.activeElement === $('shText') && !$('tFormOv')._shown);
   ok('add field is 16 px with a label', parseFloat(getComputedStyle($('shText')).fontSize) >= 16 && $('shText').getAttribute('aria-label') === 'Добавить запись');

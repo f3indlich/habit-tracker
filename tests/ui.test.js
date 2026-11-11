@@ -115,18 +115,13 @@ openHistory('m'); await wait(600);
 const tags = $('hTags');
 ok('habit tags in one row', tags.children.length === 3 && [...tags.children].every(t => Math.abs(t.getBoundingClientRect().top - tags.children[0].getBoundingClientRect().top) < 1), [...tags.children].map(t => t.getBoundingClientRect().top));
 ok('habit tags fit without scroll', tags.scrollWidth <= tags.clientWidth + 1, { sw: tags.scrollWidth, cw: tags.clientWidth });
-const ibs = [...$('hTiles').querySelectorAll('.tile-i')];
-ok('info button on every stat', ibs.length === 4 && ibs.every(b => { const t = b.closest('.tile').getBoundingClientRect(), r = b.getBoundingClientRect(); return Math.abs((t.right - r.right) - (r.top - t.top)) < 1; }), ibs.length);
 const symmetric = el => { const r = el.getBoundingClientRect(); return Math.abs(r.left - (innerWidth - r.right)) <= 1 && r.top >= 0 && r.bottom <= innerHeight; };
-const titles = [];
-for (const b of ibs) {
-  b.click(); await waitFor(() => menuEl?._anchor === b && symmetric(menuEl) && menuEl.querySelectorAll('.pop-sec').length === 2 && !menuEl.getAnimations().length);
-  titles.push(menuEl?.querySelector('.pop-title')?.textContent.trim());
-  ok('stat info centered: ' + b.dataset.k, menuEl && symmetric(menuEl) && menuEl.querySelectorAll('.pop-sec').length === 2, menuEl?.getBoundingClientRect());
-}
-ok('stat info titles', titles.join() === '🔥 Серия,🏆 Рекорд,✅ Выполнено,💪 Сила', titles);
-ibs[3].click(); await waitFor(() => !menuEl);
-ok('second tap closes stat info', !menuEl);
+ok('no info buttons on the numbers', !$('hSheet').querySelector('.tile-i, .plan-i') && $('hTrio').children.length === 3);
+$('hHow').click(); await waitFor(() => menuEl?._anchor === $('hHow') && !menuEl.getAnimations().length);
+const secs = [...(menuEl?.querySelectorAll('.pop-sec b') || [])].map(b => b.textContent);
+ok('one how-it-works lists the numbers of this habit', menuEl && symmetric(menuEl) && secs.join() === 'Серия,Рекорд,Всего,Сделано и норма,Сравнение,По дням недели', secs);
+$('hHow').click(); await waitFor(() => !menuEl);
+ok('second tap closes how-it-works', !menuEl);
 $('hInfo').click(); await waitFor(() => menuEl && symmetric(menuEl) && !menuEl.getAnimations().length);
 ok('habit info popover centered', menuEl && symmetric(menuEl) && menuEl.querySelector('.facts'), menuEl?.getBoundingClientRect());
 const arrowX = menuEl && parseFloat(menuEl.style.getPropertyValue('--ax')) + menuEl.getBoundingClientRect().left;

@@ -8,11 +8,6 @@ const T = todayKey(), shift = n => key(addDays(parseKey(T), n));
 const A = (id, extra = {}) => ({ id, text: 'Дело ' + id, done: false, createdAt: 1, updatedAt: 1, ...extra });
 const show = s => { state = normalize(s); viewDate = new Date(); render(); };
 const visible = el => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0;
-const type = v => { $('tqText').value = v; $('tqText').dispatchEvent(new Event('input', { bubbles: true })); };
-const enter = () => $('tQuick').requestSubmit();
-const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/plain', text); const ev = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev.defaultPrevented; };
-const confirmUp = () => until(() => $('confirm')._shown);
-const confirmDown = () => until(() => $('confirm').hidden);
 
 {
   ok('line helper', JSON.stringify(parseLines('- [x] готово\n1) раз\n[] пусто')) === JSON.stringify([{ text: 'готово', done: true }, { text: 'раз', done: false }, { text: 'пусто', done: false }]));
@@ -44,6 +39,17 @@ const confirmDown = () => until(() => $('confirm').hidden);
   ok('existing task form has no chip', !visible($('tfParse')));
   ft('<img src=x onerror=alert(1)> завтра');
   ok('form chip is safe', !document.querySelector('#tFormOv img'));
+  $('tFormOv')._guard = null; closeOverlay($('tFormOv')); await until(() => $('tFormOv').hidden);
+  state.taskLists = [{ id: 'home', name: 'Дом', color: '#22c55e' }];
+  openTaskForm(null, T); await until(() => $('tFormOv')._shown);
+  ft('купить молоко #дом завтра вечером срочно');
+  ok('chip names list, time and importance', $('tfParseText').textContent === 'Завтра, 19:00 · напоминание в срок · Список: Дом · Важная', $('tfParseText').textContent);
+  $('tfParseOk').click();
+  ok('apply puts the task into the list', $('tfList').value === 'home' && $('tfText').value === 'купить молоко');
+  $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
+  const lt = state.tasks.at(-1);
+  ok('list, time and importance are saved', lt.list === 'home' && lt.date === shift(1) && lt.time === '19:00' && lt.important === true, lt);
+  openTaskForm(null, T); await until(() => $('tFormOv')._shown);
   $('tFormOv')._guard = null; closeOverlay($('tFormOv')); await until(() => $('tFormOv').hidden);
   show({ habits: [], log: {} });
 }

@@ -211,6 +211,7 @@ const texts = el => [...el.querySelectorAll('.t-text')].map(x => x.textContent);
   $('tTabs').querySelector('[data-t=month]').click(); await wait(30);
   ok('month tab shows the calendar', !$('tMonthView').hidden && $('tListView').hidden && $('tCal').querySelectorAll('.t-d').length === 42 && !!$('tCal').querySelector('.t-d.now.pick'));
   ok('days with tasks have dots', !!$('tCal').querySelector(`[data-k="${shift(1)}"] .t-dots b`) && !!$('tCal').querySelector(`[data-k="${T}"] .t-dots b.late`));
+  ok('overdue mark is a ring, not a filled dot', getComputedStyle($('tCal').querySelector(`[data-k="${T}"] .t-dots b.late`)).backgroundColor === 'rgba(0, 0, 0, 0)');
   $('tCal').querySelector(`[data-k="${shift(1)}"]`).click(); await wait(30);
   ok('picking a day shows its tasks', texts($('tMonthItems')).includes(t0.text) && $('tMonthHead').textContent.includes(dayLong(shift(1), T)));
   $('fab').click(); await wait(420);

@@ -152,7 +152,7 @@ function oneDayHTML(all, k, today) {
   const body = list.length ? `<div class="card t-list">${list.map(t => agendaRow(t, today)).join('')}${add}</div>` : `<div class="card t-dayempty"><p>На этот день задач нет</p>${add}</div>`;
   return `<section class="t-group t-dayg t-onlyday" data-day="${k}"><h3 class="sec-h t-dh"><span>${esc(a)}</span><small>${esc(b)}</small><span class="cnt">${open || ''}</span><button type="button" class="t-link t-alldays" data-act="all-days">Все дни</button></h3>${body}</section>`;
 }
-const wkStart = today => addDays(parseKey(today), tv.wkOff * 7);
+const wkStart = (today, wk = tv.wkOff) => { const d = parseKey(today); return addDays(d, wk * 7 - weekday(d)); };
 function paintWeekHead(today) {
   const s = wkStart(today), e = addDays(s, 6), m = (d, y) => d.toLocaleDateString('ru-RU', { month: 'long', ...(y ? { year: 'numeric' } : {}) });
   const y = s.getFullYear() !== parseKey(today).getFullYear() || e.getFullYear() !== parseKey(today).getFullYear();
@@ -160,28 +160,95 @@ function paintWeekHead(today) {
   $('tWkMonth').textContent = (txt[0].toUpperCase() + txt.slice(1)).replace(/ г\.$/, '');
   $('tWkToday').style.visibility = tv.wkOff || (tv.wday && tv.wday !== today) ? 'visible' : 'hidden';
 }
-function shiftWeek(d) {
-  tv.wkOff += d;
-  tv.wday = null;
-  renderList();
-  if (!reducedMotion) $('tWeek').animate([{ transform: `translateX(${d * 24}px)`, opacity: .4 }, { transform: 'none', opacity: 1 }], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
-}
-$('tWkPrev').onclick = () => shiftWeek(-1);
-$('tWkNext').onclick = () => shiftWeek(1);
-$('tWkToday').onclick = () => { tv.wkOff = 0; tv.wday = null; renderList(); };
 {
-  let sx = null, sy = 0;
-  $('tWeekRow').addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; });
-  $('tWeekRow').addEventListener('pointerup', e => {
-    if (sx == null) return;
-    const dx = e.clientX - sx, dy = e.clientY - sy;
-    sx = null;
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) { $('tWeekRow')._swiped = true; setTimeout(() => { $('tWeekRow')._swiped = false; }, 60); shiftWeek(dx < 0 ? 1 : -1); }
+  const vp = $('tWkVp'), track = $('tWkTrack'), GAP = 16;
+  let start = null, dx = 0, dragging = false, pts = [], off = 0, peeks = {}, anim = null, after = null;
+  const page = () => $('tWeek').offsetWidth + GAP;
+  const move = x => { off = x; track.style.transform = x ? `translateX(${x}px)` : ''; };
+  const peek = (s, wk) => {
+    if (peeks[s]) return;
+    const p = document.createElement('div');
+    p.className = 't-week peek';
+    p.inert = true;
+    p.setAttribute('aria-hidden', 'true');
+    p.style.left = s * page() + 'px';
+    p.innerHTML = weekHTML(screenTasks(), todayKey(), wk);
+    track.append(p);
+    peeks[s] = p;
+  };
+  const clear = () => { Object.values(peeks).forEach(p => p.remove()); peeks = {}; move(0); };
+  const flush = () => {
+    if (!anim) return;
+    const a = anim, f = after;
+    anim = after = null;
+    a.cancel();
+    f();
+  };
+  const settle = (to, ms, done) => {
+    const a = anim = track.animate([{ transform: `translateX(${off}px)` }, { transform: `translateX(${to}px)` }], { duration: ms, easing: 'cubic-bezier(.22, .75, .25, 1)' });
+    after = done;
+    move(to);
+    a.onfinish = () => { if (anim !== a) return; anim = after = null; done(); };
+  };
+  const land = wk => () => { clear(); tv.wkOff = wk; tv.wday = null; renderList(); };
+  const flip = wk => {
+    flush();
+    if (wk === tv.wkOff) { if (tv.wday) { tv.wday = null; renderList(); } return; }
+    if (reducedMotion) return land(wk)();
+    const s = wk > tv.wkOff ? 1 : -1;
+    peek(s, wk);
+    settle(-s * page(), 360, land(wk));
+  };
+  $('tWkPrev').onclick = () => flip(tv.wkOff - 1);
+  $('tWkNext').onclick = () => flip(tv.wkOff + 1);
+  $('tWkToday').onclick = () => flip(0);
+
+  vp.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    flush();
+    start = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    dx = 0; dragging = false; pts = [];
   });
-  $('tWeekRow').addEventListener('pointercancel', () => { sx = null; });
+  vp.addEventListener('pointermove', e => {
+    if (!start || e.pointerId !== start.id) return;
+    const mx = e.clientX - start.x, my = e.clientY - start.y;
+    if (!dragging) {
+      if (Math.abs(mx) < 10 || Math.abs(mx) < Math.abs(my) * 1.3) {
+        if (Math.abs(my) > 12) start = null;
+        return;
+      }
+      dragging = true;
+      try { vp.setPointerCapture(e.pointerId); } catch {}
+      if (!reducedMotion) [-1, 1].forEach(s => peek(s, tv.wkOff + s));
+    }
+    dx = mx;
+    pts = [...pts.filter(p => e.timeStamp - p.t < 100), { x: e.clientX, t: e.timeStamp }];
+    if (reducedMotion) return;
+    const w = page();
+    move(Math.max(-w, Math.min(w, dx)));
+  });
+  const end = e => {
+    if (!start) return;
+    start = null;
+    if (!dragging) return;
+    $('tWeekRow')._swiped = true;
+    setTimeout(() => { $('tWeekRow')._swiped = false; }, 50);
+    const s = dx < 0 ? 1 : -1, w = page(), a = pts[0], b = pts[pts.length - 1];
+    const v = a && b && b.t - a.t > 8 ? (b.x - a.x) / (b.t - a.t) : 0;
+    const go = e.type === 'pointerup' && (Math.abs(dx) >= w * .25 || (Math.abs(v) > .35 && Math.sign(v) === Math.sign(dx) && Math.abs(dx) > 24));
+    const wk = tv.wkOff + s;
+    if (go && reducedMotion) return land(wk)();
+    if (go) {
+      peek(s, wk);
+      settle(-s * w, Math.round(Math.min(340, Math.max(160, (w - Math.abs(off)) / Math.max(Math.abs(v), .9)))), land(wk));
+    } else if (off) settle(0, Math.round(Math.min(320, 160 + Math.abs(off))), clear);
+    else clear();
+  };
+  vp.addEventListener('pointerup', end);
+  vp.addEventListener('pointercancel', end);
 }
-function weekHTML(all, today) {
-  const marks = dayMarks(all, today), base = wkStart(today);
+function weekHTML(all, today, wk = tv.wkOff) {
+  const marks = dayMarks(all, today), base = wkStart(today, wk);
   return Array.from({ length: 7 }, (_, i) => {
     const d = addDays(base, i), k = key(d), m = marks[k];
     return `<button type="button" class="t-wd${k === today ? ' now' : ''}${tv.wday === k ? ' sel' : ''}" data-wk="${k}" aria-pressed="${tv.wday === k}" aria-label="${esc(dayLong(k, today))}${m?.n ? `, задач: ${m.n}` : ''}"><small>${WEEKDAYS[weekday(d)]}</small><b>${d.getDate()}</b><i${m?.n ? '' : ' class="no"'}></i></button>`;
@@ -280,12 +347,11 @@ export function renderTasks() {
   if (tv.sel && (tv.shared || (!tv.smart && tv.tab !== 'list'))) exitSelect(false);
   $('tSelBtn').disabled = !!tv.shared || (!tv.smart && tv.tab !== 'list');
   if (tv.shared) {
-    for (const id of ['tTabs', 'tSmartBar', 'tListView', 'tMonthView', 'tQuick', 'tsResults']) $(id).hidden = true;
+    for (const id of ['tTabs', 'tSmartBar', 'tListView', 'tMonthView', 'tsResults']) $(id).hidden = true;
     paintListChips();
     return taskHooks.render?.(tv.shared);
   }
   taskHooks.leave?.();
-  $('tQuick').hidden = !$('tSearch').hidden;
   const sm = tv.smart && smartOn(tv.smart) && (tv.smart !== 'priv' || unlocked) ? tv.smart : (tv.smart = null);
   $('tTabs').hidden = !!sm;
   $('tWeekRow').hidden = $('tWkHead').hidden = !!sm || tv.tab !== 'list';
@@ -919,7 +985,7 @@ $('tfText').addEventListener('keydown', e => {
 });
 function paintTfParse() {
   fitTitle();
-  const r = !tf.id && !tf.touched && $('tfText').value.trim() ? parseQuick($('tfText').value) : null;
+  const r = !tf.id && !tf.touched && $('tfText').value.trim() ? parseQuick($('tfText').value, new Date(), listsOf()) : null;
   tf.parsed = r && r.found.length ? r : null;
   $('tfParse').hidden = !tf.parsed;
   $('tfParseText').textContent = tf.parsed ? quickLabel(tf.parsed) : '';
@@ -930,11 +996,14 @@ $('tfParseOk').onclick = () => {
   if (!r) return;
   $('tfText').value = r.text;
   if (r.date) tf.date = r.date;
+  else if (r.rep) tf.date = firstOn(r.rep, todayKey());
+  else if (r.due || r.someday) tf.date = null;
   if (r.someday) tf.someday = true;
   if (r.due) tf.due = r.due;
   if (r.rep) tf.rep = r.rep;
   if (r.time) { tf.time = r.time; if (!tf.reminds.length) tf.reminds = [0]; }
   if (r.important) { tf.imp = true; paintImp(); }
+  if (r.list && findList(r.list)) paintListSelect(r.list);
   tf.touched = true;
   paintTfDate();
   paintTfParse();
@@ -1156,14 +1225,13 @@ $('tForm').onsubmit = e => {
   else if (arch && !target.done) archiveTask(target);
 };
 
-export const PASTE_MAX = 50;
-const tq = { off: false };
 export function quickLabel(r, today = todayKey()) {
   const parts = [];
   if (r?.date) parts.push((r.date === today ? 'Сегодня' : r.date === tomorrowOf(today) ? 'Завтра' : taskWhen(r.date, today)) + (r.time ? `, ${r.time} · напоминание в срок` : ''));
   if (r?.due) parts.push(`Срок: ${dueWhen(r.due, today)}`);
   if (r?.rep) parts.push(`Повтор: ${repLabel(r.rep).toLowerCase()}`);
   if (r?.someday) parts.push('Когда-нибудь');
+  if (r?.listName) parts.push(`Список: ${r.listName}`);
   if (r?.important) parts.push('Важная');
   return parts.join(' · ');
 }
@@ -1174,83 +1242,6 @@ export function parseLines(text) {
     if (m) { done = !!m[1].trim(); s = s.slice(m[0].length); }
     return { text: s.trim(), done };
   }).filter(x => x.text);
-}
-function quickParse(v) {
-  return tq.off || !v.trim() ? null : parseQuick(v);
-}
-function paintQuick() {
-  const v = $('tqText').value;
-  if (!v.trim()) tq.off = false;
-  const r = quickParse(v);
-  $('tqChip').hidden = !(r && r.found.length);
-  $('tqChipText').textContent = r && r.found.length ? quickLabel(r) : '';
-}
-function quickFields(r, today) {
-  const extra = {}, v = curList();
-  if (r.time) { extra.time = r.time; extra.reminds = [0]; }
-  if (r.important) extra.important = true;
-  if (findList(v)) extra.list = v;
-  if (r.due) extra.due = r.due;
-  if (r.rep) extra.rep = r.rep;
-  if (r.someday) extra.someday = true;
-  return [r.text, r.date || (r.rep ? firstOn(r.rep, today) : r.due || r.someday ? null : today), extra];
-}
-$('tqText').addEventListener('input', paintQuick);
-$('tqNo').onclick = () => {
-  tq.off = true;
-  paintQuick();
-  $('tqText').focus({ preventScroll: true });
-};
-$('tQuick').onsubmit = e => {
-  e.preventDefault();
-  const v = $('tqText').value.trim();
-  if (!v) return;
-  const r = quickParse(v) || { text: v, found: [] };
-  const [text, date, extra] = quickFields(r, todayKey());
-  if (!addTask(text, date, '', extra)) return;
-  $('tqText').value = '';
-  tq.off = false;
-  paintQuick();
-  $('tqText').focus({ preventScroll: true });
-};
-$('tqText').addEventListener('paste', e => {
-  const text = e.clipboardData?.getData('text/plain') || '';
-  if (!/[\r\n]/.test(text)) return;
-  e.preventDefault();
-  pasteList(text);
-});
-export async function pasteList(text) {
-  const items = parseLines(text);
-  if (!items.length) return;
-  if (items.length === 1) {
-    $('tqText').value = items[0].text.slice(0, TASK_LIM.text);
-    return paintQuick();
-  }
-  const room = Math.max(0, TASK_LIM.total - tasksOf().filter(t => !t.done && !t.archivedAt).length);
-  const n = Math.min(items.length, PASTE_MAX, room);
-  if (!n) return toast(`Можно вести до ${TASK_LIM.total} задач`);
-  const take = items.slice(0, n), lines = take.slice(0, 5).map(x => `• ${x.text}`);
-  if (n > 5) lines.push(`и ещё ${n - 5}`);
-  if (n < items.length) lines.push(`Сразу можно добавить ${n} из ${items.length}.`);
-  const yes = await askConfirm(`Добавить ${n} ${plural(n, 'задачу', 'задачи', 'задач')}?`, lines.join('\n'), 'Добавить');
-  if (!yes) return;
-  const today = todayKey(), now = Date.now(), list = tasksOf(), ids = new Set();
-  take.forEach((x, i) => {
-    const r = parseQuick(x.text), [text, date, extra] = quickFields(r, today);
-    const t = { id: newTaskId(), text: text.slice(0, TASK_LIM.text), done: x.done, createdAt: now + i, updatedAt: now, date, ...extra };
-    if (x.done) t.doneAt = today;
-    list.push(t);
-    ids.add(t.id);
-  });
-  touchTasks();
-  $('tqText').value = '';
-  paintQuick();
-  const word = plural(n, 'задачу', 'задачи', 'задач');
-  toast(n < items.length ? `Добавлено ${n} ${word} из ${items.length}: больше не помещается` : `Добавлено ${n} ${word}`, () => {
-    const all = tasksOf();
-    for (let i = all.length - 1; i >= 0; i--) if (ids.has(all[i].id)) all.splice(i, 1);
-    touchTasks();
-  });
 }
 
 const IC_X = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -1378,7 +1369,8 @@ export const inList = (t, v = curList()) => v === 'all' || (v === 'inbox' ? !t.l
 export const screenTasks = () => { const v = curList(); return visTasks().filter(t => inList(t, v)); };
 const IC_PLUS_S = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
 function paintListChips() {
-  const lists = listsOf(), v = curList(), box = $('tLists');
+  const lists = listsOf(), v = curList(), box = $('tLists'), lc = findList(v)?.color;
+  if (lc) $('tasksOv').style.setProperty('--list-c', lc); else $('tasksOv').style.removeProperty('--list-c');
   const chip = (id, label, color) => `<button type="button" class="t-chip" data-l="${esc(id)}" aria-pressed="${v === id}">${color ? `<i class="t-ldot" style="--c:${esc(color)}"></i>` : ''}<span>${esc(label)}</span></button>`;
   box.innerHTML = (lists.length ? chip('all', 'Все') + chip('inbox', 'Входящие') + lists.map(l => chip(l.id, l.name, l.color)).join('') : '')
     + `<button type="button" class="t-chip t-chip-add" data-l="+" aria-label="${lists.length ? 'Изменить списки' : 'Создать список'}">${IC_PLUS_S}${lists.length ? '' : '<span>Список</span>'}</button>`
@@ -1578,7 +1570,6 @@ export function openSearch() {
   exitSelect(false);
   if (tv.shared) { tv.shared = null; renderTasks(); }
   $('tSearch').hidden = false;
-  $('tQuick').hidden = true;
   $('tSearchBtn').setAttribute('aria-expanded', 'true');
   $('tsText').value = '';
   renderSearch();
@@ -1588,7 +1579,6 @@ export function closeSearch() {
   clearTimeout(sqTimer);
   const was = !$('tSearch').hidden;
   $('tSearch').hidden = true;
-  $('tQuick').hidden = false;
   $('tSearchBtn').setAttribute('aria-expanded', 'false');
   if (was && !reducedMotion) $('tasksOv').querySelectorAll('.page-head > :not(.t-search)').forEach(el => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' }));
   $('tsText').value = '';

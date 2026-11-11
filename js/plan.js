@@ -2,7 +2,7 @@ import { addDays, key, NS, parseKey, weekday } from './core.js?v=3.2d';
 import { goalOn, isDue, MAX_COUNT } from './storage.js?v=3.2d';
 
 export const HIST_STORE = NS + '-hist-period';
-export const HIST_RANGES = ['week', 'month', 'year', 'all'];
+export const HIST_RANGES = ['week', 'month', 'year'];
 export const fmtNum = n => Math.round(n).toLocaleString('ru-RU').replace(/\s/g, '\u00a0');
 
 export function planStats(h, s, from, to, today) {

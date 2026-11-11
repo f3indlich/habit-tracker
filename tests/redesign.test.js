@@ -118,6 +118,9 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   card('c').querySelector('.check').click(); await frame();
   ok('tapping a ring marks the habit', count(findHabit('c'), new Date()) === 1);
   card('c').querySelector('.check').click();
+  card('c').querySelector('.info').click(); await until(() => $('histOv')._shown);
+  ok('tapping a ring name opens the habit card', $('histOv')._shown && count(findHabit('c'), new Date()) === 0);
+  closeOverlay($('histOv')); await until(() => $('histOv').hidden);
   $('viewBtn').click(); await until(() => $('viewOv')._shown);
   ok('view page offers the ring cards', [...$('cardsSeg').querySelectorAll('button')].map(b => b.textContent).join() === 'Подробные,Кольца' && $('cardsSeg').querySelector('[aria-checked=true]').dataset.c === 'rings' && $('viewHistGroup').hidden);
   $('cardsSeg').querySelector('[data-c=full]').click(); await frame();
@@ -128,9 +131,10 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
 {
   show({ habits: [], log: {}, tasks: [A('late', { date: shift(-2) }), A('t1', { date: T, time: '11:10' }), A('t2', { date: T }), A('u1', { date: shift(2), time: '09:30' }), A('u2', { date: shift(5) }), A('n', {})] });
   openTasks(); await until(() => $('tasksOv')._shown);
-  const days = [...$('tWeek').querySelectorAll('[data-wk]')];
-  ok('week strip shows seven days from today', days.length === 7 && days[0].dataset.wk === T && days[0].classList.contains('now'));
-  ok('week strip marks days with tasks', !days[0].querySelector('i').classList.contains('no') && days[1].querySelector('i').classList.contains('no') && !days[2].querySelector('i').classList.contains('no'));
+  const mon = k => { const d = parseKey(k); return key(addDays(d, -((d.getDay() + 6) % 7))); };
+  const days = [...$('tWeek').querySelectorAll('[data-wk]')], dayEl = k => $('tWeek').querySelector(`[data-wk="${k}"]`);
+  ok('week strip shows Monday to Sunday with today marked', days.length === 7 && days[0].dataset.wk === mon(T) && dayEl(T).classList.contains('now'));
+  ok('week strip marks days with tasks', !dayEl(T).querySelector('i').classList.contains('no') && (!dayEl(shift(2)) || !dayEl(shift(2)).querySelector('i').classList.contains('no')) && (!dayEl(shift(1)) || dayEl(shift(1)).querySelector('i').classList.contains('no')));
   ok('overdue is folded into one line', $('tItems').querySelector('.t-late-bar')?.textContent.includes('Просрочено: 1') && !$('tItems').querySelector('.t-row[data-id=late]'));
   $('tItems').querySelector('[data-act=late-toggle]').click();
   ok('overdue line opens the tasks', !!$('tItems').querySelector('.t-row[data-id=late]') && !!$('tItems').querySelector('[data-act=all-today]'));
@@ -140,17 +144,17 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   ok('time sits in its own column', $('tItems').querySelector('.t-row[data-id=t1] .t-tm').textContent === '11:10' && !visible($('tItems').querySelector('.t-row[data-id=t2] .t-tm')));
   ok('rows keep check boxes and open the card', !!$('tItems').querySelector('.t-row[data-id=u1] .t-box'));
   const target = () => $('tItems').querySelector(`.t-dayg[data-day="${shift(5)}"]`), sheetTop = () => $('tSheet').getBoundingClientRect().top;
-  const wk = i => $('tWeek').querySelectorAll('[data-wk]')[i];
-  wk(5).click(); await frame();
-  ok('tapping a day shows only that day', wk(5).classList.contains('sel') && [...$('tItems').querySelectorAll('.t-row')].map(r => r.dataset.id).join() === 'u2' && !$('tItems').querySelector('.t-late-bar'), $('tItems').textContent);
-  wk(1).click(); await frame();
+  const pick = async k => { if (!dayEl(k)) { $('tWkToday').click(); await until(() => !$('tWkTrack').getAnimations().length); await frame(); } for (let i = 0; i < 3 && !dayEl(k); i++) { $('tWkNext').click(); await until(() => !$('tWkTrack').getAnimations().length); await frame(); } dayEl(k).click(); await frame(); };
+  await pick(shift(5));
+  ok('tapping a day shows only that day', dayEl(shift(5)).classList.contains('sel') && [...$('tItems').querySelectorAll('.t-row')].map(r => r.dataset.id).join() === 'u2' && !$('tItems').querySelector('.t-late-bar'), $('tItems').textContent);
+  await pick(shift(1));
   ok('an empty day says so and does not open the card', !shownIds().includes('tFormOv') && $('tItems').querySelector('.t-dayempty')?.textContent.includes('На этот день задач нет'));
   $('tItems').querySelector('[data-act=add]').click(); await until(() => $('tFormOv')._shown);
   ok('add button on an empty day opens the card for it', $('tFormOv')._shown);
   closeOverlay($('tFormOv')); await until(() => $('tFormOv').hidden);
-  wk(1).click(); await frame();
+  dayEl(shift(1)).click(); await frame();
   ok('tapping the chosen day again shows all days', !$('tWeek').querySelector('.sel') && !!$('tItems').querySelector('.t-late-bar'));
-  wk(2).click(); await frame();
+  await pick(shift(2));
   $('tItems').querySelector('[data-act=all-days]').click(); await frame();
   ok('all days link returns to the full list', !$('tWeek').querySelector('.sel') && $('tItems').querySelectorAll('.t-dayg').length === 3);
   const headBtns = () => ['tSelBtn', 'tMonthBtn', 'tSmartBtn', 'tSearchBtn'].map(id => Math.round($(id).getBoundingClientRect().left)).join();
@@ -173,15 +177,27 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   ok('selection buttons stay put as the count changes', Math.abs($('tSelAll').getBoundingClientRect().left - sa) < 1 && Math.abs($('tSelDone').getBoundingClientRect().left - sd) < 1 && Math.abs($('tWeek').getBoundingClientRect().top - wTop) < 1);
   ok('selection title fits', $('tTitle').scrollWidth <= $('tTitle').clientWidth + 1, [$('tTitle').textContent, $('tTitle').scrollWidth, $('tTitle').clientWidth]);
   $('tSelDone').click(); await frame();
-  const q = $('tQuick').getBoundingClientRect();
-  ok('no separate quick add field below the list', !visible($('tQuick')));
+  ok('no separate quick add field below the list', !$('tQuick'));
   const firstDay = () => $('tWeek').querySelector('[data-wk]').dataset.wk;
-  $('tWkNext').click(); await frame();
-  ok('week arrows leave the current week', firstDay() === shift(7) && visible($('tWkToday')));
-  $('tWkPrev').click(); $('tWkPrev').click(); await frame();
-  ok('week can go back to past days', firstDay() === shift(-7));
-  $('tWkToday').click(); await frame();
-  ok('today link returns to the current week', firstDay() === T && getComputedStyle($('tWkToday')).visibility === 'hidden');
+  const still = () => until(() => !$('tWkTrack').getAnimations().length).then(frame);
+  $('tWkToday').click(); await still();
+  $('tWkNext').click();
+  await frame();
+  ok('arrow slides the next week in from the side', $('tWkTrack').querySelectorAll('.t-week.peek').length === 1 && $('tWkTrack').getAnimations().length === 1);
+  await still();
+  ok('week arrows leave the current week', firstDay() === mon(shift(7)) && visible($('tWkToday')) && !$('tWkTrack').querySelector('.peek'));
+  $('tWkPrev').click(); await still(); $('tWkPrev').click(); await still();
+  ok('week can go back to past days', firstDay() === mon(shift(-7)));
+  $('tWkToday').click(); await still();
+  ok('today link returns to the current week', firstDay() === mon(T) && getComputedStyle($('tWkToday')).visibility === 'hidden');
+  const vp = $('tWkVp'), r = vp.getBoundingClientRect(), y = r.top + r.height / 2, pe = (type, x) => vp.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, button: 0, clientX: x, clientY: y, isPrimary: true }));
+  pe('pointerdown', r.right - 20); pe('pointermove', r.right - 40); pe('pointermove', r.right - 60);
+  ok('week follows the finger with neighbours peeking', $('tWkTrack').querySelectorAll('.t-week.peek').length === 2 && /translateX\(-40px\)/.test($('tWkTrack').style.transform), $('tWkTrack').style.transform);
+  pe('pointerup', r.right - 60); await still();
+  ok('short drag snaps back', firstDay() === mon(T) && !$('tWkTrack').style.transform);
+  pe('pointerdown', r.right - 20); for (let x = r.right - 40; x > r.left + 20; x -= 40) pe('pointermove', x); pe('pointerup', r.left + 20); await still();
+  ok('long drag turns the week', firstDay() === mon(shift(7)));
+  $('tWkToday').click(); await still();
   ok('week header names the month', $('tWkMonth').textContent.length > 2);
   await closeAll();
 }
@@ -198,7 +214,8 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   ok('page hides the search', !visible($('setQ')));
   requestClose($('setOv')); await frame();
   $('setHome').querySelector('[data-go=habits]').click(); await frame();
-  ok('habits page gathers the habit and goal settings', $('setTitle').textContent === 'Привычки и цели' && secs().join() === 'Главный экран,Цели' && visible($('setView')) && visible($('setReorder')) && visible($('setCats')), secs());
+  ok('habits page gathers the habit and goal settings', $('setTitle').textContent === 'Привычки и цели' && secs().join() === 'Главный экран,Цели' && visible($('setView')) && visible($('setCats')), secs());
+  ok('habit order is not a setting: it is changed on the main screen', !$('setReorder') && !$('reorderBtn') && !/порядок привычек/i.test($('setOv').textContent + $('viewOv').textContent));
   ok('view row tells the current view', $('setViewInfo').textContent.length > 3);
   $('setView').click(); await until(() => $('viewOv')._shown); await wait(400);
   const vr = $('viewTitle').getBoundingClientRect(), topEl = document.elementFromPoint(vr.left + 5, vr.top + vr.height / 2);
@@ -233,6 +250,31 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   $('setBtn').click(); await until(() => $('setOv')._shown);
   ok('settings always reopen on the home', visible($('setHome')) && $('setTitle').textContent === 'Настройки');
   await closeAll();
+}
+
+{
+  const log = {};
+  for (let i = 1; i <= 60; i++) if (i % 4) log[shift(-i)] = { y: 1 };
+  show({ habits: [H('y', { created: shift(-60), why: 'Для бодрости' })], log, notes: { [shift(-2)]: { y: 'Было трудно, но сделал' } } });
+  openHistory('y'); await until(() => $('histOv')._shown);
+  $('hTabs').querySelector('[data-r=month]').click(); await frame();
+  ok('yes/no card: ring with days, no plan block', $('hPlan').hidden && !$('hRing').hidden && /^\d+%\d+ из \d+ (дня|дней)/.test($('hRing').textContent), $('hRing').textContent);
+  ok('top row: streak, record and total days', $('hTrio').children.length === 3 && /рекорд/.test($('hTrio').textContent) && /дн(я|ей|ь) всего/.test($('hTrio').textContent));
+  ok('period tabs sit above the numbers they change', $('hTabs').getBoundingClientRect().bottom < $('hRing').getBoundingClientRect().top && $('hTrio').getBoundingClientRect().bottom < $('hTabs').getBoundingClientRect().top);
+  ok('only three period tabs', [...$('hTabs').querySelectorAll('button')].map(b => b.textContent).join() === 'Неделя,Месяц,Год');
+  ok('yes/no legend has three marks', [...$('hChart').querySelectorAll('.cal-legend span')].map(s => s.textContent).join() === 'сделано,не сделано,пропуск');
+  ok('edit button is a pencil', !!$('hEdit').querySelector('path[d^="M4 20h4"]'));
+  const shown = !$('hNotesWrap').hidden && $('hNotes').textContent.includes('Было трудно') || !periodDays().some(d => key(d) === shift(-2));
+  ok('notes of the period are listed', shown);
+  if (!$('hNotesWrap').hidden) { $('hNotes').querySelector('[data-day]').click(); await until(() => $('dayOv')._shown); ok('a note opens its day', $('dayOv')._shown); closeOverlay($('dayOv')); await until(() => $('dayOv').hidden); }
+  $('hTabs').querySelector('[data-r=year]').click(); await frame();
+  ok('year: weekday pattern appears with enough days', !$('hWdWrap').hidden && $('hWd').querySelectorAll('.hwd > div').length === 7 && /^(Лучше всего — .+, слабее — .+|Все дни недели примерно одинаково)$/.test($('hWd').querySelector('.hwd-t').textContent), $('hWd').textContent);
+  ok('year: month rows show days and percent', [...$('hChart').querySelectorAll('.mrow .mv')].every(v => /\d+ из \d+ дн\.\d+%|нет плана/.test(v.textContent)));
+  $('hTabs').querySelector('[data-r=week]').click(); await frame();
+  ok('week: no weekday pattern on 7 days', $('hWdWrap').hidden);
+  $('hInfo').click(); await until(() => !!menuEl);
+  ok('why lives in the info popover', menuEl?.textContent.includes('Для бодрости'));
+  closeMenu(); await closeAll();
 }
 
 ok('scrollbars take no room, so nothing shifts when scrolling locks', getComputedStyle(document.documentElement).scrollbarWidth === 'none' && getComputedStyle($('tSheet')).scrollbarWidth === 'none');

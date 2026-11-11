@@ -138,7 +138,7 @@ show(normalize({ habits: [{ id: 'k', name: 'Неделя', created: ago(60), sch
 ok('weekly streak counts weeks', streak(findHabit('k')) === 3 && streakText(findHabit('k'), 3) === '3 недели');
 ok('weekly streak card text says weeks', cards.get('k').querySelector('.m-streak').textContent.includes('недел'));
 openHistory('k'); await wait(600);
-ok('history tile says weeks in a row', $('hTiles').textContent.includes('недели подряд'));
+ok('history top says weeks in a row', $('hTrio').textContent.includes('недели подряд'));
 closeOverlay($('histOv')); hist = null; await wait(400);
 
 const mLog = {};

@@ -565,22 +565,7 @@ export function renderGoalStrip() {
 $('gsOpen').onclick = () => { const id = $('goalStrip').dataset.id; if (id) openGoals(id); };
 $('gsHide').onclick = () => { setPref(STRIP_HIDE, todayKey()); renderGoalStrip(); };
 $('gStripSwitch').onclick = () => { setPref(STRIP_STORE, stripOn() ? '0' : '1'); renderGoalStrip(); };
-window.addEventListener('goals-changed', () => { renderGoalStrip(); if ($('sumOv')._shown) renderSumGoals(); });
-
-export function goalCounts(s = state, today = todayKey()) {
-  const gs = (s.goals || []).filter(g => !isPrivate(g)), act = gs.filter(isActive);
-  return { active: act.length, done: gs.filter(g => g.status === 'done').length, late: act.filter(g => ['behind', 'overdue'].includes(goalStatus(g, s, today))).length };
-}
-export function renderSumGoals() {
-  const el = $('sGoals'), c = goalCounts();
-  el.hidden = !c.active && !c.done;
-  el.innerHTML = el.hidden ? '' : `<span class="sg-head">${IC_FLAG}<b>Цели</b></span>
-    <span class="sg-n"><small>Активные</small><b>${c.active}</b></span>
-    <span class="sg-n"><small>Выполнено</small><b>${c.done}</b></span>
-    <span class="sg-n${c.late ? ' late' : ''}"><small>Отстают</small><b>${c.late}</b></span>`;
-  el.setAttribute('aria-label', `Цели: активные ${c.active}, выполнено ${c.done}, отстают ${c.late}. Открыть цели`);
-}
-$('sGoals').onclick = () => openGoals();
+window.addEventListener('goals-changed', () => renderGoalStrip());
 
 export function goalsLocked() {
   pendingLink = null;

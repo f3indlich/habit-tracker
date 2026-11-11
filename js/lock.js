@@ -72,8 +72,8 @@ function scrub() {
   const hh = hist && findHabit(hist.id);
   if (!$('histOv')._shown || isPrivate(hh)) {
     if ($('histOv')._shown) { hideNow($('histOv')); setHist(null); }
-    for (const id of ['hIcon', 'hName', 'hTags', 'hWhy', 'hTiles', 'hPlan', 'hChart', 'hHeat']) $(id).innerHTML = '';
-    $('hTiles')._html = null;
+    for (const id of ['hIcon', 'hName', 'hTags', 'hTrio', 'hPlan', 'hRing', 'hChart', 'hWd', 'hNotes']) $(id).innerHTML = '';
+    for (const id of ['hTrio', 'hWd', 'hNotes']) $(id)._html = null;
     $('hIcon')._ic = null;
   }
   if (!$('dayOv')._shown || isPrivate(findHabit(day?.id))) {

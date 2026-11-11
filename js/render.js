@@ -1135,7 +1135,7 @@ export function applyView(v) {
   $('viewBtn').setAttribute('aria-label', `Вид карточек: ${VIEWS[v].label.toLowerCase()}`);
 }
 export const CARDS_STORE = NS + '-cards';
-export const CARDS = { full: ['Подробные', 'Иконка, название, отметки за неделю и кнопки действий.'], rings: ['Кольца', 'Три привычки в ряд. Касание кольца отмечает привычку, касание названия открывает историю.'] };
+export const CARDS = { full: ['Подробные', 'Иконка, название, отметки за неделю и кнопки действий.'], rings: ['Кольца', 'Компактная сетка колец. Касание кольца отмечает привычку, касание названия открывает её карточку.'] };
 export function applyCards(v) {
   document.body.dataset.cards = CARDS[v] ? v : 'full';
 }
@@ -1171,7 +1171,6 @@ $('groupList').onclick = e => {
   if (groupMode === 'custom' && !state.categories.length) openCats();
 };
 $('editCats').onclick = openCats;
-$('reorderBtn').onclick = () => { closeOverlay($('viewOv')); setReorder(true); };
 
 export let lastDay = todayKey();
 export function checkDayChange() {
