@@ -2,7 +2,7 @@ import { ensureEmojiFont, framedByOther, getPref, GROUP_STORE, ICON_STORE, setPr
 import { ICON_STYLES } from './js/icons.js?v=3.2b';
 import { load, setState, state } from './js/storage.js?v=3.2b';
 import { shownOverlays, toast } from './js/ui.js?v=3.2b';
-import { applyView, GROUPS, render, setGroupMode } from './js/render.js?v=3.2b';
+import { applyCards, applyView, CARDS_STORE, GROUPS, render, setGroupMode } from './js/render.js?v=3.2b';
 import { openForm } from './js/form.js?v=3.2b';
 import { applyColors, applyTheme, keepOldDataColor, NAME_ASKED, openName, updateInstallBtn, userName } from './js/settings.js?v=3.2b';
 import { cloud, initCloud } from './js/sync.js?v=3.2b';
@@ -61,6 +61,7 @@ keepOldDataColor(state.habits.length > 0);
 applyTheme(getPref(THEME_STORE, 'auto'));
 applyColors();
 applyView(getPref(VIEW_STORE, 'list'));
+applyCards(getPref(CARDS_STORE, 'full'));
 document.body.dataset.icons = ICON_STYLES[getPref(ICON_STORE, 'color')] ? getPref(ICON_STORE, 'color') : 'color';
 setGroupMode(GROUPS[getPref(GROUP_STORE, 'time')] ? getPref(GROUP_STORE, 'time') : 'time');
 render();

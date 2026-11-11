@@ -1,4 +1,4 @@
-import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, ofDays, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=3.2b';
+import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, NS, ofDays, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=3.2b';
 import { IC, setIcon } from './icons.js?v=3.2b';
 import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=3.2b';
 import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=3.2b';
@@ -61,6 +61,35 @@ export function sectionOf(h) {
   return groupMode === 'time' ? 't:' + h.time : groupMode === 'custom' ? 'c:' + (h.cat || '') : 'all';
 }
 
+export const SEC_FOLD_STORE = NS + '-sec-fold';
+export function secFolded() {
+  try { const v = JSON.parse(getPref(SEC_FOLD_STORE, '[]')); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+export function toggleSection(sec) {
+  const id = sec.dataset.sec, list = sec.querySelector('.list'), cur = secFolded(), fold = !cur.includes(id);
+  setPref(SEC_FOLD_STORE, JSON.stringify(fold ? [...cur, id] : cur.filter(x => x !== id)));
+  const from = sec.classList.contains('folded') ? 0 : list.offsetHeight;
+  sec.classList.toggle('folded', fold);
+  sec.querySelector('.sec-h').setAttribute('aria-expanded', !fold);
+  if (reducedMotion) return;
+  list.getAnimations().forEach(a => a.cancel());
+  list.style.overflow = 'hidden';
+  const done = () => { list.style.display = ''; list.style.overflow = ''; };
+  if (fold) {
+    list.style.display = 'block';
+    list.animate({ height: [from + 'px', '0px'], opacity: [1, 0] }, { duration: 280, easing: 'cubic-bezier(.4, 0, .2, 1)' }).onfinish = done;
+  } else {
+    list.animate({ height: ['0px', list.offsetHeight + 'px'], opacity: [0, 1] }, { duration: 320, easing: 'cubic-bezier(.2, .8, .2, 1)' }).onfinish = done;
+  }
+}
+$('sections').addEventListener('click', e => {
+  const h = e.target.closest('.sec-h[role=button]');
+  if (h && !e.target.closest('button, a, input')) toggleSection(h.closest('.section'));
+});
+$('sections').addEventListener('keydown', e => {
+  const h = e.target.closest?.('.sec-h[role=button]');
+  if (h && e.target === h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleSection(h.closest('.section')); }
+});
 export const sectionEls = new Map();
 export function sectionEl(id) {
   let el = sectionEls.get(id);
@@ -68,7 +97,8 @@ export function sectionEl(id) {
     el = document.createElement('section');
     el.className = 'section';
     el.hidden = true;
-    el.innerHTML = `<div class="sec-h"><span class="sec-t"></span><span class="cnt"></span></div><div class="list"></div>`;
+    el.dataset.sec = id;
+    el.innerHTML = `<div class="sec-h" role="button" tabindex="0" aria-expanded="true"><span class="sec-t"></span><span class="cnt"></span><svg class="ic sec-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div><div class="list"></div>`;
     sectionEls.set(id, el);
   }
   return el;
@@ -647,6 +677,7 @@ $('fnToggle').onclick = () => {
   renderLegend();
   renderArchive();
 };
+const IC_VIEW = '<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>';
 export let firstRender = true, entering = 0;
 let lastOrder = '', lastDayKey = '';
 export function render() {
@@ -692,6 +723,9 @@ export function render() {
     prevSec = sec;
     sec.querySelector('.sec-t').textContent = s.label;
     sec.classList.toggle('plain', !s.label);
+    const fold = !!s.label && secFolded().includes(s.id);
+    sec.classList.toggle('folded', fold);
+    sec.querySelector('.sec-h').setAttribute('aria-expanded', !fold);
   }
 
   const nextLive = n => { while (n && n.classList.contains('leaving')) n = n.nextElementSibling; return n; };
@@ -1109,12 +1143,20 @@ export function applyView(v) {
   if (v === 'list') v = '7d'; else if (v === 'heat') v = '90d';
   if (!VIEWS[v]) v = '7d';
   document.body.dataset.view = v;
-  $('viewBtn').innerHTML = `${IC.cal}<span>${VIEWS[v].short}</span>`;
+  $('viewBtn').innerHTML = `${IC_VIEW}<span>${VIEWS[v].short}</span>`;
   $('viewBtn').title = `На карточках: ${VIEWS[v].label.toLowerCase()}`;
   $('viewBtn').setAttribute('aria-label', `Вид карточек: ${VIEWS[v].label.toLowerCase()}`);
 }
+export const CARDS_STORE = NS + '-cards';
+export const CARDS = { full: ['Подробные', 'Иконка, название, отметки за неделю и кнопки действий.'], rings: ['Кольца', 'Три привычки в ряд. Касание кольца отмечает привычку, касание названия открывает историю.'] };
+export function applyCards(v) {
+  document.body.dataset.cards = CARDS[v] ? v : 'full';
+}
 export function renderViewPage() {
-  const cur = document.body.dataset.view;
+  const cur = document.body.dataset.view, cards = document.body.dataset.cards || 'full';
+  $('cardsSeg').innerHTML = Object.entries(CARDS).map(([id, [l]]) => `<button type="button" role="radio" aria-checked="${id === cards}" data-c="${id}">${l}</button>`).join('');
+  $('cardsHint').textContent = CARDS[cards][1];
+  $('viewHistGroup').hidden = cards === 'rings';
   $('viewSeg').innerHTML = Object.values(VIEWS).map(v =>
     `<button type="button" role="radio" aria-checked="${v.id === cur}" data-v="${v.id}">${v.short}</button>`).join('');
   $('viewHint').textContent = `Под каждой привычкой — отметки ${VIEWS[cur].label.toLowerCase()}.`;
@@ -1125,6 +1167,11 @@ export function renderViewPage() {
   $('editCats').hidden = groupMode !== 'custom';
 }
 $('viewBtn').onclick = () => { renderViewPage(); openOverlay($('viewOv')); };
+$('cardsSeg').onclick = e => {
+  const b = e.target.closest('[data-c]');
+  if (!b) return;
+  setPref(CARDS_STORE, b.dataset.c); applyCards(b.dataset.c); render(); renderViewPage();
+};
 $('viewSeg').onclick = e => {
   const b = e.target.closest('[data-v]');
   if (!b) return;

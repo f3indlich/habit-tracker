@@ -1,0 +1,225 @@
+window.__errs = [];
+addEventListener('error', e => __errs.push(String(e.message)));
+addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
+const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+const frame = () => new Promise(r => setTimeout(r, 16));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const until = async (f, ms = 3000) => { const t0 = performance.now(); while (!f()) { if (performance.now() - t0 > ms) return false; await frame(); } return true; };
+const T = todayKey(), shift = n => key(addDays(parseKey(T), n));
+const visible = el => !!el && !el.hidden && getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0;
+const A = (id, extra = {}) => ({ id, text: 'Дело ' + id, done: false, createdAt: 1, updatedAt: 1, ...extra });
+const H = (id, extra = {}) => ({ id, name: 'Привычка ' + id, icon: 'run', color: '#0ea5e9', created: shift(-20), ...extra });
+const show = s => { state = normalize(s); viewDate = new Date(); render(); };
+const shownIds = () => [...document.querySelectorAll('.overlay')].filter(o => o._shown).map(o => o.id);
+const closeAll = async () => { for (const o of [...document.querySelectorAll('.overlay')].filter(o => o._shown).reverse()) closeOverlay(o); await until(() => !shownIds().length); };
+
+{
+  show({ habits: [H('r', { target: 5, unit: 'км' })], log: { [shift(-1)]: { r: 5 }, [shift(-2)]: { r: 2 } } });
+  openHistory('r'); await until(() => $('histOv')._shown); await wait(300);
+  const tip = () => $('hChart').querySelector('.tip'), cell = $('hChart').querySelector(`[data-day="${shift(-1)}"]`);
+  cell.click(); await until(() => $('dayOv')._shown);
+  ok('tapping a day opens it without a tip', $('dayOv')._shown && !tip()?.classList.contains('show') && !cell.classList.contains('on'));
+  closeOverlay($('dayOv')); await until(() => $('dayOv').hidden);
+  ok('closing the day leaves no tip behind', !tip()?.classList.contains('show'));
+  cell.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse' }));
+  ok('mouse hover still shows the tip', !!tip()?.classList.contains('show'));
+  $('hChart').dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+  ok('mouse leaving hides it', !tip()?.classList.contains('show'));
+  const r = cell.getBoundingClientRect();
+  cell.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }));
+  await wait(TIP_HOLD + 80);
+  ok('press and hold shows the tip', !!tip()?.classList.contains('show') && tip().textContent === cell.dataset.tip, tip()?.textContent);
+  cell.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch' }));
+  cell.click();
+  ok('releasing a hold does not open the day', !$('dayOv')._shown);
+  await wait(TIP_LINGER + 120);
+  ok('tip fades on its own after release', !tip()?.classList.contains('show'));
+  await closeAll();
+}
+
+{
+  show({ habits: [H('a')], log: {} });
+  ok('today button lives in the top capsule', $('todayBtn').parentElement === document.querySelector('.top-actions'));
+  viewDate = parseKey(shift(3)); render(); await frame();
+  const t = $('title').getBoundingClientRect(), c = document.querySelector('.top-actions').getBoundingClientRect(), b = $('todayBtn').getBoundingClientRect();
+  ok('today button shows on another day', visible($('todayBtn')));
+  ok('capsule does not overlap the title', t.right <= c.left + 1 && b.left >= c.left - 1 && b.right <= c.right + 1, [t.right, c.left]);
+  ok('capsule sits on the title row', Math.abs((c.top + c.bottom) / 2 - (t.top + t.bottom) / 2) < 8, [c.top, t.top]);
+  ok('title is not cut off', $('title').scrollWidth <= $('title').clientWidth + 1);
+  $('todayBtn').click(); await frame();
+  ok('today button returns and hides', key(viewDate) === T && $('todayBtn').hidden);
+  ok('view button uses the grid icon', !!$('viewBtn').querySelector('rect'));
+}
+
+{
+  show({ habits: [H('a')], log: {} });
+  const fab = $('fab');
+  fab.click(); await wait(300);
+  const menu = $('addDial'), item = l => [...menu.querySelectorAll('.add-item')].find(x => x.textContent === l);
+  ok('tap on plus opens the add menu', dialOpen() && [...menu.querySelectorAll('.lbl')].map(x => x.textContent).join() === 'Цель,Задача,Привычка', menu?.textContent);
+  ok('tap does not also open a form', !shownIds().length, shownIds());
+  const fr = fab.getBoundingClientRect(), ir = menu.querySelector('.add-items').getBoundingClientRect(), tb = document.querySelector('.tabbar').getBoundingClientRect();
+  ok('menu sits above the plus, right edges aligned', Math.abs(ir.right - fr.right) < 2 && ir.bottom <= fr.top - 8, [ir.right, fr.right, ir.bottom, fr.top]);
+  ok('menu does not cover the tab bar', ir.bottom <= tb.top, [ir.bottom, tb.top]);
+  ok('plus turns into a close button', document.body.classList.contains('dial-on') && fab.getAttribute('aria-expanded') === 'true');
+  fab.click(); await wait(300);
+  ok('tapping the plus again closes the menu', !dialOpen() && !shownIds().length);
+  openAddMenu(); await wait(250);
+  menu.querySelector('.add-scrim').click(); await wait(300);
+  ok('tapping outside closes the menu', !dialOpen() && !shownIds().length);
+  openAddMenu(); await wait(250);
+  item('Задача').click();
+  await until(() => $('tFormOv')._shown);
+  ok('menu opens the task card from home', $('tFormOv')._shown);
+  await closeAll();
+  openAddMenu(); item('Цель').click();
+  await until(() => $('gfOv')?._shown || shownIds().some(id => /^g/.test(id)));
+  ok('menu opens the goal form from home', shownIds().some(id => /^g/.test(id)), shownIds());
+  await closeAll();
+  openAddMenu(); item('Привычка').click();
+  await until(() => $('formOv')._shown);
+  ok('menu opens the habit form', $('formOv')._shown);
+  await closeAll();
+  await wait(250);
+  openTasks(); await until(() => $('tasksOv')._shown);
+  fab.click(); await until(() => $('tFormOv')._shown);
+  ok('plus on the tasks screen adds a task at once', $('tFormOv')._shown && !dialOpen(), [shownIds(), dialOpen()]);
+  await closeAll();
+}
+
+{
+  localStorage.removeItem(SEC_FOLD_STORE);
+  setGroupMode('time');
+  show({ habits: [H('m', { time: 'morning' }), H('e', { time: 'evening' })], log: {} });
+  const sec = sectionEl('t:morning'), head = sec.querySelector('.sec-h');
+  ok('category header is a button with a chevron', head.getAttribute('role') === 'button' && head.getAttribute('aria-expanded') === 'true' && !!head.querySelector('.sec-chev'));
+  head.click(); await wait(350);
+  ok('tap folds the category', sec.classList.contains('folded') && !visible(sec.querySelector('.habit')) && head.getAttribute('aria-expanded') === 'false');
+  ok('folded category keeps its counter', head.querySelector('.cnt').textContent === '0 / 1');
+  render(); await frame();
+  ok('fold survives a redraw and is remembered', sec.classList.contains('folded') && JSON.parse(getPref(SEC_FOLD_STORE, '[]')).includes('t:morning'));
+  ok('other categories stay open', !sectionEl('t:evening').classList.contains('folded'));
+  head.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  await wait(400);
+  ok('keyboard opens it again', !sec.classList.contains('folded') && visible(sec.querySelector('.habit')));
+  localStorage.removeItem(SEC_FOLD_STORE);
+}
+
+{
+  show({ habits: [H('a'), H('b', { target: 4 }), H('c')], log: { [T]: { a: 1, b: 2 } } });
+  applyCards('rings'); render(); await frame();
+  const card = id => cards.get(id), list = card('a').parentElement;
+  ok('rings put three habits in a row', getComputedStyle(list).gridTemplateColumns.split(' ').length === 3 && Math.abs(card('a').getBoundingClientRect().top - card('c').getBoundingClientRect().top) < 2);
+  ok('ring is big and holds the icon', card('a').querySelector('.check').getBoundingClientRect().width >= 70 && Math.abs(card('a').querySelector('.hicon').getBoundingClientRect().top - card('a').querySelector('.check').getBoundingClientRect().top - 11) < 6);
+  ok('ring hides the busy parts', !visible(card('a').querySelector('.dots')) && !visible(card('a').querySelector('.more')));
+  ok('done ring is filled, partial ring is not', card('a').classList.contains('complete') && !card('b').classList.contains('complete'));
+  card('c').querySelector('.check').click(); await frame();
+  ok('tapping a ring marks the habit', count(findHabit('c'), new Date()) === 1);
+  card('c').querySelector('.check').click();
+  $('viewBtn').click(); await until(() => $('viewOv')._shown);
+  ok('view page offers the ring cards', [...$('cardsSeg').querySelectorAll('button')].map(b => b.textContent).join() === 'Подробные,Кольца' && $('cardsSeg').querySelector('[aria-checked=true]').dataset.c === 'rings' && $('viewHistGroup').hidden);
+  $('cardsSeg').querySelector('[data-c=full]').click(); await frame();
+  ok('switching back restores full cards', document.body.dataset.cards === 'full' && getPref(CARDS_STORE, '') === 'full' && visible(card('a').querySelector('.dots')) && !$('viewHistGroup').hidden);
+  await closeAll();
+}
+
+{
+  show({ habits: [], log: {}, tasks: [A('late', { date: shift(-2) }), A('t1', { date: T, time: '11:10' }), A('t2', { date: T }), A('u1', { date: shift(2), time: '09:30' }), A('u2', { date: shift(5) }), A('n', {})] });
+  openTasks(); await until(() => $('tasksOv')._shown);
+  const days = [...$('tWeek').querySelectorAll('[data-wk]')];
+  ok('week strip shows seven days from today', days.length === 7 && days[0].dataset.wk === T && days[0].classList.contains('now'));
+  ok('week strip marks days with tasks', !days[0].querySelector('i').classList.contains('no') && days[1].querySelector('i').classList.contains('no') && !days[2].querySelector('i').classList.contains('no'));
+  ok('overdue is folded into one line', $('tItems').querySelector('.t-late-bar')?.textContent.includes('Просрочено: 1') && !$('tItems').querySelector('.t-row[data-id=late]'));
+  $('tItems').querySelector('[data-act=late-toggle]').click();
+  ok('overdue line opens the tasks', !!$('tItems').querySelector('.t-row[data-id=late]') && !!$('tItems').querySelector('[data-act=all-today]'));
+  $('tItems').querySelector('[data-act=late-toggle]').click();
+  const heads = [...$('tItems').querySelectorAll('.t-dayg .t-dh > span:first-child')].map(x => x.textContent);
+  ok('days follow one another', heads[0] === 'Сегодня' && heads.length === 3, heads);
+  ok('time sits in its own column', $('tItems').querySelector('.t-row[data-id=t1] .t-tm').textContent === '11:10' && !visible($('tItems').querySelector('.t-row[data-id=t2] .t-tm')));
+  ok('rows keep check boxes and open the card', !!$('tItems').querySelector('.t-row[data-id=u1] .t-box'));
+  const target = () => $('tItems').querySelector(`.t-dayg[data-day="${shift(5)}"]`), sheetTop = () => $('tSheet').getBoundingClientRect().top;
+  const wk = i => $('tWeek').querySelectorAll('[data-wk]')[i];
+  wk(5).click(); await frame();
+  ok('tapping a day shows only that day', wk(5).classList.contains('sel') && [...$('tItems').querySelectorAll('.t-row')].map(r => r.dataset.id).join() === 'u2' && !$('tItems').querySelector('.t-late-bar'), $('tItems').textContent);
+  wk(1).click(); await frame();
+  ok('an empty day says so and does not open the card', !shownIds().includes('tFormOv') && $('tItems').querySelector('.t-dayempty')?.textContent.includes('На этот день задач нет'));
+  $('tItems').querySelector('[data-act=add]').click(); await until(() => $('tFormOv')._shown);
+  ok('add button on an empty day opens the card for it', $('tFormOv')._shown);
+  closeOverlay($('tFormOv')); await until(() => $('tFormOv').hidden);
+  wk(1).click(); await frame();
+  ok('tapping the chosen day again shows all days', !$('tWeek').querySelector('.sel') && !!$('tItems').querySelector('.t-late-bar'));
+  wk(2).click(); await frame();
+  $('tItems').querySelector('[data-act=all-days]').click(); await frame();
+  ok('all days link returns to the full list', !$('tWeek').querySelector('.sel') && $('tItems').querySelectorAll('.t-dayg').length === 3);
+  const headBtns = () => ['tSelBtn', 'tMonthBtn', 'tSmartBtn', 'tSearchBtn'].map(id => Math.round($(id).getBoundingClientRect().left)).join();
+  const hb0 = headBtns(), tt0 = $('tTitle').getBoundingClientRect().top;
+  $('tMonthBtn').click(); await frame();
+  ok('header buttons stay put in the month view', headBtns() === hb0 && $('tTitle').getBoundingClientRect().top === tt0, [hb0, headBtns()]);
+  ok('calendar button opens the month', !$('tMonthView').hidden && $('tWeek').hidden && $('tMonthBtn').getAttribute('aria-pressed') === 'true');
+  $('tMonthBtn').click(); await frame();
+  ok('second tap returns to the week', $('tMonthView').hidden && !$('tWeek').hidden);
+  const wTop = $('tWeek').getBoundingClientRect().top;
+  $('tSearchBtn').click(); await frame();
+  ok('search opens in the header row without moving the screen', visible($('tSearch')) && Math.abs($('tWeek').getBoundingClientRect().top - wTop) < 1 && Math.abs($('tSearch').getBoundingClientRect().top - document.querySelector('#tasksOv .page-head').getBoundingClientRect().top) < 1);
+  ok('search cancel stays inside the screen', $('tsClose').getBoundingClientRect().right <= innerWidth - 8);
+  $('tsClose').click(); await frame();
+  ok('closing search leaves the screen in place', !visible($('tSearch')) && Math.abs($('tWeek').getBoundingClientRect().top - wTop) < 1);
+  $('tSelBtn').click(); await frame();
+  const sa = $('tSelAll').getBoundingClientRect().left, sd = $('tSelDone').getBoundingClientRect().left;
+  ok('selection hides the calendar button', !visible($('tMonthBtn')));
+  $('tSelAll').click(); await frame();
+  ok('selection buttons stay put as the count changes', Math.abs($('tSelAll').getBoundingClientRect().left - sa) < 1 && Math.abs($('tSelDone').getBoundingClientRect().left - sd) < 1 && Math.abs($('tWeek').getBoundingClientRect().top - wTop) < 1);
+  ok('selection title fits', $('tTitle').scrollWidth <= $('tTitle').clientWidth + 1, [$('tTitle').textContent, $('tTitle').scrollWidth, $('tTitle').clientWidth]);
+  $('tSelDone').click(); await frame();
+  const q = $('tQuick').getBoundingClientRect();
+  ok('quick add floats at the bottom', q.bottom > innerHeight - 160 && q.top > innerHeight / 2, [q.top, q.bottom, innerHeight]);
+  await closeAll();
+}
+
+{
+  show({ habits: [], log: {} });
+  $('setBtn').click(); await until(() => $('setOv')._shown);
+  const secs = () => [...$('setOv').querySelectorAll('section[data-sp]')].filter(visible).map(s => s.querySelector('h3').textContent);
+  ok('settings open on a short home', visible($('setHome')) && visible($('setQ')) && !secs().length);
+  ok('home has a profile card and three tiles', visible($('setMe')) && [...$('setHome').querySelectorAll('.set-tile b')].map(x => x.textContent).join() === 'Тема,Уведомления,Анимации');
+  ok('home lists the sections', [...$('setHome').querySelectorAll('.set-go b')].map(x => x.textContent).join() === 'Привычки и цели,Задачи,Оформление,Данные и копии,Помощь');
+  $('setHome').querySelector('[data-go=look]').click(); await frame();
+  ok('a section opens its own page', $('setTitle').textContent === 'Оформление' && secs().join() === 'Тема,Цвета,Анимации,Иконки привычек' && visible($('setBack')) && !visible($('setHome')));
+  ok('page hides the search', !visible($('setQ')));
+  requestClose($('setOv')); await frame();
+  $('setHome').querySelector('[data-go=habits]').click(); await frame();
+  ok('habits page gathers the habit and goal settings', $('setTitle').textContent === 'Привычки и цели' && secs().join() === 'Главный экран,Цели' && visible($('setView')) && visible($('setReorder')) && visible($('setCats')), secs());
+  ok('view row tells the current view', $('setViewInfo').textContent.length > 3);
+  $('setView').click(); await until(() => $('viewOv')._shown);
+  ok('view row opens the list view page', $('viewOv')._shown);
+  closeOverlay($('viewOv')); await until(() => $('viewOv').hidden);
+  requestClose($('setOv')); await frame();
+  $('setHome').querySelector('[data-go=look]').click(); await frame();
+  requestClose($('setOv')); await frame();
+  ok('back returns to the home, not out of settings', $('setOv')._shown && $('setTitle').textContent === 'Настройки' && visible($('setHome')));
+  $('setQ').value = 'категори'; $('setQ').dispatchEvent(new Event('input')); await frame();
+  ok('search finds settings by words inside', secs().join() === 'Главный экран' && !visible($('setHome')), secs());
+  $('setQ').value = 'ыыыы'; $('setQ').dispatchEvent(new Event('input')); await frame();
+  ok('search says when nothing is found', visible($('setNone')) && !secs().length);
+  $('setQ').value = ''; $('setQ').dispatchEvent(new Event('input')); await frame();
+  ok('clearing search returns home', visible($('setHome')) && !visible($('setNone')));
+  const was = getPref(THEME_STORE, 'auto');
+  $('tileTheme').click(); await wait(80);
+  ok('theme tile switches the theme', getPref(THEME_STORE, 'auto') !== was && $('tileThemeVal').textContent === THEMES[getPref(THEME_STORE, 'auto')][0]);
+  $('themeSeg').querySelector(`[data-t="${was}"]`).click();
+  const mw = getPref(MOTION_STORE, 'calm');
+  $('tileMotion').click(); await frame();
+  ok('motion tile switches the animations', getPref(MOTION_STORE, 'calm') !== mw && $('tileMotionVal').textContent === MOTION_MODES[getPref(MOTION_STORE, 'calm')][0]);
+  $('motionSeg').querySelector(`[data-m="${mw}"]`).click();
+  $('setMe').click(); await frame();
+  ok('profile card opens the profile page', $('setTitle').textContent === 'Профиль' && secs().join() === 'Профиль');
+  $('setBack').click(); await frame();
+  ok('back button returns home', visible($('setHome')));
+  await closeAll();
+  $('setBtn').click(); await until(() => $('setOv')._shown);
+  ok('settings always reopen on the home', visible($('setHome')) && $('setTitle').textContent === 'Настройки');
+  await closeAll();
+}
+
+ok('no page errors', __errs.length === 0, __errs);
+return R.join('\n');

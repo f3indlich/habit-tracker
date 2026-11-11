@@ -29,7 +29,7 @@ await fresh([{ id: 'z', name: 'Зарядка', icon: 'strong', color: '#22c55e'
 await runTips(); await wait(300);
 {
   const heads = ['tasksBtn', 'goalsBtn', 'setBtn'].map($), lines = [...$('tipBody').querySelectorAll('b')].map(b => b.textContent);
-  ok('first habit starts with the header icons tip', layerOn() && tip.id === 'head' && ['Календарь вверху', 'Цели', 'Настройки'].every(t => lines.includes(t)) && heads.every(h => tip.els.includes(h)) && !tip.els.includes($('viewBtn')), [tip?.id, lines]);
+  ok('first habit starts with the header icons tip', layerOn() && tip.id === 'head' && ['Кнопка вида вверху', 'Цели', 'Настройки'].every(t => lines.includes(t)) && heads.every(h => tip.els.includes(h)) && !tip.els.includes($('viewBtn')), [tip?.id, lines]);
   const hb = document.querySelector('.tip-box').getBoundingClientRect();
   ok('sections tip stays on screen above the panel', hb.top >= 0 && hb.bottom <= $('tabbar').getBoundingClientRect().top, hb);
   ok('header icons have names for screen readers', ['viewBtn', 'goalsBtn', 'acctBtn', 'setBtn'].every(id => $(id).getAttribute('aria-label') && $(id).title));

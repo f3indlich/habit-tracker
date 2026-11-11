@@ -78,12 +78,12 @@
       <div class="hello" id="hello"></div>
       <div class="title-row">
         <h1 id="title">Сегодня</h1>
-        <button class="today-pill" id="todayBtn" hidden title="Вернуться к сегодняшнему дню (клавиша T)">
-          <svg class="ic" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Сегодня
-        </button>
       </div>
     </div>
     <div class="top-actions">
+      <button class="today-pill" id="todayBtn" hidden title="Вернуться к сегодняшнему дню (клавиша T)">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Сегодня
+      </button>
       <button class="ghost icon-btn" id="viewBtn"></button>
       <button class="ghost icon-btn acct-btn" id="acctBtn" data-sync="none" aria-label="Аккаунт и синхронизация" title="Аккаунт и синхронизация">
         <svg class="ic" viewBox="0 0 24 24"><path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a5 5 0 0 1-.5 10z"/></svg>
@@ -170,6 +170,11 @@
       <h2 id="viewTitle">Вид списка</h2>
     </div>
     <section class="set-group">
+      <h3>Карточки</h3>
+      <div class="pseg" id="cardsSeg" role="radiogroup" aria-label="Вид карточек"></div>
+      <p class="set-hint" id="cardsHint"></p>
+    </section>
+    <section class="set-group" id="viewHistGroup">
       <h3>История на карточках</h3>
       <div class="pseg" id="viewSeg" role="radiogroup" aria-label="История на карточках"></div>
       <p class="set-hint" id="viewHint"></p>
@@ -195,13 +200,34 @@
   <div class="sheet" role="dialog" aria-labelledby="setTitle">
     <div class="page-head">
       <button class="ghost icon-btn" data-close title="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button type="button" class="ghost icon-btn set-back" id="setBack" aria-label="Назад к настройкам" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
       <h2 id="setTitle">Настройки</h2>
     </div>
-    <section class="set-group">
+    <label class="set-search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input type="search" id="setQ" placeholder="Поиск настроек" aria-label="Поиск настроек" autocomplete="off" enterkeyhint="search"></label>
+    <div class="set-home" id="setHome">
+      <button type="button" class="set-card set-me" id="setMe" data-go="profile"><span class="set-ava" id="setAva" aria-hidden="true"></span><span class="set-txt"><b id="setMeName"></b><small id="setMeSub"></small></span><svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <div class="set-tiles">
+        <button type="button" class="set-card set-tile" id="tileTheme"><span class="set-tic"><svg class="ic" viewBox="0 0 24 24"><path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/></svg></span><b>Тема</b><small id="tileThemeVal"></small></button>
+        <button type="button" class="set-card set-tile" id="tileNotify" data-go="notify"><span class="set-tic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0 1 12 0c0 4.5 2 6 2 6H4s2-1.5 2-6M10 20a2.2 2.2 0 0 0 4 0"/></svg></span><b>Уведомления</b><small id="tileNotifyVal"></small></button>
+        <button type="button" class="set-card set-tile" id="tileMotion"><span class="set-tic"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12h3l2-6 4 12 2-6h5"/></svg></span><b>Анимации</b><small id="tileMotionVal"></small></button>
+      </div>
+      <div class="set-card set-nav">
+        <button type="button" class="set-row set-go" data-go="habits"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/></svg></span><span class="set-txt"><b>Привычки и цели</b></span><em class="set-val" data-val="habits"></em><svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button type="button" class="set-row set-go" data-go="tasks"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17"/></svg></span><span class="set-txt"><b>Задачи</b></span><em class="set-val" data-val="tasks"></em><svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button type="button" class="set-row set-go" data-go="look"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-1 1.3-2.1-.6-1.2.2-2.4 1.5-2.4H17a4 4 0 0 0 4-4c0-5-4-9.5-9-9.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="11" r="1"/></svg></span><span class="set-txt"><b>Оформление</b></span><em class="set-val" data-val="look"></em><svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+      <div class="set-card set-nav">
+        <button type="button" class="set-row set-go" data-go="data"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg></span><span class="set-txt"><b>Данные и копии</b></span><em class="set-val" data-val="data"></em><svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button type="button" class="set-row set-go" data-go="help"><span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 0 1 4.8.8c0 1.7-2.4 2-2.4 3.7M12 17h.01"/></svg></span><span class="set-txt"><b>Помощь</b></span><em class="set-val" data-val="help"></em><svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+      <p class="set-ver" id="setVer"></p>
+    </div>
+    <p class="set-none" id="setNone" hidden>Ничего не нашлось. Попробуйте другое слово.</p>
+    <section class="set-group" data-sp="look">
       <h3>Тема</h3>
       <div class="pseg pseg-theme" id="themeSeg" role="radiogroup" aria-label="Тема"></div>
     </section>
-    <section class="set-group" id="setAcctGroup">
+    <section class="set-group" id="setAcctGroup" data-sp="profile">
       <h3>Профиль</h3>
       <div class="set-card">
         <button type="button" class="set-row" id="setName">
@@ -238,7 +264,7 @@
         </button>
       </div>
     </section>
-    <section class="set-group" id="pushGroup">
+    <section class="set-group" id="pushGroup" data-sp="notify">
       <h3>Напоминания</h3>
       <div class="set-card">
         <div class="set-row static">
@@ -318,9 +344,19 @@
         <p class="set-hint">Настройка действует на этом устройстве. Скрытые уведомления не показывают названия привычек и цифры, в том числе на экране блокировки.</p>
       </div>
     </section>
-    <section class="set-group">
-      <h3>Привычки</h3>
+    <section class="set-group" data-sp="habits">
+      <h3>Главный экран</h3>
       <div class="set-card">
+        <button type="button" class="set-row" id="setView">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></span>
+          <span class="set-txt"><b>Вид списка</b><small id="setViewInfo"></small></span>
+          <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button type="button" class="set-row" id="setReorder">
+          <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M8 5v14M4.5 8.5L8 5l3.5 3.5M16 19V5M12.5 15.5L16 19l3.5-3.5"/></svg></span>
+          <span class="set-txt"><b>Порядок привычек</b><small>Перетащите карточки в нужном порядке</small></span>
+          <svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
         <button type="button" class="set-row" id="setCats">
           <span class="set-ic"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><path d="M16.75 13.5v6.5M13.5 16.75H20"/></svg></span>
           <span class="set-txt"><b>Категории привычек</b><small id="setCatsInfo"></small></span>
@@ -329,7 +365,7 @@
       </div>
       <p class="set-hint">Создавайте, переименовывайте, меняйте порядок и удаляйте категории. По ним можно группировать список.</p>
     </section>
-    <section class="set-group">
+    <section class="set-group" data-sp="habits">
       <h3>Цели</h3>
       <div class="set-card">
         <div class="set-row static">
@@ -338,7 +374,7 @@
         </div>
       </div>
     </section>
-    <section class="set-group">
+    <section class="set-group" data-sp="tasks">
       <h3>Задачи</h3>
       <div class="set-card">
         <div class="set-row static">
@@ -361,7 +397,7 @@
       <p class="t-set-sub" id="tSmartSetLbl">Умные списки: показывать в листе</p>
       <div class="set-card" id="tSmartSet" role="group" aria-labelledby="tSmartSetLbl"></div>
     </section>
-    <section class="set-group">
+    <section class="set-group" data-sp="look">
       <h3>Цвета</h3>
       <div class="set-card color-set">
         <div class="color-prev" aria-hidden="true">
@@ -372,7 +408,7 @@
         <div class="swatches" id="swRow" role="radiogroup"></div>
       </div>
     </section>
-    <section class="set-group">
+    <section class="set-group" data-sp="look">
       <h3>Анимации</h3>
       <div class="pseg pseg-theme pseg-motion" id="motionSeg" role="radiogroup" aria-label="Анимации"></div>
       <div class="motion-hint-box">
@@ -380,11 +416,11 @@
         <p class="motion-hint" id="motionHint"></p>
       </div>
     </section>
-    <section class="set-group">
+    <section class="set-group" data-sp="look">
       <h3>Иконки привычек</h3>
       <div class="icon-styles" id="iconStyles" role="radiogroup" aria-label="Иконки привычек"></div>
     </section>
-    <section class="set-group">
+    <section class="set-group" data-sp="help">
       <h3>Помощь</h3>
       <div class="set-card">
         <button type="button" class="set-row" id="helpBtn">
@@ -398,7 +434,7 @@
         </div>
       </div>
     </section>
-    <section class="set-group">
+    <section class="set-group" data-sp="data">
       <h3>Данные</h3>
       <div class="set-card">
         <button type="button" class="set-row" id="exportBtn">
@@ -962,16 +998,17 @@
     </div>
     <div class="page-head">
       <button class="ghost icon-btn" data-close title="Назад" aria-label="Назад"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-      <button type="button" class="t-link t-sel-x" id="tSelAll" hidden>Все</button>
       <h2 id="tTitle">Задачи</h2>
+      <button type="button" class="t-link t-sel-x" id="tSelAll" hidden>Все</button>
       <button type="button" class="t-link t-sel-x" id="tSelDone" hidden>Готово</button>
       <button type="button" class="ghost icon-btn t-search-btn" id="tSelBtn" aria-label="Выбрать задачи"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/></svg></button>
+      <button type="button" class="ghost icon-btn" id="tMonthBtn" aria-label="Календарь месяца" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></button>
       <button type="button" class="ghost icon-btn" id="tSmartBtn" aria-label="Срезы" aria-haspopup="dialog" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
       <button type="button" class="ghost icon-btn" id="tSearchBtn" aria-label="Поиск задач" aria-expanded="false" aria-controls="tSearch"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
-    </div>
-    <div class="t-search" id="tSearch" hidden>
-      <input type="search" id="tsText" placeholder="Поиск по задачам" aria-label="Поиск по задачам" autocomplete="off" enterkeyhint="search">
-      <button type="button" class="t-link" id="tsClose">Отмена</button>
+      <div class="t-search" id="tSearch" hidden>
+        <input type="search" id="tsText" placeholder="Поиск по задачам" aria-label="Поиск по задачам" autocomplete="off" enterkeyhint="search">
+        <button type="button" class="t-link" id="tsClose">Отмена</button>
+      </div>
     </div>
     <form class="t-quick" id="tQuick" novalidate>
       <input type="text" id="tqText" maxlength="200" enterkeyhint="send" autocomplete="off" placeholder="Задача, например: завтра в 15:00" aria-label="Быстро добавить задачу" aria-describedby="tqChip">
@@ -982,6 +1019,7 @@
       <button type="button" data-t="month">Месяц</button>
     </div>
     <div class="t-chips t-lchips" id="tLists" role="group" aria-label="Списки задач"></div>
+    <div class="t-week" id="tWeek" role="group" aria-label="Неделя"></div>
     <div class="t-smartbar" id="tSmartBar" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span id="tSmartName"></span><button type="button" class="ghost icon-btn" id="tSmartOff" aria-label="Убрать срез"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div id="tsResults" hidden></div>
     <div id="tShared" hidden>

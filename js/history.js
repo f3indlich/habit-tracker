@@ -463,7 +463,7 @@ $('dayOv').addEventListener('click', e => { if (e.target === $('dayOv') || e.tar
 $('hChart').addEventListener('click', e => {
   const t = e.target.closest('[data-day]');
   if (!t || !hist) return;
-  $('hChart').querySelector('.tip')?.classList.remove('show');
+  $('hChart')._hideTip?.();
   openDay(hist.id, parseKey(t.dataset.day));
 });
 $('hChart').addEventListener('keydown', e => {
@@ -554,15 +554,21 @@ export function calendarHeat(box, ds, cell) {
   box.innerHTML = svgEl(W + LW, T + rows * (rh + gap) - gap, s) + '<div class="tip"></div>';
 }
 
+export const TIP_HOLD = 350, TIP_LINGER = 1200, TIP_TAP = 2500;
 export function bindTips(box) {
-  let on = null;
-  const show = e => {
-    const t = e.target.closest('[data-tip]'), tip = box.querySelector('.tip');
-    if (!tip || (t === on && e.type !== 'click')) return;
-    on?.classList.remove('on');
-    on = t;
-    if (!t) return tip.classList.remove('show');
-    t.classList.add('on');
+  let on = null, hideT = 0, hold = null, scrub = false;
+  const hide = () => {
+    clearTimeout(hideT);
+    on?.classList.remove('on'); on = null;
+    box.querySelector('.tip')?.classList.remove('show');
+  };
+  const later = ms => { clearTimeout(hideT); hideT = setTimeout(hide, ms); };
+  const place = t => {
+    const tip = box.querySelector('.tip');
+    if (!tip) return;
+    if (!t) return hide();
+    clearTimeout(hideT);
+    if (t !== on) { on?.classList.remove('on'); on = t; t.classList.add('on'); }
     const r = t.getBoundingClientRect(), b = box.getBoundingClientRect();
     tip.textContent = t.dataset.tip;
     const half = tip.offsetWidth / 2;
@@ -570,12 +576,45 @@ export function bindTips(box) {
     tip.style.top = (t.classList.contains('hit') ? 10 : r.top - b.top) + 'px';
     tip.classList.add('show');
   };
-  box.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') show(e); });
-  box.addEventListener('click', show);
-  box.addEventListener('pointerleave', () => {
-    on?.classList.remove('on'); on = null;
-    box.querySelector('.tip')?.classList.remove('show');
+  const at = (x, y) => document.elementFromPoint(x, y)?.closest?.('[data-tip]');
+  const inside = t => t && box.contains(t);
+  box._hideTip = hide;
+  box.addEventListener('pointermove', e => {
+    if (e.pointerType === 'mouse') return place(e.target.closest('[data-tip]'));
+    if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 8) { clearTimeout(hold.t); hold = null; }
   });
+  box.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
+  box.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse') return;
+    clearTimeout(hold?.t);
+    hold = { x: e.clientX, y: e.clientY };
+    hold.t = setTimeout(() => { hold = null; scrub = true; const t = at(e.clientX, e.clientY); if (inside(t)) place(t); }, TIP_HOLD);
+  });
+  box.addEventListener('touchmove', e => {
+    if (!scrub) return;
+    e.preventDefault();
+    const p = e.touches[0], t = p && at(p.clientX, p.clientY);
+    if (inside(t)) place(t);
+  }, { passive: false });
+  const up = () => {
+    clearTimeout(hold?.t); hold = null;
+    if (!scrub) return;
+    box._scrubbed = true;
+    setTimeout(() => { box._scrubbed = false; }, 60);
+    scrub = false;
+    later(TIP_LINGER);
+  };
+  box.addEventListener('pointerup', up);
+  box.addEventListener('pointercancel', up);
+  box.addEventListener('click', e => {
+    if (box._scrubbed) { e.stopImmediatePropagation(); return; }
+    const t = e.target.closest('[data-tip]');
+    if (!t || t.closest('[data-day]')) return hide();
+    place(t);
+    later(TIP_TAP);
+  }, true);
+  box.closest('.sheet, .page-body, .overlay')?.addEventListener('scroll', hide, { passive: true, capture: true });
+  document.addEventListener('pointerdown', e => { if (on && !box.contains(e.target)) hide(); }, true);
 }
 bindTips($('hChart'));
 bindTips($('hHeat'));

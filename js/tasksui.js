@@ -33,7 +33,7 @@ const IC_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></sv
 
 const monthOf = k => { const d = parseKey(k); return new Date(d.getFullYear(), d.getMonth(), 1); };
 
-export const tv = { sel: null, someOpen: false, tab: 'list', day: todayKey(), month: monthOf(todayKey()), doneOpen: false, doneShown: DONE_STEP, archOpen: false, archShown: DONE_STEP, dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
+export const tv = { sel: null, someOpen: false, lateOpen: false, wday: null, tab: 'list', day: todayKey(), month: monthOf(todayKey()), doneOpen: false, doneShown: DONE_STEP, archOpen: false, archShown: DONE_STEP, dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
 export const doneDelay = { ms: 600 };
 const pendingDone = new Map();
 export const taskHooks = { chips: () => '', render: null, open: null, select: null, leave: null };
@@ -59,14 +59,14 @@ function metaHTML(t, mode, today) {
     if (t.due) parts.push(`<span>Срок: ${esc(dayShort(t.due, today))}</span>`);
     return parts.length ? `<span class="t-meta">${parts.join('')}</span>` : '';
   }
+  if (mode === 'agenda') mode = 'none-notime';
   if (mode === 'dueday' && !t.done) parts.push(`<span class="t-due late">${IC_FLAG}Срок</span>`);
   const late = !t.done && isOverdue(t, today);
   if (late) { const w = overdueText(t, today); parts.push(`<span class="warn">${esc(mode === 'list' ? w[0].toUpperCase() + w.slice(1) : `Просрочено · ${w}`)}</span>`); }
   else if (mode === 'when' && t.date) parts.push(`<span>${esc(taskWhen(t.date, today))}${t.time ? `, ${t.time}` : ''}</span>`);
-  else if (t.time && !t.done) parts.push(`<span>${t.time}</span>`);
+  else if (t.time && !t.done && mode !== 'none-notime') parts.push(`<span>${t.time}</span>`);
   if (!t.done && t.due && mode !== 'dueday' && !(late && t.due < today)) { const d = dueLabel(t, today); parts.push(`<span class="t-due${d.tone ? ' ' + d.tone : ''}">${IC_FLAG}${esc(d.text)}</span>`); }
   if (t.rep && !t.done) parts.push(`<span class="t-rep">${IC_REP}<span>${esc(repLabel(t.rep))}</span></span>`);
-  if (!t.done && remindsOf(t).length) parts.push(`<span class="t-mbell" aria-label="Есть напоминание">${IC_BELL}</span>`);
   return parts.length ? `<span class="t-meta">${parts.join('')}</span>` : '';
 }
 
@@ -90,6 +90,8 @@ function subListHTML(t, mode) {
 }
 
 function rowHTML(t, mode, today) {
+  const meta = metaHTML(t, mode, today), bell = !t.done && !t.archivedAt && remindsOf(t).length ? `<span class="t-mbell" role="img" aria-label="Есть напоминание">${IC_BELL}</span>` : '';
+  const ind = `<span class="t-ind">${t.note ? `<span class="t-mnote" role="img" aria-label="Есть заметка">${IC.note}</span>` : ''}${bell}</span>`;
   const acts = taskActs(t), sel = tv.sel && mode !== 'day', on = sel && tv.sel.has(t.id), pend = pendingDone.has(t.id);
   const box = sel ? `<button type="button" class="t-box t-selbox" role="checkbox" aria-checked="${on}" aria-label="Выбрать: ${esc(t.text)}">${IC_CHECK}</button>`
     : `<button type="button" class="t-box" role="checkbox" aria-checked="${t.done || pend}" aria-label="${esc(t.text)}">${IC_CHECK}</button>`;
@@ -98,11 +100,59 @@ function rowHTML(t, mode, today) {
 
     <div class="t-fg">
       ${box}
-      <button type="button" class="t-main"><span class="t-text">${t.important && !t.done ? '<span class="t-imp" role="img" aria-label="Важная">!</span>' : ''}${isPrivate(t) ? `<span class="t-lock" role="img" aria-label="Личная">${IC.lock}</span>` : ''}${esc(t.text)}${t.note ? `<span class="t-mnote" aria-label="Есть заметка">${IC.note}</span>` : ''}</span>${metaHTML(t, mode, today)}</button>${subsHTML(t, mode)}
+      <button type="button" class="t-main"><span class="t-text">${mode === 'agenda' && t.time && !t.done ? `<span class="t-tm">${t.time}</span>` : ''}${t.important && !t.done ? '<span class="t-imp" role="img" aria-label="Важная">!</span>' : ''}${isPrivate(t) ? `<span class="t-lock" role="img" aria-label="Личная">${IC.lock}</span>` : ''}${esc(t.text)}</span>${meta}${ind}</button>${subsHTML(t, mode)}
     </div>
   </div>${subListHTML(t, mode)}`;
 }
 
+function agendaRow(t, today) {
+  return rowHTML(t, 'agenda', today);
+}
+function lateHTML(list, today) {
+  if (!list.length) return '';
+  const head = `<button type="button" class="card t-late-bar" data-act="late-toggle" aria-expanded="${tv.lateOpen}">${IC_WARN}<span>Просрочено: ${list.length}</span><em>${tv.lateOpen ? 'Скрыть' : 'Показать'}</em></button>`;
+  if (!tv.lateOpen) return `<section class="t-group late" data-day="late">${head}</section>`;
+  return `<section class="t-group late open" data-day="late">${head}<div class="t-links t-late-links"><button type="button" class="t-link" data-act="all-arch">Всё в архив</button><button type="button" class="t-link" data-act="all-today">Всё на сегодня</button></div><div class="card t-list">${list.map(t => rowHTML(t, 'list', today)).join('')}</div></section>`;
+}
+function dayHead(k, today) {
+  const d = parseKey(k), date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) + (d.getFullYear() !== parseKey(today).getFullYear() ? ` ${d.getFullYear()} г.` : '');
+  if (k === today) return ['Сегодня', `${WEEKDAYS[weekday(d)].toLowerCase()}, ${date}`];
+  if (k === tomorrowOf(today)) return ['Завтра', `${WEEKDAYS[weekday(d)].toLowerCase()}, ${date}`];
+  const wd = d.toLocaleDateString('ru-RU', { weekday: 'long' });
+  return [wd[0].toUpperCase() + wd.slice(1), date];
+}
+function agendaHTML(g, today) {
+  const out = [], todayOpen = g.today.filter(t => !t.done);
+  if (g.today.length) {
+    const [a, b] = dayHead(today, today);
+    out.push(`<section class="t-group t-dayg" data-day="${today}"><h3 class="sec-h t-dh"><span>${a}</span><small>${esc(b)}</small><span class="cnt">${todayOpen.length}</span></h3><div class="card t-list">${g.today.map(t => agendaRow(t, today)).join('')}</div></section>`);
+  }
+  const lim = tv.shown.upcoming ||= LIST_STEP, days = new Map();
+  for (const t of g.upcoming) { const k = effDay(t); if (!days.has(k)) days.set(k, []); days.get(k).push(t); }
+  let shown = 0, rest = 0;
+  for (const [k, list] of days) {
+    if (shown >= lim) { rest += list.length; continue; }
+    shown += list.length;
+    const [a, b] = dayHead(k, today);
+    out.push(`<section class="t-group t-dayg" data-day="${k}"><h3 class="sec-h t-dh"><span>${esc(a)}</span><small>${esc(b)}</small><span class="cnt">${list.length}</span></h3><div class="card t-list">${list.map(t => agendaRow(t, today)).join('')}</div></section>`);
+  }
+  if (rest) out.push(`<button type="button" class="t-more-btn" data-act="more" data-g="upcoming">Показать ещё ${Math.min(rest, LIST_STEP)}</button>`);
+  return out.join('');
+}
+function oneDayHTML(all, k, today) {
+  const list = k === today ? taskGroups(all, today).today : all.filter(t => !t.done && !t.archivedAt && effDay(t) === k).sort((a, b) => (a.time || '99') < (b.time || '99') ? -1 : 1);
+  const [a, b] = dayHead(k, today), open = list.filter(t => !t.done).length;
+  const add = `<button type="button" class="t-addrow" data-act="add" data-k="${k}">${IC.plus}<span>Добавить на этот день</span></button>`;
+  const body = list.length ? `<div class="card t-list">${list.map(t => agendaRow(t, today)).join('')}${add}</div>` : `<div class="card t-dayempty"><p>На этот день задач нет</p>${add}</div>`;
+  return `<section class="t-group t-dayg t-onlyday" data-day="${k}"><h3 class="sec-h t-dh"><span>${esc(a)}</span><small>${esc(b)}</small><span class="cnt">${open || ''}</span><button type="button" class="t-link t-alldays" data-act="all-days">Все дни</button></h3>${body}</section>`;
+}
+function weekHTML(all, today) {
+  const marks = dayMarks(all, today), base = parseKey(today);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(base, i), k = key(d), m = marks[k];
+    return `<button type="button" class="t-wd${k === today ? ' now' : ''}${tv.wday === k ? ' sel' : ''}" data-wk="${k}" aria-pressed="${tv.wday === k}" aria-label="${esc(dayLong(k, today))}${m?.n ? `, задач: ${m.n}` : ''}"><small>${WEEKDAYS[weekday(d)]}</small><b>${d.getDate()}</b><i${m?.n ? '' : ' class="no"'}></i></button>`;
+  }).join('');
+}
 function groupHTML(title, list, mode, today, extra = {}) {
   if (!list.length) return '';
   const lim = extra.g ? (tv.shown[extra.g] ||= LIST_STEP) : list.length, rest = list.length - lim;
@@ -146,10 +196,12 @@ function emptyHTML() {
 function renderList() {
   const today = todayKey(), all = screenTasks(), g = taskGroups(all, today);
   paintListChips();
+  if (tv.wday && tv.wday < today) tv.wday = null;
+  $('tWeek').innerHTML = weekHTML(all, today);
+  if (tv.wday) { $('tItems').innerHTML = oneDayHTML(all, tv.wday, today); return; }
   $('tItems').innerHTML = !all.length ? (curList() === 'all' ? emptyHTML() : '<p class="t-snone">В этом списке пока нет задач</p>') : [
-    groupHTML('Просрочено', g.overdue, 'list', today, { g: 'overdue', cls: 'late', icon: IC_WARN, action: '<span class="t-links"><button type="button" class="t-link" data-act="all-arch">В архив</button><button type="button" class="t-link" data-act="all-today">Всё на сегодня</button></span>' }),
-    groupHTML('Сегодня', g.today, 'none', today, { g: 'today', count: g.today.filter(t => !t.done).length }),
-    groupHTML('Предстоящие', g.upcoming, 'when', today, { g: 'upcoming' }),
+    lateHTML(g.overdue, today),
+    agendaHTML(g, today),
     groupHTML('Без даты', g.nodate, 'none', today, { g: 'nodate' }),
     somedayHTML(g.someday, today),
     doneHTML(g.done.filter(t => t.doneAt !== today), today),
@@ -192,7 +244,7 @@ export function renderTasks() {
   for (const b of $('tTabs').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.t === tv.tab);
   $('tShared').hidden = !tv.shared;
   if (tv.sel && (tv.shared || (!tv.smart && tv.tab !== 'list'))) exitSelect(false);
-  $('tSelBtn').hidden = !!tv.shared || (!tv.smart && tv.tab !== 'list');
+  $('tSelBtn').disabled = !!tv.shared || (!tv.smart && tv.tab !== 'list');
   if (tv.shared) {
     for (const id of ['tTabs', 'tSmartBar', 'tListView', 'tMonthView', 'tQuick', 'tsResults']) $(id).hidden = true;
     paintListChips();
@@ -202,6 +254,9 @@ export function renderTasks() {
   $('tQuick').hidden = !$('tSearch').hidden;
   const sm = tv.smart && smartOn(tv.smart) && (tv.smart !== 'priv' || unlocked) ? tv.smart : (tv.smart = null);
   $('tTabs').hidden = !!sm;
+  $('tWeek').hidden = !!sm || tv.tab !== 'list';
+  $('tMonthBtn').setAttribute('aria-pressed', !sm && tv.tab === 'month');
+  $('tMonthBtn').disabled = !!sm || !!tv.shared;
   $('tSmartBar').hidden = !sm;
   $('tSmartBtn').setAttribute('aria-pressed', !!sm);
   $('tListView').hidden = !sm && tv.tab !== 'list';
@@ -212,6 +267,7 @@ export function renderTasks() {
 
 export function openTasks() {
   exitSelect(false);
+  tv.wday = null;
   tv.tab = 'list';
   tv.shown = {};
   tv.smart = null;
@@ -225,6 +281,19 @@ export function openTasks() {
   queueTips(700);
 }
 $('tasksBtn').onclick = () => openTasks();
+$('tMonthBtn').onclick = () => {
+  exitSelect(false);
+  tv.smart = null;
+  tv.tab = tv.tab === 'month' ? 'list' : 'month';
+  renderTasks();
+};
+$('tWeek').onclick = e => {
+  const b = e.target.closest('[data-wk]');
+  if (!b) return;
+  tv.wday = tv.wday === b.dataset.wk ? null : b.dataset.wk;
+  renderList();
+  $('tItems').animate?.([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: reducedMotion ? 0 : 220, easing: 'ease-out' });
+};
 $('tTabs').onclick = e => {
   const b = e.target.closest('button[data-t]');
   if (!b || b.dataset.t === tv.tab) return;
@@ -560,6 +629,8 @@ function listAct(el) {
   if (a === 'all-today') return allToToday();
   if (a === 'all-arch') return archiveOverdue();
   if (a === 'some-toggle') { tv.someOpen = !tv.someOpen; return renderList(); }
+  if (a === 'late-toggle') { tv.lateOpen = !tv.lateOpen; return renderList(); }
+  if (a === 'all-days') { tv.wday = null; return renderList(); }
   if (a === 'move' && t) { closeRow(); return openMove([t]); }
   if (a === 'arch' && t) { closeRow(); return archiveTask(t); }
   if (a === 'restore' && t) { closeRow(); return restoreTask(t); }
@@ -656,7 +727,7 @@ function toggleSel(id) {
 }
 function paintSel() {
   const n = tv.sel?.size || 0, sel = !!tv.sel;
-  $('tTitle').textContent = sel ? (n ? `Выбрано: ${n}` : 'Выберите задачи') : 'Задачи';
+  $('tTitle').textContent = sel ? (n ? `Выбрано: ${n}` : 'Выбор') : 'Задачи';
   $('tSelAll').hidden = $('tSelDone').hidden = !sel;
   $('tSelBar').hidden = !sel;
   if (!sel) return;
@@ -1484,9 +1555,11 @@ export function openSearch() {
 }
 export function closeSearch() {
   clearTimeout(sqTimer);
+  const was = !$('tSearch').hidden;
   $('tSearch').hidden = true;
   $('tQuick').hidden = false;
   $('tSearchBtn').setAttribute('aria-expanded', 'false');
+  if (was && !reducedMotion) $('tasksOv').querySelectorAll('.page-head > :not(.t-search)').forEach(el => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' }));
   $('tsText').value = '';
   renderSearch();
 }

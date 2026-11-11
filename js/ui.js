@@ -173,7 +173,7 @@ const flingOut = (el, dist, speed) => {
   setTimeout(() => { el.style.transition = ''; }, ms + 40);
 };
 const isTabPage = ov => ov.classList.contains('tab-page');
-const FAB_LABELS = { today: 'Новая привычка', tasks: 'Новая задача', goals: 'Новая цель' };
+const FAB_LABELS = { today: 'Добавить: привычку, задачу или цель', tasks: 'Новая задача', goals: 'Новая цель', settings: 'Добавить: привычку, задачу или цель' };
 const TAB_ORDER = ['today', 'tasks', 'goals', 'settings'];
 function shiftHome(from, to) {
   if (reducedMotion) return;
@@ -193,6 +193,7 @@ export function syncTabs() {
   });
   if (moved && !reducedMotion) $('tabLens').animate({ scale: [1, '1.16 .92', 1] }, { duration: 420, easing: EASE_STD });
   if (FAB_LABELS[tab]) $('fab').setAttribute('aria-label', FAB_LABELS[tab]);
+  if (tab === 'tasks' || tab === 'goals') $('fab').removeAttribute('aria-haspopup'); else $('fab').setAttribute('aria-haspopup', 'menu');
 }
 export function openOverlay(ov) {
   const fresh = !ov._shown;

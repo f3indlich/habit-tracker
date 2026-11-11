@@ -1,12 +1,13 @@
-import { $, ACCENT_STORE, DATA_STORE, EASE_STD, esc, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, isVivid, MOTION_MODES, MOTION_STORE, mv, NS, PRIVACY_EMAIL, reducedMotion, setPref, THEME_STORE, todayKey, UA, withYear } from './core.js?v=3.2b';
+import { $, ACCENT_STORE, DATA_STORE, EASE_STD, esc, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, isVivid, MOTION_MODES, MOTION_STORE, mv, NS, PRIVACY_EMAIL, reducedMotion, setPref, THEME_STORE, todayKey, UA, VIEWS, withYear } from './core.js?v=3.2b';
 import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=3.2b';
 import { normalize, save, setState, state } from './storage.js?v=3.2b';
 import { askConfirm, closeOverlay, morph, openOverlay, toast } from './ui.js?v=3.2b';
-import { cards, render, setWasAllDone, sparks } from './render.js?v=3.2b';
+import { CARDS, cards, render, renderViewPage, setReorder, setWasAllDone, sparks } from './render.js?v=3.2b';
 import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=3.2b';
 import { hist, renderHistory } from './history.js?v=3.2b';
 import { cloud, deleteAccount, emailMatches, openAccount, renderAccount } from './sync.js?v=3.2b';
 import { sharedExport } from './shared.js?v=3.2b';
+import { pushState } from './push.js?v=3.2b';
 
 export function applyIcons(style) {
   document.body.dataset.icons = style;
@@ -47,7 +48,74 @@ export async function renderAbout() {
     $('appUpdated').hidden = false;
   } catch {}
 }
-$('setBtn').onclick = () => { renderSettings(); openOverlay($('setOv')); showChosenSwatch(); };
+export const SET_PAGES = { look: 'Оформление', notify: 'Уведомления', habits: 'Привычки и цели', tasks: 'Задачи', profile: 'Профиль', data: 'Данные и копии', help: 'Помощь' };
+let setPage = '';
+const setNorm = s => s.toLowerCase().replace(/ё/g, 'е');
+export function paintSetHome() {
+  const name = userName(), email = cloud.session?.user?.email || '';
+  $('setMeName').textContent = name || 'Профиль';
+  $('setMeSub').textContent = email ? `${email} · синхронизация включена` : 'Имя, вход и синхронизация';
+  const ini = (name || email).trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  $('setAva').innerHTML = ini ? esc(ini) : '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>';
+  const theme = document.documentElement.dataset.theme || 'auto', motion = document.documentElement.dataset.motion || 'calm';
+  $('tileThemeVal').textContent = (THEMES[getPref(THEME_STORE, 'auto')] || THEMES.auto)[0];
+  $('tileMotionVal').textContent = (MOTION_MODES[getPref(MOTION_STORE, 'calm')] || MOTION_MODES.calm)[0];
+  const on = pushState() === 'on';
+  $('tileNotifyVal').textContent = on ? 'Включены' : 'Выключены';
+  $('tileNotify').classList.toggle('on', on);
+  $('tileMotion').classList.toggle('on', getPref(MOTION_STORE, 'calm') === 'vivid');
+  $('tileTheme').classList.toggle('on', theme === 'dark');
+  $('setVer').textContent = APP_VERSION ? `Трекер привычек · версия ${APP_VERSION}` : '';
+}
+export function openSetPage(p = '') {
+  setPage = SET_PAGES[p] ? p : '';
+  if (setPage) { $('setQ').value = ''; }
+  paintSetPage();
+  $('setOv').querySelector('.sheet').scrollTop = 0;
+}
+function paintSetPage() {
+  const q = setNorm($('setQ').value.trim()), ov = $('setOv');
+  const mode = setPage || (q ? 'search' : '');
+  ov.dataset.sp = mode;
+  $('setTitle').textContent = setPage ? SET_PAGES[setPage] : 'Настройки';
+  $('setBack').hidden = !setPage;
+  $('setHome').hidden = !!mode;
+  ov.querySelector('.set-search').hidden = !!setPage;
+  let any = false;
+  for (const sec of ov.querySelectorAll('section[data-sp]')) {
+    const show = setPage ? sec.dataset.sp === setPage : !!q && setNorm(SET_PAGES[sec.dataset.sp] + ' ' + sec.textContent).includes(q);
+    sec.classList.toggle('sp-off', !show);
+    any ||= show;
+  }
+  $('setNone').hidden = mode !== 'search' || any;
+  if (!mode) paintSetHome();
+  if (setPage === 'habits') paintViewInfo();
+}
+function paintViewInfo() {
+  const c = CARDS[document.body.dataset.cards] || CARDS.full, v = VIEWS[document.body.dataset.view];
+  $('setViewInfo').textContent = document.body.dataset.cards === 'rings' ? c[0] : `${c[0]} · история: ${(v?.short || 'Неделя').toLowerCase()}`;
+}
+$('setView').onclick = () => { renderViewPage(); openOverlay($('viewOv')); };
+$('setReorder').onclick = () => { closeOverlay($('setOv')); setReorder(true); };
+$('viewOv').addEventListener('click', () => { if (setPage === 'habits') requestAnimationFrame(paintViewInfo); });
+$('setQ').addEventListener('input', () => { setPage = ''; paintSetPage(); });
+$('setOv').addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go && $('setOv').contains(go)) { openSetPage(go.dataset.go); if (go.dataset.go === 'look') showChosenSwatch(); }
+});
+$('setBack').onclick = () => openSetPage('');
+$('setOv')._guard = () => { if (!setPage) return true; openSetPage(''); return false; };
+$('tileTheme').onclick = () => {
+  const ids = Object.keys(THEMES), cur = getPref(THEME_STORE, 'auto'), next = ids[(ids.indexOf(cur) + 1) % ids.length];
+  $('themeSeg').querySelector(`[data-t="${next}"]`)?.click();
+  paintSetHome();
+};
+$('tileMotion').onclick = () => {
+  const ids = Object.keys(MOTION_MODES), cur = getPref(MOTION_STORE, 'calm'), next = ids[(ids.indexOf(cur) + 1) % ids.length];
+  $('motionSeg').querySelector(`[data-m="${next}"]`)?.click();
+  paintSetHome();
+};
+$('setBtn').onclick = () => { renderSettings(); openSetPage(''); openOverlay($('setOv')); showChosenSwatch(); };
 $('setCats').onclick = openCats;
 $('iconStyles').onclick = e => {
   const b = e.target.closest('[data-s]');

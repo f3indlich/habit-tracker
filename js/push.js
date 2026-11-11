@@ -3,7 +3,7 @@ import { count, findHabit, goalRemindOf, normGoalRemind, normSmart, save, smartO
 import { closeOverlay, openOverlay, toast } from './ui.js?v=3.2b';
 import { changeCount, render, setViewDate, viewDate } from './render.js?v=3.2b';
 import { form } from './form.js?v=3.2b';
-import { renderSettings } from './settings.js?v=3.2b';
+import { openSetPage, renderSettings } from './settings.js?v=3.2b';
 import { cloud, cloudCfg, renderAccount } from './sync.js?v=3.2b';
 import { isPrivate, unlocked, visibleHabits } from './privacy.js?v=3.2b';
 import { doneTaskFromPush } from './tasksui.js?v=3.2b';
@@ -128,7 +128,7 @@ export function renderRemindHint() {
 }
 $('remindHint').onclick = e => {
   if (!e.target.closest('[data-open-push]')) return;
-  closeOverlay($('formOv')); renderSettings(); openOverlay($('setOv'));
+  closeOverlay($('formOv')); renderSettings(); openSetPage('notify'); openOverlay($('setOv'));
 };
 export async function pushSave(sub) {
   const j = sub.toJSON();
