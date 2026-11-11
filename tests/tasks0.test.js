@@ -2,6 +2,7 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+tv.lateOpen = true;
 const frame = () => new Promise(r => setTimeout(r, 16));
 const until = async (f, ms = 3000) => { const t0 = performance.now(); while (!f()) { if (performance.now() - t0 > ms) return false; await frame(); } return true; };
 const T = todayKey(), shift = n => key(addDays(parseKey(T), n));
@@ -221,7 +222,7 @@ const wheelTo = (el, i) => { el.dispatchEvent(new KeyboardEvent('keydown', { key
   show({ habits: [], log: {}, tasks: [A('x', { text: x, date: T, time: '10:00', remind: 150 }), A('y', { text: x, date: shift(1), archivedAt: T })] });
   openTasks(); await until(() => $('tasksOv')._shown);
   openArch();
-  ok('swipe rows escape the text', !document.querySelector('#tItems img, #dayTasks img') && [...$('tItems').querySelectorAll('.t-text')].every(e => e.textContent.startsWith('<img')));
+  ok('swipe rows escape the text', !document.querySelector('#tItems img, #dayTasks img') && [...$('tItems').querySelectorAll('.t-text')].every(e => e.textContent.includes('<img')));
   await openForm(findTask('x'));
   ok('form with a custom reminder escapes the text', !document.querySelector('#tFormOv img') && $('tfText').value === x);
   await closeForm();

@@ -1,7 +1,7 @@
 import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, NS, ofDays, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=3.2c';
 import { IC, setIcon } from './icons.js?v=3.2c';
 import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=3.2c';
-import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast } from './ui.js?v=3.2c';
+import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast, flipAfter } from './ui.js?v=3.2c';
 import { drawEmptyTpl, openCats, openForm } from './form.js?v=3.2c';
 import { day, dayTip, hist, openDay, openHistory, renderDay, renderHistory, setHist } from './history.js?v=3.2c';
 import { userName } from './settings.js?v=3.2c';
@@ -68,19 +68,10 @@ export function secFolded() {
 export function toggleSection(sec) {
   const id = sec.dataset.sec, list = sec.querySelector('.list'), cur = secFolded(), fold = !cur.includes(id);
   setPref(SEC_FOLD_STORE, JSON.stringify(fold ? [...cur, id] : cur.filter(x => x !== id)));
-  const from = sec.classList.contains('folded') ? 0 : list.offsetHeight;
-  sec.classList.toggle('folded', fold);
   sec.querySelector('.sec-h').setAttribute('aria-expanded', !fold);
-  if (reducedMotion) return;
   list.getAnimations().forEach(a => a.cancel());
-  list.style.overflow = 'hidden';
-  const done = () => { list.style.display = ''; list.style.overflow = ''; };
-  if (fold) {
-    list.style.display = 'block';
-    list.animate({ height: [from + 'px', '0px'], opacity: [1, 0] }, { duration: 280, easing: 'cubic-bezier(.4, 0, .2, 1)' }).onfinish = done;
-  } else {
-    list.animate({ height: ['0px', list.offsetHeight + 'px'], opacity: [0, 1] }, { duration: 320, easing: 'cubic-bezier(.2, .8, .2, 1)' }).onfinish = done;
-  }
+  flipAfter(sec, () => sec.classList.toggle('folded', fold));
+  if (!fold && !reducedMotion) list.animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2, .8, .2, 1)' });
 }
 $('sections').addEventListener('click', e => {
   const h = e.target.closest('.sec-h[role=button]');
@@ -174,15 +165,11 @@ export function buildCard(id) {
   info.onkeydown = e => { if (e.target === info && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openHistory(id); } };
   el.querySelectorAll('.dot').forEach((dot, i) => dot.onclick = () => {
     if (el._swiped) return;
-    const d = addDays(viewDate, i - 6);
-    if (!quickDay(d)) return openDay(id, d);
-    const h = at(findHabit(id), d);
-    changeCount(h, d, count(h, d) >= h.target ? 0 : h.target);
+    openDay(id, addDays(viewDate, i - 6));
   });
   return el;
 }
 
-export const quickDay = d => key(d) >= key(addDays(new Date(), -1));
 
 export function staleTip(anchor, id) {
   if (menuEl?._anchor === anchor) return closeMenu();
@@ -838,7 +825,7 @@ export function renderHero() {
     const ps = perfectStreak();
     if (ps) chips.push(`⭐ Идеально ${days(ps)} подряд`);
     const best = visibleHabits(state).filter(h => !h.archived).map(h => ({ h, s: streak(h) })).sort((a, b) => b.s - a.s)[0];
-    if (best?.s >= 2) chips.push(`🔥 ${best.h.name} · ${streakText(best.h, best.s)}`);
+    if (best?.s >= 2) chips.push(`🔥 ${streakText(best.h, best.s)} · ${best.h.name}`);
   }
   if (!chips.length && !future) {
     let done = 0, total = 0, planned = 0;

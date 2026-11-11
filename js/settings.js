@@ -60,8 +60,8 @@ export function paintSetHome() {
   const theme = document.documentElement.dataset.theme || 'auto', motion = document.documentElement.dataset.motion || 'calm';
   $('tileThemeVal').textContent = (THEMES[getPref(THEME_STORE, 'auto')] || THEMES.auto)[0];
   $('tileMotionVal').textContent = (MOTION_MODES[getPref(MOTION_STORE, 'calm')] || MOTION_MODES.calm)[0];
-  const on = pushState() === 'on';
-  $('tileNotifyVal').textContent = on ? 'Включены' : 'Выключены';
+  const st = pushState(), on = st === 'on';
+  $('tileNotifyVal').textContent = { on: 'Включены', ready: 'Выключены', login: 'Выключены', ios: 'Только в приложении', denied: 'Запрещены' }[st] || 'Недоступны';
   $('tileNotify').classList.toggle('on', on);
   $('tileMotion').classList.toggle('on', getPref(MOTION_STORE, 'calm') === 'vivid');
   $('tileTheme').classList.toggle('on', theme === 'dark');
@@ -109,6 +109,13 @@ $('tileTheme').onclick = () => {
   const ids = Object.keys(THEMES), cur = getPref(THEME_STORE, 'auto'), next = ids[(ids.indexOf(cur) + 1) % ids.length];
   $('themeSeg').querySelector(`[data-t="${next}"]`)?.click();
   paintSetHome();
+};
+$('tileNotify').onclick = () => {
+  const st = pushState();
+  if (st === 'on') $('pushOff').click();
+  else if (st === 'ready' || st === 'login') $('pushOn').click();
+  else return openSetPage('notify');
+  for (const ms of [600, 1600, 3500]) setTimeout(() => { if (!setPage) paintSetHome(); }, ms);
 };
 $('tileMotion').onclick = () => {
   const ids = Object.keys(MOTION_MODES), cur = getPref(MOTION_STORE, 'calm'), next = ids[(ids.indexOf(cur) + 1) % ids.length];

@@ -575,6 +575,8 @@ export function bindTips(box) {
     tip.style.left = Math.max(half, Math.min(b.width - half, r.left - b.left + r.width / 2)) + 'px';
     tip.style.top = (t.classList.contains('hit') ? 10 : r.top - b.top) + 'px';
     tip.classList.add('show');
+    const tr = tip.getBoundingClientRect(), vw = document.documentElement.clientWidth, fix = tr.left < 8 ? 8 - tr.left : tr.right > vw - 8 ? vw - 8 - tr.right : 0;
+    if (fix) tip.style.left = parseFloat(tip.style.left) + fix + 'px';
   };
   const at = (x, y) => document.elementFromPoint(x, y)?.closest?.('[data-tip]');
   const inside = t => t && box.contains(t);
@@ -588,7 +590,7 @@ export function bindTips(box) {
     if (e.pointerType === 'mouse') return;
     clearTimeout(hold?.t);
     hold = { x: e.clientX, y: e.clientY };
-    hold.t = setTimeout(() => { hold = null; scrub = true; const t = at(e.clientX, e.clientY); if (inside(t)) place(t); }, TIP_HOLD);
+    hold.t = setTimeout(() => { hold = null; scrub = true; document.body.classList.add('tip-scrub'); const t = at(e.clientX, e.clientY); if (inside(t)) place(t); }, TIP_HOLD);
   });
   box.addEventListener('touchmove', e => {
     if (!scrub) return;
@@ -602,6 +604,7 @@ export function bindTips(box) {
     box._scrubbed = true;
     setTimeout(() => { box._scrubbed = false; }, 60);
     scrub = false;
+    document.body.classList.remove('tip-scrub');
     later(TIP_LINGER);
   };
   box.addEventListener('pointerup', up);

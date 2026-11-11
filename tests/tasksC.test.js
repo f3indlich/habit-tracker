@@ -2,6 +2,7 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+tv.lateOpen = true;
 const tick = () => new Promise(r => setTimeout(r, 16));
 const until = async (f, ms = 3000) => { const t0 = performance.now(); while (!f()) { if (performance.now() - t0 > ms) return false; await tick(); } return true; };
 const T = todayKey(), shift = n => key(addDays(parseKey(T), n));

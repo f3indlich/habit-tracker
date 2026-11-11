@@ -1,7 +1,7 @@
 import { $, addDays, COLORS, esc, getPref, isVivid, key, plural, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday, WEEKDAYS } from './core.js?v=3.2c';
 import { IC } from './icons.js?v=3.2c';
 import { save, state } from './storage.js?v=3.2c';
-import { askConfirm, closeMenu, closeOverlay, openOverlay, toast } from './ui.js?v=3.2c';
+import { askConfirm, closeMenu, closeOverlay, flipAfter, openOverlay, toast } from './ui.js?v=3.2c';
 import { paintTaskMarks, render, sparks, viewDate } from './render.js?v=3.2c';
 import { queueTips } from './tips.js?v=3.2c';
 import { pushState } from './push.js?v=3.2c';
@@ -33,7 +33,7 @@ const IC_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></sv
 
 const monthOf = k => { const d = parseKey(k); return new Date(d.getFullYear(), d.getMonth(), 1); };
 
-export const tv = { sel: null, someOpen: false, lateOpen: false, wday: null, tab: 'list', day: todayKey(), month: monthOf(todayKey()), doneOpen: false, doneShown: DONE_STEP, archOpen: false, archShown: DONE_STEP, dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
+export const tv = { sel: null, someOpen: false, lateOpen: false, wday: null, wkOff: 0, tab: 'list', day: todayKey(), month: monthOf(todayKey()), doneOpen: false, doneShown: DONE_STEP, archOpen: false, archShown: DONE_STEP, dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
 export const doneDelay = { ms: 600 };
 const pendingDone = new Map();
 export const taskHooks = { chips: () => '', render: null, open: null, select: null, leave: null };
@@ -112,7 +112,11 @@ function lateHTML(list, today) {
   if (!list.length) return '';
   const head = `<button type="button" class="card t-late-bar" data-act="late-toggle" aria-expanded="${tv.lateOpen}">${IC_WARN}<span>Просрочено: ${list.length}</span><em>${tv.lateOpen ? 'Скрыть' : 'Показать'}</em></button>`;
   if (!tv.lateOpen) return `<section class="t-group late" data-day="late">${head}</section>`;
-  return `<section class="t-group late open" data-day="late">${head}<div class="t-links t-late-links"><button type="button" class="t-link" data-act="all-arch">Всё в архив</button><button type="button" class="t-link" data-act="all-today">Всё на сегодня</button></div><div class="card t-list">${list.map(t => rowHTML(t, 'list', today)).join('')}</div></section>`;
+  return `<section class="t-group late open" data-day="late">${head}<div class="t-links t-late-links"><button type="button" class="t-link" data-act="all-arch">Всё в архив</button><button type="button" class="t-link" data-act="all-today">Всё на сегодня</button></div><div class="card t-list">${list.slice(0, tv.shown.overdue ||= LIST_STEP).map(t => rowHTML(t, 'list', today)).join('')}</div>${moreBtn('overdue', list.length)}</section>`;
+}
+function moreBtn(g, total) {
+  const rest = total - (tv.shown[g] || LIST_STEP);
+  return rest > 0 ? `<button type="button" class="t-more-btn" data-act="more" data-g="${g}">Показать ещё ${Math.min(rest, LIST_STEP)}</button>` : '';
 }
 function dayHead(k, today) {
   const d = parseKey(k), date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) + (d.getFullYear() !== parseKey(today).getFullYear() ? ` ${d.getFullYear()} г.` : '');
@@ -125,29 +129,59 @@ function agendaHTML(g, today) {
   const out = [], todayOpen = g.today.filter(t => !t.done);
   if (g.today.length) {
     const [a, b] = dayHead(today, today);
-    out.push(`<section class="t-group t-dayg" data-day="${today}"><h3 class="sec-h t-dh"><span>${a}</span><small>${esc(b)}</small><span class="cnt">${todayOpen.length}</span></h3><div class="card t-list">${g.today.map(t => agendaRow(t, today)).join('')}</div></section>`);
+    out.push(`<section class="t-group t-dayg" data-day="${today}"><h3 class="sec-h t-dh"><span>${a}</span><small>${esc(b)}</small><span class="cnt">${todayOpen.length}</span></h3><div class="card t-list">${g.today.slice(0, tv.shown.today ||= LIST_STEP).map(t => agendaRow(t, today)).join('')}</div>${moreBtn('today', g.today.length)}</section>`);
   }
   const lim = tv.shown.upcoming ||= LIST_STEP, days = new Map();
   for (const t of g.upcoming) { const k = effDay(t); if (!days.has(k)) days.set(k, []); days.get(k).push(t); }
   let shown = 0, rest = 0;
   for (const [k, list] of days) {
     if (shown >= lim) { rest += list.length; continue; }
-    shown += list.length;
+    const take = list.slice(0, lim - shown);
+    shown += take.length;
+    rest += list.length - take.length;
     const [a, b] = dayHead(k, today);
-    out.push(`<section class="t-group t-dayg" data-day="${k}"><h3 class="sec-h t-dh"><span>${esc(a)}</span><small>${esc(b)}</small><span class="cnt">${list.length}</span></h3><div class="card t-list">${list.map(t => agendaRow(t, today)).join('')}</div></section>`);
+    out.push(`<section class="t-group t-dayg" data-day="${k}"><h3 class="sec-h t-dh"><span>${esc(a)}</span><small>${esc(b)}</small><span class="cnt">${list.length}</span></h3><div class="card t-list">${take.map(t => agendaRow(t, today)).join('')}</div></section>`);
   }
   if (rest) out.push(`<button type="button" class="t-more-btn" data-act="more" data-g="upcoming">Показать ещё ${Math.min(rest, LIST_STEP)}</button>`);
   return out.join('');
 }
 function oneDayHTML(all, k, today) {
-  const list = k === today ? taskGroups(all, today).today : all.filter(t => !t.done && !t.archivedAt && effDay(t) === k).sort((a, b) => (a.time || '99') < (b.time || '99') ? -1 : 1);
+  const list = k === today ? taskGroups(all, today).today : k < today ? dayTasks(all, k, today) : all.filter(t => !t.done && !t.archivedAt && effDay(t) === k).sort((a, b) => (a.time || '99') < (b.time || '99') ? -1 : 1);
   const [a, b] = dayHead(k, today), open = list.filter(t => !t.done).length;
   const add = `<button type="button" class="t-addrow" data-act="add" data-k="${k}">${IC.plus}<span>Добавить на этот день</span></button>`;
   const body = list.length ? `<div class="card t-list">${list.map(t => agendaRow(t, today)).join('')}${add}</div>` : `<div class="card t-dayempty"><p>На этот день задач нет</p>${add}</div>`;
   return `<section class="t-group t-dayg t-onlyday" data-day="${k}"><h3 class="sec-h t-dh"><span>${esc(a)}</span><small>${esc(b)}</small><span class="cnt">${open || ''}</span><button type="button" class="t-link t-alldays" data-act="all-days">Все дни</button></h3>${body}</section>`;
 }
+const wkStart = today => addDays(parseKey(today), tv.wkOff * 7);
+function paintWeekHead(today) {
+  const s = wkStart(today), e = addDays(s, 6), m = (d, y) => d.toLocaleDateString('ru-RU', { month: 'long', ...(y ? { year: 'numeric' } : {}) });
+  const y = s.getFullYear() !== parseKey(today).getFullYear() || e.getFullYear() !== parseKey(today).getFullYear();
+  const txt = s.getMonth() === e.getMonth() ? m(s, y) : `${m(s, false)} – ${m(e, y)}`;
+  $('tWkMonth').textContent = (txt[0].toUpperCase() + txt.slice(1)).replace(/ г\.$/, '');
+  $('tWkToday').style.visibility = tv.wkOff || (tv.wday && tv.wday !== today) ? 'visible' : 'hidden';
+}
+function shiftWeek(d) {
+  tv.wkOff += d;
+  tv.wday = null;
+  renderList();
+  if (!reducedMotion) $('tWeek').animate([{ transform: `translateX(${d * 24}px)`, opacity: .4 }, { transform: 'none', opacity: 1 }], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+}
+$('tWkPrev').onclick = () => shiftWeek(-1);
+$('tWkNext').onclick = () => shiftWeek(1);
+$('tWkToday').onclick = () => { tv.wkOff = 0; tv.wday = null; renderList(); };
+{
+  let sx = null, sy = 0;
+  $('tWeekRow').addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; });
+  $('tWeekRow').addEventListener('pointerup', e => {
+    if (sx == null) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    sx = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) { $('tWeekRow')._swiped = true; setTimeout(() => { $('tWeekRow')._swiped = false; }, 60); shiftWeek(dx < 0 ? 1 : -1); }
+  });
+  $('tWeekRow').addEventListener('pointercancel', () => { sx = null; });
+}
 function weekHTML(all, today) {
-  const marks = dayMarks(all, today), base = parseKey(today);
+  const marks = dayMarks(all, today), base = wkStart(today);
   return Array.from({ length: 7 }, (_, i) => {
     const d = addDays(base, i), k = key(d), m = marks[k];
     return `<button type="button" class="t-wd${k === today ? ' now' : ''}${tv.wday === k ? ' sel' : ''}" data-wk="${k}" aria-pressed="${tv.wday === k}" aria-label="${esc(dayLong(k, today))}${m?.n ? `, задач: ${m.n}` : ''}"><small>${WEEKDAYS[weekday(d)]}</small><b>${d.getDate()}</b><i${m?.n ? '' : ' class="no"'}></i></button>`;
@@ -196,8 +230,8 @@ function emptyHTML() {
 function renderList() {
   const today = todayKey(), all = screenTasks(), g = taskGroups(all, today);
   paintListChips();
-  if (tv.wday && tv.wday < today) tv.wday = null;
   $('tWeek').innerHTML = weekHTML(all, today);
+  paintWeekHead(today);
   if (tv.wday) { $('tItems').innerHTML = oneDayHTML(all, tv.wday, today); return; }
   $('tItems').innerHTML = !all.length ? (curList() === 'all' ? emptyHTML() : '<p class="t-snone">В этом списке пока нет задач</p>') : [
     lateHTML(g.overdue, today),
@@ -254,7 +288,7 @@ export function renderTasks() {
   $('tQuick').hidden = !$('tSearch').hidden;
   const sm = tv.smart && smartOn(tv.smart) && (tv.smart !== 'priv' || unlocked) ? tv.smart : (tv.smart = null);
   $('tTabs').hidden = !!sm;
-  $('tWeek').hidden = !!sm || tv.tab !== 'list';
+  $('tWeekRow').hidden = $('tWkHead').hidden = !!sm || tv.tab !== 'list';
   $('tMonthBtn').setAttribute('aria-pressed', !sm && tv.tab === 'month');
   $('tMonthBtn').disabled = !!sm || !!tv.shared;
   $('tSmartBar').hidden = !sm;
@@ -268,6 +302,7 @@ export function renderTasks() {
 export function openTasks() {
   exitSelect(false);
   tv.wday = null;
+  tv.wkOff = 0;
   tv.tab = 'list';
   tv.shown = {};
   tv.smart = null;
@@ -289,7 +324,7 @@ $('tMonthBtn').onclick = () => {
 };
 $('tWeek').onclick = e => {
   const b = e.target.closest('[data-wk]');
-  if (!b) return;
+  if (!b || $('tWeekRow')._swiped) return;
   tv.wday = tv.wday === b.dataset.wk ? null : b.dataset.wk;
   renderList();
   $('tItems').animate?.([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: reducedMotion ? 0 : 220, easing: 'ease-out' });
@@ -607,13 +642,9 @@ function bindList(box) {
 }
 
 function foldDay() {
-  const box = $('dayTasks'), from = box.offsetHeight;
-  setPref(TASKS_FOLD_STORE, dayFolded() ? '0' : '1');
-  renderDayTasks();
-  if (reducedMotion) return;
-  box.style.overflow = 'hidden';
-  box.animate({ height: [from + 'px', box.offsetHeight + 'px'] }, { duration: 340, easing: 'cubic-bezier(.2, .8, .2, 1)' }).onfinish = () => { box.style.overflow = ''; };
-  box.querySelectorAll('.t-row, .t-more, .t-addrow').forEach(el => el.animate({ opacity: [0, 1] }, { duration: 260, easing: 'ease-out' }));
+  const box = $('dayTasks'), folding = !dayFolded();
+  flipAfter(box, () => { setPref(TASKS_FOLD_STORE, folding ? '1' : '0'); renderDayTasks(); });
+  if (!folding && !reducedMotion) box.querySelectorAll('.t-row, .t-more, .t-addrow').forEach(el => el.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' }));
 }
 
 function listAct(el) {

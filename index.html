@@ -208,7 +208,7 @@
       <button type="button" class="set-card set-me" id="setMe" data-go="profile"><span class="set-ava" id="setAva" aria-hidden="true"></span><span class="set-txt"><b id="setMeName"></b><small id="setMeSub"></small></span><svg class="ic set-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
       <div class="set-tiles">
         <button type="button" class="set-card set-tile" id="tileTheme"><span class="set-tic"><svg class="ic" viewBox="0 0 24 24"><path d="M19 14.5A7.5 7.5 0 0 1 9.5 5a7.5 7.5 0 1 0 9.5 9.5z"/></svg></span><b>Тема</b><small id="tileThemeVal"></small></button>
-        <button type="button" class="set-card set-tile" id="tileNotify" data-go="notify"><span class="set-tic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0 1 12 0c0 4.5 2 6 2 6H4s2-1.5 2-6M10 20a2.2 2.2 0 0 0 4 0"/></svg></span><b>Уведомления</b><small id="tileNotifyVal"></small></button>
+        <button type="button" class="set-card set-tile" id="tileNotify"><span class="set-tic"><svg class="ic" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0 1 12 0c0 4.5 2 6 2 6H4s2-1.5 2-6M10 20a2.2 2.2 0 0 0 4 0"/></svg></span><b>Уведомления</b><small id="tileNotifyVal"></small></button>
         <button type="button" class="set-card set-tile" id="tileMotion"><span class="set-tic"><svg class="ic" viewBox="0 0 24 24"><path d="M4 12h3l2-6 4 12 2-6h5"/></svg></span><b>Анимации</b><small id="tileMotionVal"></small></button>
       </div>
       <div class="set-card set-nav">
@@ -621,7 +621,7 @@
     <div class="sheet-head">
       <h2 id="formTitle">Новая привычка</h2>
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      <button type="submit" form="form" class="icon-btn sheet-ok" aria-label="Сохранить" title="Сохранить"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+      <span class="sheet-ok" aria-hidden="true"></span>
     </div>
     <form class="form" id="form" novalidate>
       <div class="prev-dock">
@@ -938,7 +938,7 @@
     <div class="sheet-head">
       <h2 id="gfTitle">Новая цель</h2>
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      <button type="submit" form="gForm" class="icon-btn sheet-ok" aria-label="Сохранить" title="Сохранить"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+      <span class="sheet-ok" aria-hidden="true"></span>
     </div>
     <form class="form g-form" id="gForm" novalidate>
       <div class="field" id="gfNameField">
@@ -981,7 +981,7 @@
       </details>
       <div id="gfPrivSlot"></div>
       <div class="form-actions">
-        <button type="submit" class="primary" id="gfSubmit">Создать</button>
+        <button type="submit" class="primary" id="gfSubmit">Добавить</button>
       </div>
     </form>
   </div>
@@ -1019,7 +1019,12 @@
       <button type="button" data-t="month">Месяц</button>
     </div>
     <div class="t-chips t-lchips" id="tLists" role="group" aria-label="Списки задач"></div>
-    <div class="t-week" id="tWeek" role="group" aria-label="Неделя"></div>
+    <div class="t-wkhead" id="tWkHead"><b id="tWkMonth"></b><button type="button" class="t-link" id="tWkToday">Сегодня</button></div>
+    <div class="t-weekrow" id="tWeekRow">
+      <button type="button" class="ghost icon-btn t-wknav" id="tWkPrev" aria-label="Предыдущая неделя"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div class="t-week" id="tWeek" role="group" aria-label="Неделя"></div>
+      <button type="button" class="ghost icon-btn t-wknav" id="tWkNext" aria-label="Следующая неделя"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
     <div class="t-smartbar" id="tSmartBar" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span id="tSmartName"></span><button type="button" class="ghost icon-btn" id="tSmartOff" aria-label="Убрать срез"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div id="tsResults" hidden></div>
     <div id="tShared" hidden>
@@ -1044,7 +1049,7 @@
     <div class="sheet-head">
       <h2 id="tfTitle">Задача</h2>
       <button class="ghost icon-btn" data-close title="Закрыть" aria-label="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-      <button type="submit" form="tForm" class="icon-btn sheet-ok" aria-label="Сохранить" title="Сохранить"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+      <span class="sheet-ok" aria-hidden="true"></span>
     </div>
     <form class="form t-form" id="tForm" novalidate>
       <div class="tf-grp tf-main">

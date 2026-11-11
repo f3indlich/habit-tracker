@@ -51,7 +51,7 @@ scrollTo(0, 0); await wait(150);
 
 renderSettings(); openOverlay($('setOv')); await wait(500);
 const order = [...$('setOv').querySelectorAll('.set-group > h3')].map(h => h.textContent);
-ok('settings order', order.join(',') === 'Тема,Профиль,Напоминания,Привычки,Цели,Задачи,Цвета,Анимации,Иконки привычек,Помощь,Данные', order);
+ok('settings order', order.join(',') === 'Тема,Профиль,Напоминания,Главный экран,Цели,Задачи,Цвета,Анимации,Иконки привычек,Помощь,Данные', order);
 ok('theme compact', $('themeSeg').querySelector('button').getBoundingClientRect().height <= 36);
 ok('account group visible without login', !$('setAcctGroup').hidden && !$('setName').hidden && $('setCloudIn').hidden);
 ok('name shows not set', $('setNameVal').textContent === 'Не указано', $('setNameVal').textContent);

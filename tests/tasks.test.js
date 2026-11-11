@@ -3,6 +3,7 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+tv.lateOpen = true;
 const T = todayKey(), shift = n => key(addDays(parseKey(T), n));
 const A = (id, extra = {}) => ({ id, text: 'Дело ' + id, done: false, createdAt: 1, updatedAt: 1, ...extra });
 const show = s => { state = normalize(s); viewDate = new Date(); cards.forEach(e => e.remove()); cards.clear(); render(); };
@@ -99,7 +100,7 @@ const texts = el => [...el.querySelectorAll('.t-text')].map(x => x.textContent);
   ok('tomorrow in the date sheet works', state.tasks[1].date === shift(1));
   await add('Разобрать балкон', '');
   ok('no date works', !('date' in state.tasks[2]));
-  ok('groups are rendered', [...$('tItems').querySelectorAll('.sec-h span:first-of-type')].map(x => x.textContent).join() === 'Сегодня,Предстоящие,Без даты', $('tItems').textContent);
+  ok('groups are rendered', [...$('tItems').querySelectorAll('.sec-h span:first-of-type')].map(x => x.textContent).join() === 'Сегодня,Завтра,Без даты', $('tItems').textContent);
   ok('list saved to storage', JSON.parse(localStorage.getItem(STORE)).tasks.length === 3);
 
   const row = () => $('tItems').querySelector('.t-row');
@@ -190,7 +191,7 @@ const texts = el => [...el.querySelectorAll('.t-text')].map(x => x.textContent);
   $('toastUndo').click(); await wait(30);
   ok('undo returns the deleted task', !!findTask(t0.id) && state.tasks.length === before && findTask(t0.id).note === 'Про отпуск');
 
-  state.tasks.push(A('late1', { date: shift(-3) }), A('late2', { date: shift(-1) })); touchTasks(); await wait(20);
+  state.tasks.push(A('late1', { date: shift(-3) }), A('late2', { date: shift(-1) })); tv.lateOpen = true; touchTasks(); await wait(20);
   ok('overdue group is first', $('tItems').querySelector('.t-group').classList.contains('late') && texts($('tItems').querySelector('.t-group')).length === 2);
   $('tItems').querySelector('[data-act=all-today]').click(); await wait(30);
   ok('all overdue moved to today', findTask('late1').date === T && findTask('late2').date === T && !$('tItems').querySelector('.t-group.late'));

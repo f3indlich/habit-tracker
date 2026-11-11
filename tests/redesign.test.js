@@ -54,6 +54,7 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
 {
   show({ habits: [H('a')], log: {} });
   const fab = $('fab');
+  await wait(450);
   fab.click(); await wait(300);
   const menu = $('addDial'), item = l => [...menu.querySelectorAll('.add-item')].find(x => x.textContent === l);
   ok('tap on plus opens the add menu', dialOpen() && [...menu.querySelectorAll('.lbl')].map(x => x.textContent).join() === 'Цель,Задача,Привычка', menu?.textContent);
@@ -109,8 +110,9 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   show({ habits: [H('a'), H('b', { target: 4 }), H('c')], log: { [T]: { a: 1, b: 2 } } });
   applyCards('rings'); render(); await frame();
   const card = id => cards.get(id), list = card('a').parentElement;
-  ok('rings put three habits in a row', getComputedStyle(list).gridTemplateColumns.split(' ').length === 3 && Math.abs(card('a').getBoundingClientRect().top - card('c').getBoundingClientRect().top) < 2);
-  ok('ring is big and holds the icon', card('a').querySelector('.check').getBoundingClientRect().width >= 70 && Math.abs(card('a').querySelector('.hicon').getBoundingClientRect().top - card('a').querySelector('.check').getBoundingClientRect().top - 11) < 6);
+  ok('rings put four habits in a row on a phone', getComputedStyle(list).gridTemplateColumns.split(' ').length === (innerWidth < 360 ? 3 : 4) && Math.abs(card('a').getBoundingClientRect().top - card('c').getBoundingClientRect().top) < 2);
+  ok('ring is compact and holds the icon', Math.abs(card('a').querySelector('.check').getBoundingClientRect().width - 56) < 1 && Math.abs(card('a').querySelector('.hicon').getBoundingClientRect().top - card('a').querySelector('.check').getBoundingClientRect().top - 8) < 4);
+  ok('ring names never break inside a word', getComputedStyle(card('a').querySelector('.name')).hyphens === 'none');
   ok('ring hides the busy parts', !visible(card('a').querySelector('.dots')) && !visible(card('a').querySelector('.more')));
   ok('done ring is filled, partial ring is not', card('a').classList.contains('complete') && !card('b').classList.contains('complete'));
   card('c').querySelector('.check').click(); await frame();
@@ -155,7 +157,7 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   const hb0 = headBtns(), tt0 = $('tTitle').getBoundingClientRect().top;
   $('tMonthBtn').click(); await frame();
   ok('header buttons stay put in the month view', headBtns() === hb0 && $('tTitle').getBoundingClientRect().top === tt0, [hb0, headBtns()]);
-  ok('calendar button opens the month', !$('tMonthView').hidden && $('tWeek').hidden && $('tMonthBtn').getAttribute('aria-pressed') === 'true');
+  ok('calendar button opens the month', !$('tMonthView').hidden && $('tWeekRow').hidden && $('tMonthBtn').getAttribute('aria-pressed') === 'true');
   $('tMonthBtn').click(); await frame();
   ok('second tap returns to the week', $('tMonthView').hidden && !$('tWeek').hidden);
   const wTop = $('tWeek').getBoundingClientRect().top;
@@ -172,7 +174,15 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   ok('selection title fits', $('tTitle').scrollWidth <= $('tTitle').clientWidth + 1, [$('tTitle').textContent, $('tTitle').scrollWidth, $('tTitle').clientWidth]);
   $('tSelDone').click(); await frame();
   const q = $('tQuick').getBoundingClientRect();
-  ok('quick add floats at the bottom', q.bottom > innerHeight - 160 && q.top > innerHeight / 2, [q.top, q.bottom, innerHeight]);
+  ok('no separate quick add field below the list', !visible($('tQuick')));
+  const firstDay = () => $('tWeek').querySelector('[data-wk]').dataset.wk;
+  $('tWkNext').click(); await frame();
+  ok('week arrows leave the current week', firstDay() === shift(7) && visible($('tWkToday')));
+  $('tWkPrev').click(); $('tWkPrev').click(); await frame();
+  ok('week can go back to past days', firstDay() === shift(-7));
+  $('tWkToday').click(); await frame();
+  ok('today link returns to the current week', firstDay() === T && getComputedStyle($('tWkToday')).visibility === 'hidden');
+  ok('week header names the month', $('tWkMonth').textContent.length > 2);
   await closeAll();
 }
 
@@ -190,8 +200,12 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   $('setHome').querySelector('[data-go=habits]').click(); await frame();
   ok('habits page gathers the habit and goal settings', $('setTitle').textContent === 'Привычки и цели' && secs().join() === 'Главный экран,Цели' && visible($('setView')) && visible($('setReorder')) && visible($('setCats')), secs());
   ok('view row tells the current view', $('setViewInfo').textContent.length > 3);
+  $('setView').click(); await until(() => $('viewOv')._shown); await wait(400);
+  const vr = $('viewTitle').getBoundingClientRect(), topEl = document.elementFromPoint(vr.left + 5, vr.top + vr.height / 2);
+  ok('view row opens the list view page on top of settings', $('viewOv')._shown && $('viewOv').contains(topEl) && shownOverlays().pop() === $('viewOv'), topEl?.id || topEl?.className);
+  requestClose(shownOverlays().pop()); await until(() => $('viewOv').hidden);
+  ok('back closes the list view first and stays in settings', $('setOv')._shown && $('viewOv').hidden);
   $('setView').click(); await until(() => $('viewOv')._shown);
-  ok('view row opens the list view page', $('viewOv')._shown);
   closeOverlay($('viewOv')); await until(() => $('viewOv').hidden);
   requestClose($('setOv')); await frame();
   $('setHome').querySelector('[data-go=look]').click(); await frame();
@@ -221,5 +235,6 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   await closeAll();
 }
 
+ok('scrollbars take no room, so nothing shifts when scrolling locks', getComputedStyle(document.documentElement).scrollbarWidth === 'none' && getComputedStyle($('tSheet')).scrollbarWidth === 'none');
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

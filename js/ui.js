@@ -202,7 +202,7 @@ export function openOverlay(ov) {
     if (histSkip) histWant = true;
     else { history.pushState({ sheet: true }, ''); histHeld = true; }
   }
-  if (fresh) { ov._opener = document.activeElement; hideToast(); }
+  if (fresh) { ov._opener = document.activeElement; hideToast(); if (ov.parentElement.lastElementChild !== ov) ov.parentElement.append(ov); }
   ov._shown = true;
   ov.hidden = false;
   if (isTabPage(ov)) {
@@ -416,6 +416,7 @@ export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get
       flush();
     },
     move: g => {
+      if (document.body.classList.contains('tip-scrub')) { if (off) settle(0, 160, clear); return false; }
       if (!g.lock) {
         if (Math.abs(g.dx) >= 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2) {
           g.lock = 'x';
@@ -600,4 +601,14 @@ export function openPopover(anchor, html, color) {
 document.addEventListener('pointerdown', e => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest('.more, .info-btn, .tile-i, .m-warn.stale, #viewBtn')) closeMenu(); });
 addEventListener('scroll', closeMenu, { passive: true });
 $('hSheet').addEventListener('scroll', closeMenu, { passive: true });
-
+export function flipAfter(el, change, ms = 300) {
+  if (reducedMotion) return change();
+  const after = [];
+  for (let n = el; n && n !== document.body; n = n.parentElement) for (let s = n.nextElementSibling; s; s = s.nextElementSibling) if (s.offsetParent && getComputedStyle(s).position !== 'fixed') after.push(s);
+  const tops = after.map(s => s.getBoundingClientRect().top);
+  change();
+  after.forEach((s, i) => {
+    const d = tops[i] - s.getBoundingClientRect().top;
+    if (Math.abs(d) > .5) s.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: ms, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+  });
+}

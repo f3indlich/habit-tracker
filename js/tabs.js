@@ -33,7 +33,7 @@ const IC_ADD = {
 const ADD_ITEMS = [
   ['goal', 'Цель', () => openGoalForm()],
   ['task', 'Задача', () => openTaskForm(null, todayKey())],
-  ['habit', 'Привычка', () => openForm()],
+  ['habit', 'Привычка', () => { if (document.body.dataset.tab === 'settings') goToday(); openForm(); }],
 ];
 const dial = document.createElement('div');
 dial.className = 'add-dial';
@@ -45,10 +45,13 @@ document.body.append(dial);
 export const dialOpen = () => !dial.hidden && dial.classList.contains('on');
 export function openAddMenu() {
   closeMenu();
-  const r = $('fab').getBoundingClientRect(), items = dial.querySelector('.add-items');
-  items.style.right = Math.max(8, document.documentElement.clientWidth - r.right) + 'px';
-  items.style.bottom = Math.max(8, innerHeight - r.top + 12) + 'px';
+  const items = dial.querySelector('.add-items');
   dial.hidden = false;
+  items.style.right = '0px';
+  items.style.bottom = '0px';
+  const r = $('fab').getBoundingClientRect(), box = items.getBoundingClientRect();
+  items.style.right = Math.max(8, box.right - r.right) + 'px';
+  items.style.bottom = Math.max(8, box.bottom - r.top + 12) + 'px';
   void dial.offsetWidth;
   dial.classList.add('on');
   document.body.classList.add('dial-on');

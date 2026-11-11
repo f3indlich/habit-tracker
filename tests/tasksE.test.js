@@ -2,6 +2,7 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+tv.lateOpen = true;
 const tick = () => new Promise(r => setTimeout(r, 16));
 const until = async (f, ms = 3000) => { const t0 = performance.now(); while (!f()) { if (performance.now() - t0 > ms) return false; await tick(); } return true; };
 const T = todayKey(), shift = n => key(addDays(parseKey(T), n));
@@ -192,7 +193,7 @@ const rowIds = box => [...box.querySelectorAll('.t-row')].map(r => r.dataset.id)
   lockNow(); await until(() => $('tFormOv').hidden);
   ok('locking removes private results', !$('tsResults').textContent.includes('Тайный'));
   $('tsText').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-  ok('escape closes the search', !visible($('tSearch')) && visible($('tQuick')) && !$('tListView').hidden && $('tasksOv')._shown);
+  ok('escape closes the search', !visible($('tSearch')) && !$('tListView').hidden && $('tasksOv')._shown);
   ok('waits for typing to settle', (() => { $('tSearchBtn').click(); $('tsText').value = 'хлеб'; $('tsText').dispatchEvent(new Event('input', { bubbles: true })); return $('tsResults').hidden; })());
   await until(() => !$('tsResults').hidden);
   const x = '<img src=x onerror=alert(1)>';

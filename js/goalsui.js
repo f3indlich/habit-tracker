@@ -167,7 +167,7 @@ function renderGoal(g) {
       <div><button type="button" class="primary" data-act="done">Отметить</button><button type="button" class="ghost" data-act="nohint">Не сейчас</button></div></div>` : '';
   const late = st === 'overdue' ? `<div class="g-acts g-acts-wide">
       <button type="button" data-act="due">Перенести срок</button>
-      <button type="button" data-act="done">Отметить выполненной</button>
+      <button type="button" data-act="done">Выполнена</button>
       <button type="button" data-act="close">Закрыть без выполнения</button></div>` : '';
   const stepsSec = `<section class="g-sec">
       <h3>Шаги${steps.length ? ` <span>${steps.filter(x => x.done).length} из ${steps.length}</span>` : ''}</h3>
@@ -400,7 +400,7 @@ export function openGoalForm(g = null, mode = g ? 'edit' : 'new') {
   gf.mode = mode;
   gf.color = g ? goalColor(g, goalIndex(g)) : COLORS[(state.goals || []).length % COLORS.length];
   $('gfTitle').textContent = mode === 'due' ? 'Перенести срок' : g ? 'Изменить цель' : 'Новая цель';
-  $('gfSubmit').textContent = mode === 'due' ? 'Перенести' : g ? 'Сохранить' : 'Создать';
+  $('gfSubmit').textContent = mode === 'due' ? 'Перенести' : g ? 'Сохранить' : 'Добавить';
   $('gfName').value = g?.title || '';
   $('gfDue').value = g?.due || '';
   $('gfStart').value = gf.start0 = g?.start || todayKey();
