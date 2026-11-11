@@ -1,14 +1,14 @@
-import { $, esc, getPref, plural, setPref } from './core.js?v=3.2d';
-import { IC } from './icons.js?v=3.2d';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=3.2d';
-import { openAccount } from './sync.js?v=3.2d';
-import { userName } from './settings.js?v=3.2d';
-import { parseLines, renderTasks, taskHooks, tv } from './tasksui.js?v=3.2d';
+import { $, esc, getPref, plural, setPref } from './core.js?v=3.3';
+import { IC } from './icons.js?v=3.3';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=3.3';
+import { openAccount } from './sync.js?v=3.3';
+import { userName } from './settings.js?v=3.3';
+import { parseLines, renderTasks, taskHooks, tv } from './tasksui.js?v=3.3';
 import {
   addSharedItems, clearSharedDone, createSharedInvite, createSharedList, deleteSharedItem, deleteSharedList, editSharedItem, fetchShared,
   findShared, isSharedOwner, joinSharedList, leaveSharedList, memberName, myId, removeSharedMember, renameSharedList, setSharedDone, sh,
   clearShared, SHARED_LIM, SHARED_OK, SHARED_POLL_MS, sharedReady, showCode,
-} from './shared.js?v=3.2d';
+} from './shared.js?v=3.3';
 
 const IC_PEOPLE = '<svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.2a3 3 0 0 1 0 5.6M17.5 13.6A5.5 5.5 0 0 1 20.5 19"/></svg>';
 const IC_CHECK = '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';

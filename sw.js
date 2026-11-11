@@ -1,4 +1,4 @@
-const VERSION = '3.2d';
+const VERSION = '3.3';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const PREFS = 'prefs';
