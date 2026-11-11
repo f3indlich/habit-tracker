@@ -1,15 +1,15 @@
-import { $, addDays, COLORS, esc, getPref, isVivid, key, plural, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday, WEEKDAYS } from './core.js?v=3.2b';
-import { IC } from './icons.js?v=3.2b';
-import { save, state } from './storage.js?v=3.2b';
-import { askConfirm, closeMenu, closeOverlay, openOverlay, toast } from './ui.js?v=3.2b';
-import { paintTaskMarks, render, sparks, viewDate } from './render.js?v=3.2b';
-import { queueTips } from './tips.js?v=3.2b';
-import { pushState } from './push.js?v=3.2b';
-import { parseQuick } from './taskparse.js?v=3.2b';
-import { firstOn, nextOccurrence, normRep, REP_MAX, REP_UNITS, repLabel, WD_SHORT } from './repeat.js?v=3.2b';
-import { isPrivate, shownTasks, unlocked } from './privacy.js?v=3.2b';
-import { absRemind, moveLabel, nextWeekend, SOMEDAY, daysBetween, dayLong, dayMarks, dayShort, ghostMarks, SMART, smartCounts, smartFilter, effDay, dayTasks, doneHeading, DUE_REMIND_HOUR, DUE_REMINDS, dueLabel, dueWhen, isOverdue, isRemind, monthEnd, overdueText, newListId, newSubId, newTaskId, normReminds, normSubs, orderOf, nextMonday, pendingToday, remDay, REMIND_DAYS_MAX, remindAt, remindOffset, remindsOf, remindState, remindText, REMINDS_MAX, TASK_LIM, TASK_REMINDS, subStats, taskGroups, taskWhen, tomorrowOf } from './tasks.js?v=3.2b';
-import { makeWheel } from './wheel.js?v=3.2b';
+import { $, addDays, COLORS, esc, getPref, isVivid, key, plural, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday, WEEKDAYS } from './core.js?v=3.2c';
+import { IC } from './icons.js?v=3.2c';
+import { save, state } from './storage.js?v=3.2c';
+import { askConfirm, closeMenu, closeOverlay, openOverlay, toast } from './ui.js?v=3.2c';
+import { paintTaskMarks, render, sparks, viewDate } from './render.js?v=3.2c';
+import { queueTips } from './tips.js?v=3.2c';
+import { pushState } from './push.js?v=3.2c';
+import { parseQuick } from './taskparse.js?v=3.2c';
+import { firstOn, nextOccurrence, normRep, REP_MAX, REP_UNITS, repLabel, WD_SHORT } from './repeat.js?v=3.2c';
+import { isPrivate, shownTasks, unlocked } from './privacy.js?v=3.2c';
+import { absRemind, moveLabel, nextWeekend, SOMEDAY, daysBetween, dayLong, dayMarks, dayShort, ghostMarks, SMART, smartCounts, smartFilter, effDay, dayTasks, doneHeading, DUE_REMIND_HOUR, DUE_REMINDS, dueLabel, dueWhen, isOverdue, isRemind, monthEnd, overdueText, newListId, newSubId, newTaskId, normReminds, normSubs, orderOf, nextMonday, pendingToday, remDay, REMIND_DAYS_MAX, remindAt, remindOffset, remindsOf, remindState, remindText, REMINDS_MAX, TASK_LIM, TASK_REMINDS, subStats, taskGroups, taskWhen, tomorrowOf } from './tasks.js?v=3.2c';
+import { makeWheel } from './wheel.js?v=3.2c';
 
 export const TASKS_DAY_STORE = NS + '-tasks-day', TASKS_DOTS_STORE = NS + '-tasks-dots', TASKS_LIMIT_STORE = NS + '-tasks-limit', TASKS_FOLD_STORE = NS + '-tasks-fold', TASKS_POS_STORE = NS + '-tasks-pos', TASKS_LIST_STORE = NS + '-tasks-list';
 export const TASK_POSITIONS = [['top', 'Над привычками'], ['bottom', 'Под привычками']];

@@ -1,12 +1,12 @@
-import { $, addDays, getPref, HERO_C, key, NS, setPref, TEST_MODE, todayKey } from './core.js?v=3.2b';
-import { normalize, save, setState, state } from './storage.js?v=3.2b';
-import { closeOverlay, openOverlay, toast, trackTouch } from './ui.js?v=3.2b';
-import { buildCard, render, updateCard } from './render.js?v=3.2b';
-import { openForm } from './form.js?v=3.2b';
-import { NAME_ASKED } from './settings.js?v=3.2b';
-import { cloud } from './sync.js?v=3.2b';
-import { queueTips, resetTips } from './tips.js?v=3.2b';
-import { visibleHabits } from './privacy.js?v=3.2b';
+import { $, addDays, getPref, HERO_C, key, NS, setPref, TEST_MODE, todayKey } from './core.js?v=3.2c';
+import { normalize, save, setState, state } from './storage.js?v=3.2c';
+import { closeOverlay, openOverlay, toast, trackTouch } from './ui.js?v=3.2c';
+import { buildCard, render, updateCard } from './render.js?v=3.2c';
+import { openForm } from './form.js?v=3.2c';
+import { NAME_ASKED } from './settings.js?v=3.2c';
+import { cloud } from './sync.js?v=3.2c';
+import { queueTips, resetTips } from './tips.js?v=3.2c';
+import { visibleHabits } from './privacy.js?v=3.2c';
 
 export const ONBOARD_STORE = NS + '-onboarded';
 export const OB_SLIDES = 3;
