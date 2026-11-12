@@ -1,4 +1,4 @@
-import { esc } from './core.js?v=3.3';
+import { esc } from './core.js?v=3.4';
 
 export const WHEEL_ROW = 40, WHEEL_ROWS = 5;
 

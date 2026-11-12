@@ -1,11 +1,11 @@
-import { $, addDays, esc, key, parseKey, plural, todayKey, weekday, WEEKDAYS } from './core.js?v=3.3';
-import { iconHTML } from './icons.js?v=3.3';
-import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=3.3';
-import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=3.3';
-import { queueTips } from './tips.js?v=3.3';
-import { visibleHabits } from './privacy.js?v=3.3';
-import { overWeekday } from './plan.js?v=3.3';
-import { bindTips, compareRange, compareText, keepRange, MONTHS_IN, openHistory, paintBack, rangeDays, rangeLabel, shiftAnchor, startAnchor, WD_NOM } from './history.js?v=3.3';
+import { $, addDays, esc, key, parseKey, plural, todayKey, weekday, WEEKDAYS } from './core.js?v=3.4';
+import { iconHTML } from './icons.js?v=3.4';
+import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=3.4';
+import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=3.4';
+import { queueTips } from './tips.js?v=3.4';
+import { visibleHabits } from './privacy.js?v=3.4';
+import { overWeekday } from './plan.js?v=3.4';
+import { bindTips, compareRange, compareText, keepRange, MONTHS_IN, openHistory, paintBack, rangeDays, rangeLabel, shiftAnchor, startAnchor, WD_NOM } from './history.js?v=3.4';
 export { compareRange, compareText, MONTHS_IN, WD_NOM };
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
