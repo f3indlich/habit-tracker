@@ -165,7 +165,7 @@ export const guessIcon = name => {
 };
 export const EMOJI_TO_ICON = Object.fromEntries(Object.entries(ICONS).map(([k, v]) => [v.e, k]));
 export const ICON_STYLES = Object.fromEntries(Object.entries({
-  color: 'Объёмные', tile: 'Неон', mono: 'Чёрно-белые', art: 'Иллюстрации', emoji: 'Эмодзи', line: 'Контурные',
+  mono: 'Чёрно-белые', art: 'Иллюстрации', emoji: 'Эмодзи', line: 'Контурные',
 }).sort((a, b) => a[1].localeCompare(b[1], 'ru')));
 export function setIcon(box, icon) {
   const html = iconHTML(icon);

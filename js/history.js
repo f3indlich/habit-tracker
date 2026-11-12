@@ -1,7 +1,7 @@
 import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=3.4';
 import { setIcon } from './icons.js?v=3.4';
 import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=3.4';
-import { askConfirm, closeMenu, countTo, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=3.4';
+import { askConfirm, closeMenu, countTo, holdHeight, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=3.4';
 import { catName, changeCount } from './render.js?v=3.4';
 import { openForm } from './form.js?v=3.4';
 import { queueTips } from './tips.js?v=3.4';
@@ -57,9 +57,14 @@ export function openHistory(id) {
   if (past) Object.assign(hist, { anchor: past.anchor, back: past.start });
   for (const id of ['hTrio', 'hWd', 'hNotes']) $(id)._html = null;
   histSlider.reset();
+  const real = hist;
+  hist = { ...real, range: 'week', anchor: parseKey(lifeEnd(h)), back: null };
   renderHistory();
   openOverlay($('histOv'));
   fitTitle();
+  holdHeight($('hSheet'));
+  hist = real;
+  if (real.range !== 'week' || real.back) renderHistory();
   queueTips(1000);
 }
 function fitTitle() {

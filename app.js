@@ -62,7 +62,7 @@ applyTheme(getPref(THEME_STORE, 'auto'));
 applyColors();
 applyView(getPref(VIEW_STORE, 'list'));
 applyCards(getPref(CARDS_STORE, 'full'));
-document.body.dataset.icons = ICON_STYLES[getPref(ICON_STORE, 'color')] ? getPref(ICON_STORE, 'color') : 'color';
+document.body.dataset.icons = ICON_STYLES[getPref(ICON_STORE, 'art')] ? getPref(ICON_STORE, 'art') : 'art';
 setGroupMode(GROUPS[getPref(GROUP_STORE, 'time')] ? getPref(GROUP_STORE, 'time') : 'time');
 render();
 if (!TEST_MODE) requestAnimationFrame(() => ensureEmojiFont());

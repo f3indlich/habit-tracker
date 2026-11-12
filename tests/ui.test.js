@@ -216,5 +216,41 @@ closeOverlay($('formOv')); await wait(400);
   const man = await fetch('manifest.webmanifest').then(r => r.json());
   ok('home screen shortcuts for new habit, goals and summary', man.shortcuts.map(s => s.url).join() === './?action=new,./?action=goals,./?action=summary' && man.shortcuts.every(s => s.name && s.icons?.length), man.shortcuts);
 }
+{
+  const cs = el => getComputedStyle(el), hc = document.querySelector('.habit');
+  ok('changing counters use tabular figures', ['heroDone', 'heroTotal'].every(id => cs($(id)).fontVariantNumeric.includes('tabular-nums')));
+  ok('titles and hero line wrap evenly', [document.querySelector('.sheet-head h2'), $('heroMsg')].every(el => cs(el).textWrap.includes('balance')));
+  ok('text renders antialiased', cs(document.body).webkitFontSmoothing === 'antialiased');
+  if (hc) {
+    const ic = hc.querySelector('.hicon'), pad = ic.getBoundingClientRect().left - hc.getBoundingClientRect().left;
+    ok('habit icon radius is concentric with the card', Math.abs(parseFloat(cs(hc).borderTopLeftRadius) - pad - parseFloat(cs(ic).borderTopLeftRadius)) <= 3, [cs(hc).borderTopLeftRadius, pad, cs(ic).borderTopLeftRadius]);
+  }
+  const gs = document.querySelector('.goal-strip'), go = gs?.querySelector('.gs-open');
+  if (go) ok('goal strip button follows the strip radius', Math.abs(parseFloat(cs(gs).borderTopLeftRadius) - 1 - parseFloat(cs(go).borderTopLeftRadius)) <= 2);
+}
+for (const [open, sheet, tabs, ov] of [[() => openHistory('m'), 'hSheet', 'hTabs', 'histOv'], [() => openSummary(), 'sSheet', 'sTabs', 'sumOv']]) {
+  open(); await wait(700);
+  const tops = [], ghosts = [];
+  for (const r of ['month', 'year', 'week']) {
+    $(tabs).querySelector(`[data-r=${r}]`).click(); await wait(30);
+    const g = $(tabs).querySelector('.seg-ghost');
+    if (g) ghosts.push(getComputedStyle(g).backgroundColor);
+    await wait(600);
+    tops.push(Math.round($(sheet).getBoundingClientRect().top));
+  }
+  ok(`${sheet} stays put when switching week, month and year`, new Set(tops).size === 1, tops);
+  ok(`${sheet} sliding pill is visible from the first frame`, ghosts.length > 0 && ghosts.every(c => c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent'), ghosts);
+  closeOverlay($(ov)); await wait(450);
+  const reopened = [];
+  for (const r of ['year', 'week']) {
+    open(); await wait(700);
+    $(tabs).querySelector(`[data-r=${r}]`).click(); await wait(400);
+    closeOverlay($(ov)); await wait(450);
+    open(); await wait(700);
+    reopened.push(Math.round($(sheet).getBoundingClientRect().top));
+    closeOverlay($(ov)); await wait(450);
+  }
+  ok(`${sheet} opens at the same height whatever range was used last`, reopened[0] === reopened[1], reopened);
+}
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

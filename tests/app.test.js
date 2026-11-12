@@ -151,14 +151,12 @@ closeOverlay($('formOv')); await wait(400);
 for (const st of Object.keys(ICON_STYLES)) {
   applyIcons(st); await wait(30); ok('icon style ' + st, document.body.dataset.icons === st && !!card('p').querySelector('.hicon').innerHTML);
 }
-applyIcons('tile'); await wait(30);
-ok('neon dark bg', getComputedStyle(card('p').querySelector('.hicon')).backgroundImage.includes('radial-gradient'));
-applyIcons('color'); await wait(30);
-ok('glossy gradient', getComputedStyle(card('p').querySelector('.hicon')).backgroundImage.includes('linear-gradient'));
+applyIcons('art'); await wait(30);
+ok('art is the default and draws illustrations', !!card('p').querySelector('.hicon svg.ha'));
 renderSettings();
-const prevs = [...$('iconStyles').querySelectorAll('.icon-style')].map(b => getComputedStyle(b.querySelector('.hicon')).backgroundImage + '|' + getComputedStyle(b.querySelector('.hicon')).borderRadius);
-ok('settings previews differ', new Set(prevs).size >= 4, prevs);
-ok('style labels', Object.values(ICON_STYLES).join() === 'Иллюстрации,Контурные,Неон,Объёмные,Чёрно-белые,Эмодзи', Object.values(ICON_STYLES));
+const prevs = [...$('iconStyles').querySelectorAll('.icon-style')].map(b => { const i = b.querySelector('.hicon'), cs = getComputedStyle(i); return [cs.backgroundColor, cs.borderRadius, cs.color, i.firstElementChild?.getAttribute('class') || 'text'].join('|'); });
+ok('settings previews differ', new Set(prevs).size === Object.keys(ICON_STYLES).length, prevs);
+ok('style labels', Object.values(ICON_STYLES).join() === 'Иллюстрации,Контурные,Чёрно-белые,Эмодзи', Object.values(ICON_STYLES));
 
 const exported = JSON.parse(JSON.stringify(state));
 const re = normalize(exported);
@@ -194,11 +192,11 @@ ok('server due step', due.length === 1 && due[0].slot.need === 15, due);
 const due2 = S.dueReminders({ habits: [{ id: 'z', name: 'Z', target: 60, step: 15, remind: { spread: { from: '09:00', to: '21:00' } } }], log: { '2026-10-25': { z: 15 } } }, 'UTC', now);
 ok('server not due when on plan', due2.length === 0, due2);
 
-applyIcons('tile'); openForm('p'); await wait(500);
-ok('picker uses style', getComputedStyle($('emojis').querySelector('.hicon')).backgroundImage.includes('radial') && getComputedStyle(document.querySelector('#templates .hicon')).backgroundImage.includes('radial'));
+applyIcons('line'); openForm('p'); await wait(500);
+ok('picker uses style', getComputedStyle($('emojis').querySelector('.hicon')).borderRadius === '50%' && getComputedStyle(document.querySelector('#templates .hicon')).borderRadius === '50%');
 $('goalSeg').querySelector('[data-v=multi]').click(); await wait(500);
 ok('goal row not clipped', $('goalWrap').getBoundingClientRect().bottom >= $('target').getBoundingClientRect().bottom, [$('goalWrap').getBoundingClientRect().bottom, $('target').getBoundingClientRect().bottom]);
-closeOverlay($('formOv')); applyIcons('color'); await wait(400);
+closeOverlay($('formOv')); applyIcons('art'); await wait(400);
 ok('card compact', card('p').getBoundingClientRect().height < 125, card('p').getBoundingClientRect().height);
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

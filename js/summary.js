@@ -1,7 +1,7 @@
 import { $, addDays, esc, key, parseKey, plural, todayKey, weekday, WEEKDAYS } from './core.js?v=3.4';
 import { iconHTML } from './icons.js?v=3.4';
 import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=3.4';
-import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=3.4';
+import { closeMenu, holdHeight, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=3.4';
 import { queueTips } from './tips.js?v=3.4';
 import { visibleHabits } from './privacy.js?v=3.4';
 import { overWeekday } from './plan.js?v=3.4';
@@ -151,8 +151,13 @@ export function openSummary() {
   if (past) Object.assign(summaryView, { anchor: past.anchor, back: past.start });
   for (const id of ['sHabits', 'sObs', 'sDays', 'sKinds']) $(id)._html = null;
   sumSlider.reset();
+  const real = summaryView;
+  summaryView = { ...real, range: 'week', anchor: new Date(), back: null };
   openOverlay($('sumOv'));
   renderSummary();
+  holdHeight($('sSheet'));
+  summaryView = real;
+  if (real.range !== 'week' || real.back) renderSummary();
   queueTips(1000);
 }
 

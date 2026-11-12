@@ -91,17 +91,24 @@ export function slidePick(box, from) {
   if (!el || !box.isConnected || reducedMotion) return;
   const to = el.getBoundingClientRect(), b = box.getBoundingClientRect();
   if (!to.width || (Math.abs(to.left - from.left) < 1 && Math.abs(to.top - from.top) < 1)) return;
+  el.style.transition = 'none';
   const cs = getComputedStyle(el), g = document.createElement('i');
   g.className = 'seg-ghost';
   g.setAttribute('aria-hidden', 'true');
   Object.assign(g.style, { left: to.left - b.left - box.clientLeft + 'px', top: to.top - b.top - box.clientTop + 'px', width: to.width + 'px', height: to.height + 'px',
     background: cs.backgroundColor, boxShadow: cs.boxShadow, borderRadius: cs.borderRadius });
+  el.style.transition = '';
   box.querySelectorAll(':scope > .seg-ghost').forEach(x => x.remove());
   box.prepend(g);
   el.classList.add('seg-under');
   const a = g.animate([{ transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})` }, { transform: 'none' }],
     { duration: mv(280, 440), easing: mv('cubic-bezier(.3, .9, .3, 1)', spring()) });
-  a.onfinish = a.oncancel = () => { g.remove(); el.classList.remove('seg-under'); };
+  a.onfinish = a.oncancel = () => {
+    el.style.transition = 'none';
+    el.classList.remove('seg-under');
+    g.remove();
+    requestAnimationFrame(() => { el.style.transition = ''; });
+  };
 }
 document.addEventListener('click', e => {
   const box = e.target.closest?.(SEGS);
@@ -221,6 +228,10 @@ export function openOverlay(ov) {
   if (fresh && !reducedMotion && !ov.classList.contains('page')) cascade(sheet);
   sheet.tabIndex = -1;
   sheet.focus({ preventScroll: true });
+}
+export function holdHeight(sheet) {
+  sheet.style.height = '';
+  sheet.style.height = sheet.offsetHeight + 'px';
 }
 export function closeOverlay(ov) {
   closeMenu();
