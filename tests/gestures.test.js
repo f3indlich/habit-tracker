@@ -3,10 +3,12 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
 const ago = n => key(addDays(new Date(), -n));
-const touch = (el, type, x, y) => {
-  const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: y });
-  el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] }));
+const touchEv = (type, el, x, y) => {
+  const list = t => type === 'touchend' ? [] : [t];
+  try { const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: y }); return new TouchEvent(type, { bubbles: true, cancelable: true, touches: list(t), targetTouches: list(t), changedTouches: [t] }); }
+  catch { const t = { identifier: 1, target: el, clientX: x, clientY: y, pageX: x + scrollX, pageY: y + scrollY, screenX: x, screenY: y }, e = new Event(type, { bubbles: true, cancelable: true }); Object.defineProperties(e, { touches: { value: list(t) }, targetTouches: { value: list(t) }, changedTouches: { value: [t] } }); return e; }
 };
+const touch = (el, type, x, y) => el.dispatchEvent(touchEv(type, el, x, y));
 const swipe = async (el, from, to, steps = 8, dt = 12, onMid) => {
   touch(el, 'touchstart', ...from);
   for (let i = 1; i <= steps; i++) {
@@ -83,8 +85,7 @@ $('hTabs').querySelector('[data-r=week]').click(); await wait(300);
 {
   const ch = $('hChart'), x0 = W * .5, y0 = 420;
   const step = (type, x, y) => {
-    const t = new Touch({ identifier: 1, target: ch, clientX: x, clientY: y });
-    const e = new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] });
+    const e = touchEv(type, ch, x, y);
     ch.dispatchEvent(e);
     return e.defaultPrevented;
   };

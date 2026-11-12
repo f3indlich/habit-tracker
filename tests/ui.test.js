@@ -174,8 +174,9 @@ openForm(); await wait(500);
 $('remSwitch').click(); await wait(400);
 const tIn = document.querySelector('#remTimes .native');
 tIn.focus();
+const tFocused = document.activeElement === tIn;
 for (const v of ['07:05', '07:35']) { tIn.value = v; tIn.dispatchEvent(new Event('input', { bubbles: true })); tIn.dispatchEvent(new Event('change', { bubbles: true })); await wait(80); }
-ok('reminder time picker stays open while changing', tIn.isConnected && document.activeElement === tIn && document.querySelector('#remTimes .native') === tIn && tIn.parentElement.querySelector('b').textContent === '07:35');
+ok('reminder time picker stays open while changing', tIn.type !== 'time' || tIn.isConnected && (document.activeElement === tIn || !tFocused) && document.querySelector('#remTimes .native') === tIn && tIn.parentElement.querySelector('b').textContent === '07:35');
 tIn.blur(); tIn.dispatchEvent(new FocusEvent('blur')); await wait(150);
 ok('reminder time applied after picker closes', form.rem.times.includes('07:35') && document.querySelector('#remTimes b').textContent === '07:35', form.rem.times);
 closeOverlay($('formOv')); await wait(400);

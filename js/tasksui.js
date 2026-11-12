@@ -1,13 +1,13 @@
 import { $, addDays, COLORS, esc, getPref, isVivid, key, plural, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday, WEEKDAYS } from './core.js?v=3.3';
 import { IC } from './icons.js?v=3.3';
 import { save, state } from './storage.js?v=3.3';
-import { askConfirm, closeMenu, closeOverlay, flipAfter, openOverlay, toast } from './ui.js?v=3.3';
+import { askConfirm, closeMenu, closeOverlay, flipAfter, openMenu, openOverlay, toast } from './ui.js?v=3.3';
 import { paintTaskMarks, render, sparks, viewDate } from './render.js?v=3.3';
 import { queueTips } from './tips.js?v=3.3';
 import { pushState } from './push.js?v=3.3';
 import { parseQuick } from './taskparse.js?v=3.3';
 import { firstOn, nextOccurrence, normRep, REP_MAX, REP_UNITS, repLabel, WD_SHORT } from './repeat.js?v=3.3';
-import { isPrivate, shownTasks, unlocked } from './privacy.js?v=3.3';
+import { isPrivate, LONG_MS, LONG_SLOP, shownTasks, unlocked } from './privacy.js?v=3.3';
 import { absRemind, moveLabel, nextWeekend, SOMEDAY, daysBetween, dayLong, dayMarks, dayShort, ghostMarks, SMART, smartCounts, smartFilter, effDay, dayTasks, doneHeading, DUE_REMIND_HOUR, DUE_REMINDS, dueLabel, dueWhen, isOverdue, isRemind, monthEnd, overdueText, newListId, newSubId, newTaskId, normReminds, normSubs, orderOf, nextMonday, pendingToday, remDay, REMIND_DAYS_MAX, remindAt, remindOffset, remindsOf, remindState, remindText, REMINDS_MAX, TASK_LIM, TASK_REMINDS, subStats, taskGroups, taskWhen, tomorrowOf } from './tasks.js?v=3.3';
 import { makeWheel } from './wheel.js?v=3.3';
 
@@ -29,7 +29,6 @@ const IC_REP = '<svg class="ic" viewBox="0 0 24 24"><path d="M17 2.5l3 3-3 3M4 1
 const IC_BELL = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 21h4"/></svg>';
 const IC_DOWN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
 const IC_MOVE = '<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4M10 13.5l2.5 2-2.5 2"/></svg>';
-const IC_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>';
 
 const monthOf = k => { const d = parseKey(k); return new Date(d.getFullYear(), d.getMonth(), 1); };
 
@@ -247,11 +246,24 @@ function paintWeekHead(today) {
   vp.addEventListener('pointerup', end);
   vp.addEventListener('pointercancel', end);
 }
+const dotColors = m => [...new Set((m?.l || []).map(id => findList(id)?.color || ''))].slice(0, 3);
+const dotB = (c, cls = '') => `<b${cls ? ` class="${cls}"` : ''}${c ? ` style="background:${esc(c)}"` : ''}></b>`;
+function openDots(m, k, today) {
+  if (!m.n) return '';
+  const cs = dotColors(m), late = m.late && k < today ? 'late' : '';
+  if (cs.length > 1) return cs.map((c, i) => dotB(i || !late ? c : '', i ? '' : late)).join('');
+  return dotB(late ? '' : cs[0], late) + (m.n > 1 ? dotB(cs[0]) : '');
+}
+function weekDot(m) {
+  if (!m?.n) return '<i class="no"></i>';
+  const cs = dotColors(m);
+  return cs.length > 1 ? `<i class="multi">${cs.map(c => dotB(c)).join('')}</i>` : `<i${cs[0] ? ` style="background:${esc(cs[0])}"` : ''}></i>`;
+}
 function weekHTML(all, today, wk = tv.wkOff) {
   const marks = dayMarks(all, today), base = wkStart(today, wk);
   return Array.from({ length: 7 }, (_, i) => {
     const d = addDays(base, i), k = key(d), m = marks[k];
-    return `<button type="button" class="t-wd${k === today ? ' now' : ''}${tv.wday === k ? ' sel' : ''}" data-wk="${k}" aria-pressed="${tv.wday === k}" aria-label="${esc(dayLong(k, today))}${m?.n ? `, задач: ${m.n}` : ''}"><small>${WEEKDAYS[weekday(d)]}</small><b>${d.getDate()}</b><i${m?.n ? '' : ' class="no"'}></i></button>`;
+    return `<button type="button" class="t-wd${k === today ? ' now' : ''}${tv.wday === k ? ' sel' : ''}" data-wk="${k}" aria-pressed="${tv.wday === k}" aria-label="${esc(dayLong(k, today))}${m?.n ? `, задач: ${m.n}` : ''}"><small>${WEEKDAYS[weekday(d)]}</small><b>${d.getDate()}</b>${weekDot(m)}</button>`;
   }).join('');
 }
 function groupHTML(title, list, mode, today, extra = {}) {
@@ -317,7 +329,7 @@ export function calHTML(month, sel, marks, today = todayKey()) {
   const first = new Date(month.getFullYear(), month.getMonth(), 1), start = addDays(first, -weekday(first));
   const cells = Array.from({ length: 42 }, (_, i) => {
     const d = addDays(start, i), k = key(d), m = marks[k], own = d.getMonth() === month.getMonth();
-    const dots = m?.g && !m.n && !m.due && !m.d ? '<i class="t-dots"><b class="t-ghost"></b></i>' : m ? `<i class="t-dots">${m.n ? `<b class="${m.late && k < today ? 'late' : ''}"></b>` : ''}${m.n > 1 ? '<b></b>' : ''}${k === today && m.late ? '<b class="late"></b>' : ''}${m.due ? '<b class="t-ring"></b>' : ''}${m.d ? '<b class="done"></b>' : ''}</i>` : '';
+    const dots = m?.g && !m.n && !m.due && !m.d ? '<i class="t-dots"><b class="t-ghost"></b></i>' : m ? `<i class="t-dots">${openDots(m, k, today)}${k === today && m.late ? '<b class="late"></b>' : ''}${m.due ? '<b class="t-ring"></b>' : ''}${m.d ? '<b class="done"></b>' : ''}</i>` : '';
     return `<button type="button" class="t-d${own ? '' : ' out'}${k === today ? ' now' : ''}${k === sel ? ' pick' : ''}" data-k="${k}" aria-pressed="${k === sel}" aria-label="${esc(dayLong(k, today))}"><span>${d.getDate()}</span>${dots}</button>`;
   }).join('');
   const wd = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(x => `<small>${x}</small>`).join('');
@@ -1382,7 +1394,7 @@ $('tLists').onclick = e => {
   if (sl) return taskHooks.select?.(sl.dataset.sl);
   const b = e.target.closest('[data-l]');
   if (!b) return;
-  if (b.dataset.l === '+') return openListsSheet();
+  if (b.dataset.l === '+') return listsOf().length ? openListsSheet() : openListEditor();
   if (b.dataset.l === 'shared') return taskHooks.open?.();
   tv.shared = null;
   setPref(TASKS_LIST_STORE, b.dataset.l);
@@ -1394,32 +1406,36 @@ function touchLists() {
   renderTasks();
   paintListsSheet();
 }
-const listRow = (l, i, n) => `<div class="tl-row" data-id="${esc(l.id)}">
-    <button type="button" class="tl-color" style="--c:${esc(l.color)}" aria-label="Сменить цвет списка"></button>
-    <input type="text" class="tl-name" maxlength="${TASK_LIM.listName}" autocomplete="off" aria-label="Название списка">
-    <button type="button" class="ghost icon-btn tl-up" aria-label="Поднять список"${i ? '' : ' disabled'}>${IC_UP}</button>
-    <button type="button" class="ghost icon-btn tl-down" aria-label="Опустить список"${i < n - 1 ? '' : ' disabled'}>${IC_DOWN}</button>
-    <button type="button" class="ghost icon-btn tl-del" aria-label="Удалить список">${IC.trash.replace(' del-ic', '')}</button>
+const COLOR_NAMES = ['синий', 'голубой', 'бирюзовый', 'зелёный', 'жёлтый', 'оранжевый', 'красный', 'розовый', 'фиолетовый', 'серый'];
+const listOpen = id => visTasks().filter(t => !t.done && !t.archivedAt && (id ? t.list === id : !t.list)).length;
+const listInitial = l => esc(([...l.name.trim()][0] || '•').toUpperCase());
+const listRow = l => {
+  const n = listOpen(l.id);
+  return `<div class="tl-row" data-id="${esc(l.id)}">
+    <button type="button" class="tl-open" aria-label="Изменить список «${esc(l.name)}»${n ? `, открытых задач: ${n}` : ''}"><span class="tl-dot" style="--c:${esc(l.color)}">${listInitial(l)}</span><span class="tl-nm">${esc(l.name)}</span><span class="tl-cnt">${n || ''}</span>${IC_FWD}</button>
+    <button type="button" class="ghost icon-btn tl-drag" aria-label="Переместить список «${esc(l.name)}»" title="Перетащите, чтобы изменить порядок (или стрелки ↑ ↓)">${IC.grip}</button>
   </div>`;
-function paintListsSheet(focusId) {
-  if (!$('tListsOv')._shown && !focusId) return;
-  const lists = listsOf(), box = $('tlItems');
-  box.innerHTML = lists.length ? lists.map((l, i) => listRow(l, i, lists.length)).join('') : '<p class="tl-empty">Списков пока нет. Задачи без списка лежат во «Входящих».</p>';
-  box.querySelectorAll('.tl-name').forEach((inp, i) => { inp.value = lists[i].name; });
-  $('tlAdd').hidden = lists.length >= TASK_LIM.lists;
-  if (focusId) box.querySelector(`.tl-row[data-id="${CSS.escape(focusId)}"] .tl-name`)?.focus();
+};
+function paintListsSheet() {
+  if (!$('tListsOv')._shown) return;
+  const lists = listsOf(), full = lists.length >= TASK_LIM.lists;
+  $('tlInbox').textContent = listOpen('') || '';
+  $('tlItems').innerHTML = lists.length ? lists.map(listRow).join('') : '<p class="tl-empty">Списков пока нет</p>';
+  $('tlAdd').disabled = full;
+  $('tlHint').textContent = full ? `Это предел — ${TASK_LIM.lists} списков. Удалите ненужный, чтобы добавить новый.` : `Касание открывает список. Порядок меняется перетаскиванием за ⋮⋮. До ${TASK_LIM.lists} списков.`;
 }
 export function openListsSheet() {
   openOverlay($('tListsOv'));
   paintListsSheet();
 }
-export function addList(name = 'Новый список') {
+export function addList(name = 'Новый список', color) {
   const lists = listsOf();
   if (lists.length >= TASK_LIM.lists) { toast(`Можно завести до ${TASK_LIM.lists} списков`); return null; }
-  const used = new Set(lists.map(l => l.color)), l = { id: newListId(), name: name.trim().slice(0, TASK_LIM.listName) || 'Список', color: COLORS.find(c => !used.has(c)) || COLORS[0], updatedAt: Date.now() };
+  const used = new Set(lists.map(l => l.color)), l = { id: newListId(), name: name.trim().slice(0, TASK_LIM.listName) || 'Список', color: COLORS.includes(color) ? color : COLORS.find(c => !used.has(c)) || COLORS[0], updatedAt: Date.now() };
   lists.push(l);
   save();
   renderTasks();
+  paintListsSheet();
   return l;
 }
 export async function deleteList(id) {
@@ -1437,43 +1453,155 @@ export async function deleteList(id) {
   touchLists();
   return true;
 }
-$('tlAdd').onclick = () => {
-  const l = addList();
-  if (l) paintListsSheet(l.id);
-};
-$('tlItems').addEventListener('input', e => {
-  const inp = e.target.closest('.tl-name'), l = inp && findList(inp.closest('.tl-row').dataset.id);
-  if (!l) return;
-  l.name = inp.value.slice(0, TASK_LIM.listName);
-  l.updatedAt = Date.now();
-});
-$('tlItems').addEventListener('change', e => {
-  const inp = e.target.closest('.tl-name'), l = inp && findList(inp.closest('.tl-row').dataset.id);
-  if (!l) return;
-  l.name = inp.value.trim().slice(0, TASK_LIM.listName) || 'Список';
-  inp.value = l.name;
-  save();
-  renderTasks();
-});
+function moveList(id, to) {
+  const lists = listsOf(), i = lists.findIndex(l => l.id === id);
+  if (i < 0 || to < 0 || to >= lists.length || to === i) return false;
+  lists.splice(to, 0, lists.splice(i, 1)[0]);
+  touchLists();
+  return true;
+}
+$('tlAdd').onclick = () => openListEditor();
 $('tlItems').addEventListener('click', e => {
-  const row = e.target.closest('.tl-row'), l = row && findList(row.dataset.id);
-  if (!l) return;
-  const lists = listsOf(), i = lists.indexOf(l);
-  if (e.target.closest('.tl-color')) {
-    l.color = COLORS[(COLORS.indexOf(l.color) + 1) % COLORS.length];
-    l.updatedAt = Date.now();
-    touchLists();
-    $('tlItems').querySelector(`.tl-row[data-id="${CSS.escape(l.id)}"] .tl-color`)?.focus();
-  } else if (e.target.closest('.tl-up') && i > 0) {
-    lists.splice(i - 1, 0, lists.splice(i, 1)[0]);
-    touchLists();
-    $('tlItems').querySelector(`.tl-row[data-id="${CSS.escape(l.id)}"] .tl-up:not(:disabled), .tl-row[data-id="${CSS.escape(l.id)}"] .tl-down`)?.focus();
-  } else if (e.target.closest('.tl-down') && i < lists.length - 1) {
-    lists.splice(i + 1, 0, lists.splice(i, 1)[0]);
-    touchLists();
-    $('tlItems').querySelector(`.tl-row[data-id="${CSS.escape(l.id)}"] .tl-down:not(:disabled), .tl-row[data-id="${CSS.escape(l.id)}"] .tl-up`)?.focus();
-  } else if (e.target.closest('.tl-del')) deleteList(l.id);
+  const b = e.target.closest('.tl-open');
+  if (b) openListEditor(b.closest('.tl-row').dataset.id);
 });
+{
+  const box = $('tlItems');
+  let d = null;
+  box.addEventListener('pointerdown', e => {
+    const h = e.target.closest('.tl-drag');
+    if (!h || e.button !== 0) return;
+    e.preventDefault();
+    const row = h.closest('.tl-row'), rows = [...box.querySelectorAll('.tl-row')];
+    d = { id: e.pointerId, row, rows, y0: e.clientY, from: rows.indexOf(row), to: rows.indexOf(row), h: row.offsetHeight };
+    try { h.setPointerCapture(e.pointerId); } catch {}
+    row.classList.add('dragging');
+  });
+  box.addEventListener('pointermove', e => {
+    if (!d || e.pointerId !== d.id) return;
+    const dy = e.clientY - d.y0;
+    d.to = Math.max(0, Math.min(d.rows.length - 1, d.from + Math.round(dy / d.h)));
+    d.row.style.transform = `translateY(${dy}px)`;
+    d.rows.forEach((r, i) => {
+      if (r === d.row) return;
+      const s = d.from < d.to && i > d.from && i <= d.to ? -d.h : d.from > d.to && i < d.from && i >= d.to ? d.h : 0;
+      r.style.transform = s ? `translateY(${s}px)` : '';
+    });
+  });
+  const end = e => {
+    if (!d || e.pointerId !== d.id) return;
+    const { row, rows, from, to } = d;
+    d = null;
+    for (const r of rows) r.style.transform = '';
+    row.classList.remove('dragging');
+    if (from !== to) moveList(row.dataset.id, to);
+  };
+  box.addEventListener('pointerup', end);
+  box.addEventListener('pointercancel', end);
+  box.addEventListener('keydown', e => {
+    const h = e.target.closest('.tl-drag');
+    if (!h || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    const id = h.closest('.tl-row').dataset.id, i = listsOf().findIndex(l => l.id === id);
+    if (moveList(id, i + (e.key === 'ArrowUp' ? -1 : 1))) box.querySelector(`.tl-row[data-id="${CSS.escape(id)}"] .tl-drag`)?.focus();
+  });
+}
+
+const tle = { id: null, color: COLORS[0] };
+$('tleColors').innerHTML = COLORS.map((c, i) => `<button type="button" role="radio" class="tle-c" data-c="${c}" style="--c:${c}" aria-label="${COLOR_NAMES[i] || c}" aria-checked="false"></button>`).join('');
+function paintListEditor() {
+  const name = $('tleName').value;
+  $('tlePv').style.setProperty('--c', tle.color);
+  $('tleCount').textContent = `${[...name].length} / ${TASK_LIM.listName}`;
+  $('tleOk').disabled = !name.trim();
+  for (const b of $('tleColors').children) { const on = b.dataset.c === tle.color; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; }
+}
+export function openListEditor(id = null) {
+  const l = id ? findList(id) : null;
+  if (!l && listsOf().length >= TASK_LIM.lists) { toast(`Можно завести до ${TASK_LIM.lists} списков`); return; }
+  const used = new Set(listsOf().map(x => x.color));
+  tle.id = l ? l.id : null;
+  tle.color = l ? l.color : COLORS.find(c => !used.has(c)) || COLORS[0];
+  $('tleTitle').textContent = l ? 'Список' : 'Новый список';
+  $('tleName').value = l ? l.name : '';
+  $('tleHint').hidden = !!l;
+  $('tleDelWrap').hidden = !l;
+  if (l) {
+    const n = tasksOf().filter(t => t.list === l.id).length;
+    $('tleDelNote').textContent = n ? `${n} ${plural(n, 'задача', 'задачи', 'задач')} ${plural(n, 'перейдёт', 'перейдут', 'перейдут')} во «Входящие»` : 'В списке нет задач';
+  }
+  paintListEditor();
+  openOverlay($('tListOv'));
+  if (!l) $('tleName').focus();
+}
+$('tleName').addEventListener('input', paintListEditor);
+$('tleColors').addEventListener('click', e => {
+  const b = e.target.closest('[data-c]');
+  if (!b) return;
+  tle.color = b.dataset.c;
+  paintListEditor();
+});
+$('tleColors').addEventListener('keydown', e => {
+  const k = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (!k) return;
+  e.preventDefault();
+  tle.color = COLORS[(COLORS.indexOf(tle.color) + k + COLORS.length) % COLORS.length];
+  paintListEditor();
+  $('tleColors').querySelector(`[data-c="${tle.color}"]`)?.focus();
+});
+$('tleForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('tleName').value.trim().slice(0, TASK_LIM.listName);
+  if (!name) return;
+  const l = tle.id && findList(tle.id);
+  if (l) {
+    l.name = name;
+    l.color = tle.color;
+    l.updatedAt = Date.now();
+    save();
+    renderTasks();
+  } else if (!addList(name, tle.color)) return;
+  closeOverlay($('tListOv'));
+  paintListsSheet();
+});
+$('tleDel').onclick = async () => {
+  if (await deleteList(tle.id)) closeOverlay($('tListOv'));
+};
+function listMenu(b) {
+  const id = b.dataset.l;
+  openMenu(b, [
+    { icon: IC.edit, label: 'Изменить список', run: () => openListEditor(id) },
+    { icon: IC_LIST, label: 'Все списки', run: openListsSheet },
+    '-',
+    { icon: IC.trash, label: 'Удалить список', danger: true, run: () => deleteList(id) },
+  ]);
+}
+{
+  const box = $('tLists');
+  let lp = null, fired = false;
+  const cancel = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
+  const listChip = t => { const b = t.closest?.('.t-chip[data-l]'); return b && findList(b.dataset.l) ? b : null; };
+  box.addEventListener('pointerdown', e => {
+    const b = listChip(e.target);
+    fired = false;
+    if (!b || e.button !== 0) return;
+    cancel();
+    lp = { id: e.pointerId, x: e.clientX, y: e.clientY, b };
+    lp.t = setTimeout(() => { const c = lp.b; lp = null; fired = true; navigator.vibrate?.(15); listMenu(c); }, LONG_MS);
+  });
+  box.addEventListener('pointermove', e => { if (lp && e.pointerId === lp.id && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > LONG_SLOP) cancel(); });
+  for (const t of ['pointerup', 'pointercancel', 'scroll']) box.addEventListener(t, cancel);
+  box.addEventListener('contextmenu', e => {
+    const b = listChip(e.target);
+    if (!b) return;
+    e.preventDefault();
+    if (fired) return;
+    cancel();
+    fired = true;
+    listMenu(b);
+  });
+  box.addEventListener('click', e => { if (fired) { fired = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+}
 
 const ORDER_MS = 500;
 export const canOrder = t => !!t && !t.done && !t.archivedAt && !t.time && !t.important;

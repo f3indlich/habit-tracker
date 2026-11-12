@@ -162,7 +162,7 @@ const view0 = document.body.dataset.view;
 
 {
   const g = n => guessIcon(n);
-  const cases = { 'Пить воду': 'water', 'Вода 2 литра': 'water', 'Чтение': 'book', 'Читать 20 страниц': 'book', 'Зарядка': 'dumbbell', 'Спорт': 'dumbbell', 'Тренировка в зале': 'dumbbell',
+  const cases = { 'Пить воду': 'water', 'Вода 2 литра': 'water', 'Чтение': 'book', 'Читать 20 страниц': 'book', 'Зарядка': 'dumbbell', 'Подъём на носочки': 'calfraise', 'Махи гирей': 'kettlebell', 'Гантели на бицепс': 'curl', 'Спорт': 'dumbbell', 'Тренировка в зале': 'dumbbell',
     'Не курить': 'nosmoke', 'Без алкоголя': 'noalcohol', 'Не пить алкоголь': 'noalcohol', 'Медитация': 'meditate', 'Лечь спать до 23': 'sleep', 'Бег': 'run', 'Утренняя пробежка': 'run',
     'Почистить зубы': 'tooth', 'Витамины': 'pill', 'Английский': 'books', 'Подтягивания': 'pullup', 'Прогулка': 'walk', 'Без соцсетей': 'phoneoff', 'Полить цветы': 'wateringcan' };
   const wrong = Object.entries(cases).filter(([n, k]) => g(n) !== k).map(([n, k]) => [n, g(n), k]);

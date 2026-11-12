@@ -99,7 +99,7 @@ function cardHTML(g, today) {
       ${side}
     </div>
     ${barHTML(p)}
-    <div class="g-foot"><span>${esc(progressText(g, state, today))}</span><span class="g-st" data-tone="${STATUS_TONE[st]}">${esc(statusText(g, state, today))}</span></div>
+    <div class="g-foot"><span>${esc(progressText(g, state, today))}</span>${st === 'overdue' ? '' : `<span class="g-st" data-tone="${STATUS_TONE[st]}">${esc(statusText(g, state, today))}</span>`}</div>
     ${acts}
   </article>`;
 }

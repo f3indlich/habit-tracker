@@ -234,6 +234,7 @@ export function dayMarks(tasks = [], today = todayKey()) {
     if (t.done || t.archivedAt || !e) continue;
     const m = out[e] ??= { n: 0, late: false };
     m.n++;
+    if (!(m.l ??= []).includes(t.list || '')) m.l.push(t.list || '');
     if (e < today) m.late = true;
     if (t.due) (out[t.due] ??= { n: 0, late: false }).due = true;
     if (isOverdue(t, today)) (out[today] ??= { n: 0, late: false }).late = true;

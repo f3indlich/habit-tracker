@@ -549,7 +549,7 @@
       <button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="h-tags" id="hTags"></div>
-    <div class="card h-trio" id="hTrio"></div>
+    <div class="h-trio" id="hTrio"></div>
     <div class="seg" id="hTabs">
       <button data-r="week">Неделя</button>
       <button data-r="month">Месяц</button>
@@ -1162,11 +1162,32 @@
 
 <div class="overlay" id="tListsOv" hidden>
   <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="tlTitle">
-    <div class="sheet-head"><h2 id="tlTitle">Списки</h2></div>
-    <div id="tlItems" class="tl-items"></div>
-    <button type="button" class="t-subadd" id="tlAdd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Новый список</span></button>
-    <p class="field-hint">До 12 списков. Задачи без списка лежат во «Входящих». Главный экран и значок вкладки показывают задачи из всех списков.</p>
-    <div class="form-actions t-form-actions"><button type="button" class="primary" data-close>Готово</button></div>
+    <div class="sheet-head"><h2 id="tlTitle">Списки</h2><button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="card tl-box"><div class="tl-row tl-inbox"><span class="tl-dot tl-dot-in"><svg class="ic" viewBox="0 0 24 24"><path d="M3.5 13.5h5l1.5 2.5h4l1.5-2.5h5M6 5.5h12l2.5 8V19h-17v-5.5z"/></svg></span><span class="tl-nm">Входящие</span><span class="tl-cnt" id="tlInbox"></span></div></div>
+    <h3 class="sec-h tl-cap">Мои списки</h3>
+    <div class="card tl-box"><div id="tlItems" class="tl-items"></div><button type="button" class="tl-add" id="tlAdd"><span class="tl-dot tl-dot-add"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span>Новый список</span></button></div>
+    <p class="field-hint tl-hint" id="tlHint"></p>
+  </div>
+</div>
+
+<div class="overlay" id="tListOv" hidden>
+  <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="tleTitle">
+    <div class="sheet-head">
+      <h2 id="tleTitle">Новый список</h2>
+      <button class="ghost icon-btn" data-close title="Отменить"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button type="submit" form="tleForm" class="ghost icon-btn sheet-ok" id="tleOk" aria-label="Сохранить список"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+    </div>
+    <form class="form tle-form" id="tleForm" novalidate>
+      <div class="card tle-pv">
+        <span class="tle-big" id="tlePv" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6.5h10M9 12h10M9 17.5h10M4.8 6.5h.1M4.8 12h.1M4.8 17.5h.1"/></svg></span>
+        <input type="text" id="tleName" maxlength="24" enterkeyhint="done" autocomplete="off" placeholder="Название списка" aria-label="Название списка">
+        <span class="tle-count" id="tleCount" aria-hidden="true"></span>
+      </div>
+      <h3 class="sec-h tl-cap" id="tleColorsLbl">Цвет</h3>
+      <div class="card tle-colors" id="tleColors" role="radiogroup" aria-labelledby="tleColorsLbl"></div>
+      <p class="field-hint tle-hint" id="tleHint">Цвет списка виден в чипах, у задач и точками в календаре.</p>
+      <div class="tle-del" id="tleDelWrap" hidden><button type="button" class="tle-del-btn" id="tleDel">Удалить список</button><p class="field-hint" id="tleDelNote"></p></div>
+    </form>
   </div>
 </div>
 

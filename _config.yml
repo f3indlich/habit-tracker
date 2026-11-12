@@ -11,3 +11,6 @@ exclude:
   - supabase-delete-account.sql
   - supabase-size-limit.sql
   - docs
+  - tech-docs
+  - supabase-shared-lists.sql
+  - supabase-shared-lists-test.sql

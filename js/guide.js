@@ -14,7 +14,7 @@ export let obStep = 0;
 
 const IC_PLUS = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>';
 const DEMO = [
-  { id: 'demo-z', name: 'Зарядка', icon: 'strong', color: '#22c55e', time: 'morning' },
+  { id: 'demo-z', name: 'Зарядка', icon: 'dumbbell', color: '#22c55e', time: 'morning' },
   { id: 'demo-c', name: 'Чтение', icon: 'books', color: '#f97316', time: 'evening' },
   { id: 'demo-v', name: 'Вода', icon: 'water', color: '#3b82f6', target: 8, unit: 'стаканов' },
 ];

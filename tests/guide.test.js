@@ -10,10 +10,12 @@ const fresh = async (habits, log = {}) => {
   state = normalize({ habits, log }); viewDate = new Date();
   cards.forEach(e => e.remove()); cards.clear(); render(); scrollTo(0, 0); await wait(400);
 };
-const touch = (el, type, x, y) => {
-  const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: y });
-  el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === 'touchend' ? [] : [t], changedTouches: [t] }));
+const touchEv = (type, el, x, y) => {
+  const list = t => type === 'touchend' ? [] : [t];
+  try { const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: y }); return new TouchEvent(type, { bubbles: true, cancelable: true, touches: list(t), targetTouches: list(t), changedTouches: [t] }); }
+  catch { const t = { identifier: 1, target: el, clientX: x, clientY: y, pageX: x + scrollX, pageY: y + scrollY, screenX: x, screenY: y }, e = new Event(type, { bubbles: true, cancelable: true }); Object.defineProperties(e, { touches: { value: list(t) }, targetTouches: { value: list(t) }, changedTouches: { value: [t] } }); return e; }
 };
+const touch = (el, type, x, y) => el.dispatchEvent(touchEv(type, el, x, y));
 const swipe = async (el, from, to) => {
   touch(el, 'touchstart', ...from);
   for (let i = 1; i <= 6; i++) { await wait(12); touch(el, 'touchmove', from[0] + (to[0] - from[0]) * i / 6, from[1] + (to[1] - from[1]) * i / 6); }

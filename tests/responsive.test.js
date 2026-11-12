@@ -64,6 +64,17 @@ for (const [w, h] of sizes) {
   ok(`${tag}: check and menu do not overlap`, inside(check, ck.right - 3, ck.top + ck.height / 2) && inside(more, mr.left + 2, mr.top + mr.height / 2));
   scrollTo(0, 0); await wait(100);
 
+  if (w < 768) {
+    const bad = [];
+    for (const [btn, ov] of [['tasksBtn', 'tasksOv'], ['goalsBtn', 'goalsOv'], ['setBtn', 'setOv']]) {
+      $(btn).click(); await wait(450);
+      const h2 = $(ov).querySelector('.page-head h2'), hr = h2.getBoundingClientRect();
+      const hit = [...$(ov).querySelectorAll('.page-head button')].filter(b => b.offsetParent && !h2.contains(b)).some(b => { const r = b.getBoundingClientRect(); return r.left < hr.left + Math.min(h2.scrollWidth, hr.width) - 1 && r.right > hr.left && r.top < hr.bottom && r.bottom > hr.top; });
+      if (h2.scrollWidth > h2.clientWidth + 1 || hit) bad.push([ov, h2.scrollWidth, h2.clientWidth, hit]);
+    }
+    $('todayBtn').click(); await wait(400);
+    ok(`${tag}: page titles fit and do not run under header buttons`, !bad.length, bad);
+  }
   for (const [name, open, ov] of [['settings', () => $('setBtn').click(), 'setOv'], ['summary', () => openSummary(), 'sumOv'], ['form', () => openForm(), 'formOv']]) {
     open(); await wait(600);
     const o = $(ov), sheet = o.querySelector('.sheet'), sr = sheet.getBoundingClientRect();
@@ -81,7 +92,7 @@ for (const [w, h] of sizes) {
 }
 ok('code field has one-time-code', $('acctCode').autocomplete === 'one-time-code');
 ok('email field has autocomplete email', $('acctEmailInput').autocomplete === 'email' && parseFloat(getComputedStyle($('acctEmailInput')).fontSize) >= 16);
-ok('enter key hints set', $('helpQ').enterKeyHint === 'search' && $('acctEmailInput').enterKeyHint === 'send' && $('name').enterKeyHint === 'done');
+ok('enter key hints set', $('helpQ').getAttribute('enterkeyhint') === 'search' && $('acctEmailInput').getAttribute('enterkeyhint') === 'send' && $('name').getAttribute('enterkeyhint') === 'done');
 ok('viewport resizes with keyboard', document.querySelector('meta[name=viewport]').content.includes('interactive-widget=resizes-content'));
 ok('viewport height helper', viewportHeight() > 0 && viewportHeight() <= innerHeight + 1);
 

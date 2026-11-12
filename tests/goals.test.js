@@ -205,7 +205,7 @@ setState(normalize(state)); save(); renderGoals(); await wait(100);
 const order = [...$('gItems').querySelectorAll('.g-card')].map(c => c.dataset.id);
 ok('active sorted by due', order.join() === 'late,soon,later', order);
 const lateCard = $('gItems').querySelector('[data-id=late]');
-ok('overdue card: danger status and actions', lateCard.dataset.st === 'overdue' && lateCard.textContent.includes('Срок прошёл') && lateCard.textContent.includes('просрочено на') && lateCard.querySelectorAll('.g-acts button').length === 3);
+ok('overdue card: danger status and actions', lateCard.dataset.st === 'overdue' && !lateCard.querySelector('.g-foot .g-st') && lateCard.textContent.includes('просрочено на') && lateCard.querySelector('.g-open').getAttribute('aria-label').includes('Срок прошёл') && lateCard.querySelectorAll('.g-acts button').length === 3);
 lateCard.querySelector('[data-act=close]').click(); await wait(150);
 ok('close without completing', findGoal('late').status === 'closed' && findGoal('late').closedAt === TD);
 const soonCard = $('gItems').querySelector('[data-id=soon] .g-open');

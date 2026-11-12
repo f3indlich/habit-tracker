@@ -30,6 +30,7 @@ export function compareRange(range, ds, anchor, today = parseKey(todayKey())) {
   else label = live ? `за тот же срок ${a.getFullYear()} года` : `в ${a.getFullYear()} году`;
   return { cur: elapsed, prev: prevDs, label, live };
 }
+export const keepRange = s => s.replace(/(\S)–(\S)/g, '$1\u2060–\u2060$2');
 export function compareText(d, label) {
   if (d == null) return '';
   if (d > 0) return `▲ на ${d}% лучше, чем ${label}`;
@@ -65,7 +66,7 @@ function fitTitle() {
   const h2 = $('hName'), head = h2.closest('.sheet-head');
   head.classList.remove('h-wrap');
   h2.style.hyphens = 'manual'; h2.style.overflowWrap = 'normal';
-  const lh = parseFloat(getComputedStyle(h2).lineHeight) || 24;
+  const lh = parseFloat(getComputedStyle(h2).lineHeight) || 20;
   const wrap = h2.clientWidth && (h2.scrollWidth > h2.clientWidth + 1 || h2.offsetHeight > lh * 2 + 2);
   h2.style.hyphens = h2.style.overflowWrap = '';
   head.classList.toggle('h-wrap', !!wrap);
@@ -214,7 +215,7 @@ function paintPeriod(h = findHabit(hist.id), ds = periodDays()) {
   const today = todayKey(), p = planStats(h, state, key(ds[0]), key(ds[ds.length - 1]), today), quant = isQuant(h);
   const cmp = compareRange(hist.range, ds, hist.anchor), cur = cmp.cur.length ? planStats(h, state, key(cmp.cur[0]), key(cmp.cur[cmp.cur.length - 1]), today) : p;
   const prev = planStats(h, state, key(cmp.prev[0]), key(cmp.prev[cmp.prev.length - 1]), today);
-  const d = cur.plannedDays && prev.plannedDays >= 3 ? daysPct(cur) - daysPct(prev) : null, cmpTxt = compareText(d, cmp.label);
+  const d = cur.plannedDays && prev.plannedDays >= 3 ? daysPct(cur) - daysPct(prev) : null, cmpTxt = keepRange(compareText(d, cmp.label));
   if (quant) { $('hRing').hidden = true; renderPlan(h, p, cmpTxt, d); }
   else { $('hPlan').hidden = true; $('hPlan').innerHTML = ''; paintRing(h, ds, p, cmpTxt, d); }
   $('hDaysTitle').textContent = hist.range === 'year' ? 'По месяцам' : 'По дням';
@@ -239,15 +240,15 @@ function paintRing(h, ds, p, cmpTxt, d) {
 function weekBars(h, ds) {
   const today = todayKey(), tg = targetOn(h, ds[ds.length - 1]);
   const vals = ds.map(x => key(x) <= today && inLife(h, key(x)) ? count(h, x) : null);
-  const max = Math.max(tg, ...vals.map(v => v || 0)) || 1, H = 112, y = v => Math.round(v / max * H);
+  const n = tg || 1, H = 90, base = Math.round(H * .6), y = v => Math.round(v <= n ? v / n * base : base + (H - base) * (1 - n / v));
   const cols = ds.map((x, i) => {
     const v = vals[i], st = dayState(h, x), t = targetOn(h, x);
     const lab = `<span class="hb-lb${isToday(x) ? ' now' : ''}"><b>${x.getDate()}</b>${WEEKDAYS[weekday(x)]}</span>`;
     if (v == null) return `<div class="hb-c${dayAttrs(h, x)}><i class="hb-bar fut"></i>${lab}</div>`;
-    const cls = st === 'skip' ? 'skip' : st === 'off' && !v ? 'off' : v >= t ? 'full' : 'part', over = v > t ? y(v - t) : 0;
+    const cls = st === 'skip' ? 'skip' : st === 'off' && !v ? 'off' : v >= t ? 'full' : 'part', over = v > t ? Math.max(3, y(v) - y(t)) : 0;
     return `<div class="hb-c${dayAttrs(h, x)}><i class="hb-bar ${cls}" style="height:${Math.max(v ? 4 : 0, y(v))}px">${over ? `<span class="hb-ov" style="height:${over}px"></span>` : ''}${v ? `<em>${fmtNum(v)}</em>` : ''}</i>${lab}</div>`;
   }).join('');
-  return `<div class="hb" style="--h:${H}px"><span class="hb-norm" style="bottom:calc(var(--lb) + ${y(tg)}px)"><span>норма ${fmtNum(tg)}</span></span>${cols}</div>${legend(h)}`;
+  return `<div class="hb" style="--h:${H}px"><span class="hb-norm" style="bottom:calc(var(--lb) + ${y(tg)}px)"></span>${cols}</div>${legend(h, tg)}`;
 }
 
 function chartFoot(h, ds, p) {
@@ -319,13 +320,13 @@ export function renderPlan(h, p = planStats(h, state, period().start, period().e
   else {
     const pct = Math.round(p.fact / p.plan * 100), bar = planBar(p);
     const markPos = bar.mark == null ? '' : bar.mark > 85 ? 'end' : bar.mark < 15 ? 'start' : 'mid';
-    body = `<div class="plan-l1">Сделано <b>${fmtNum(p.fact)}</b> из ${fmtNum(p.plan)}${unit} <span class="plan-pct">${pct}%</span></div>
+    body = `<div class="plan-l1${String(Math.round(Math.max(p.fact, p.plan))).length > 5 ? ' long' : ''}"><span class="plan-l1t">Сделано <b>${fmtNum(p.fact)}</b> из ${fmtNum(p.plan)}${unit}</span> <span class="plan-pct">${pct}%</span></div>
     <div class="plan-meter${bar.mark == null ? '' : ' marked'}">
       ${bar.mark == null ? '' : `<span class="pb-mark pb-${markPos}" style="left:${bar.mark}%"><span>план ${fmtNum(p.plan)}</span></span>`}
       <div class="plan-bar" role="img" aria-label="Сделано ${fmtNum(p.fact)} из ${fmtNum(p.plan)}${p.over ? `, из них сверх нормы ${fmtNum(p.over)}` : ''}"><i class="pb-in" style="width:${bar.inW}%"></i>${p.over ? `<i class="pb-over" style="width:${bar.overW}%"></i>` : ''}</div>
     </div>
     ${p.over ? `<div class="plan-lg"><span><i class="pb-dot pb-in"></i>в норму ${fmtNum(p.credited)}</span><span><i class="pb-dot pb-over"></i>сверх нормы ${fmtNum(p.over)}</span></div>` : ''}
-    <div class="plan-l2">Норма выполнена в <b>${p.daysDone} из ${p.plannedDays}</b> ${plural(p.plannedDays, 'дня', 'дней', 'дней')}${pct >= 100 && p.daysDone < p.plannedDays ? ', но не во все дни' : ''}${cmpTxt ? ` <span class="s-cmp${d < 0 ? ' down' : ''}">${cmpTxt}</span>` : ''}</div>
+    <div class="plan-l2"><span>Норма выполнена в <b>${p.daysDone} из ${p.plannedDays}</b> ${plural(p.plannedDays, 'дня', 'дней', 'дней')}${pct >= 100 && p.daysDone < p.plannedDays ? ', но не во все дни' : ''}</span>${cmpTxt ? ` <span class="s-cmp${d < 0 ? ' down' : ''}">${cmpTxt}</span>` : ''}</div>
     ${unitChanged(h, period().start) ? '<p class="plan-note">Единица измерения менялась — старые и новые числа могут не совпадать по смыслу</p>' : ''}`;
   }
   const per = period().start, was = box._id === h.id && box._per === per ? numOf(box.querySelector('.plan-l1 b')?.textContent ?? '') : null;
@@ -514,7 +515,9 @@ $('hChart').addEventListener('keydown', e => {
   openDay(hist.id, parseKey(t.dataset.day));
 });
 
-export const legend = h => isQuant(h) ? `<div class="cal-legend">
+export const legend = (h, norm) => norm != null ? `<div class="cal-legend hb-legend">
+  <span><i class="lg norm"></i>норма ${fmtNum(norm)}</span><span><i class="lg sq full"></i>есть</span><span><i class="lg sq part"></i>часть</span><span><i class="lg sq over"></i>сверх</span>
+</div>` : isQuant(h) ? `<div class="cal-legend">
   <span><i class="lg full"></i>норма есть</span><span><i class="lg part"></i>часть нормы</span><span><i class="lg over"></i>сверх нормы</span>
 </div>` : `<div class="cal-legend">
   <span><i class="lg full"></i>сделано</span><span><i class="lg miss"></i>не сделано</span><span><i class="lg skip"></i>пропуск</span>
@@ -543,6 +546,8 @@ export function bindTips(box) {
     tip.classList.add('show');
     const tr = tip.getBoundingClientRect(), vw = document.documentElement.clientWidth, fix = tr.left < 8 ? 8 - tr.left : tr.right > vw - 8 ? vw - 8 - tr.right : 0;
     if (fix) tip.style.left = parseFloat(tip.style.left) + fix + 'px';
+    tip.classList.toggle('noarrow', t.classList.contains('hit'));
+    tip.style.setProperty('--ax', Math.round(r.left + r.width / 2 - tip.getBoundingClientRect().left) + 'px');
   };
   const at = (x, y) => document.elementFromPoint(x, y)?.closest?.('[data-tip]');
   const inside = t => t && box.contains(t);

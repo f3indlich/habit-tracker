@@ -176,7 +176,8 @@ ok('previous week: legend', $('hPlan').querySelector('.plan-lg').textContent.rep
 ok('previous week: no plan mark when under plan', !$('hPlan').querySelector('.pb-mark'));
 ok('bar is an image with label', $('hPlan').querySelector('.plan-bar').getAttribute('role') === 'img' && $('hPlan').querySelector('.plan-bar').getAttribute('aria-label') === 'Сделано 375 из 600, из них сверх нормы 45');
 ok('week bars show each day amount', [...$('hChart').querySelectorAll('.hb-bar em')].map(e => e.textContent).join() === '20,45,65,140,105' && $('hChart').querySelectorAll('.hb-ov').length === 2);
-ok('week bars mark the norm and the days below it', $('hChart').querySelector('.hb-norm').textContent === 'норма 100' && $('hChart').querySelectorAll('.hb-bar.part').length === 4, $('hChart').querySelectorAll('.hb-bar.part').length);
+{ const bars = [...$('hChart').querySelectorAll('.hb-bar')], bh = t => bars.find(b => b.querySelector('em')?.textContent === t)?.offsetHeight, hs = bars.map(b => b.offsetHeight), b140 = bh('140'), b105 = bh('105'); ok('above the norm the scale is squeezed: bigger is taller, never over the top', b140 > b105 && b105 > 54 && Math.max(...hs) <= 90, hs); }
+ok('week bars mark the norm and the days below it', !!$('hChart').querySelector('.hb-norm') && $('hChart').querySelector('.hb-legend').textContent.includes('норма 100') && $('hChart').querySelectorAll('.hb-bar.part').length === 4, $('hChart').querySelectorAll('.hb-bar.part').length);
 ok('week foot names the average and the best day', /^В среднем 62,5 в день/.test($('hChart').querySelector('.h-foot').textContent) && $('hChart').querySelector('.h-foot').textContent.includes('Лучший день: пт, 140'), $('hChart').querySelector('.h-foot')?.textContent);
 ok('label, calendar and block share one period', same() && blockMatches());
 shiftPeriod(-1); await wait(800);

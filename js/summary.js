@@ -5,7 +5,7 @@ import { closeMenu, menuEl, openOverlay, openPopover, periodSlider } from './ui.
 import { queueTips } from './tips.js?v=3.3';
 import { visibleHabits } from './privacy.js?v=3.3';
 import { overWeekday } from './plan.js?v=3.3';
-import { bindTips, compareRange, compareText, MONTHS_IN, openHistory, paintBack, rangeDays, rangeLabel, shiftAnchor, startAnchor, WD_NOM } from './history.js?v=3.3';
+import { bindTips, compareRange, compareText, keepRange, MONTHS_IN, openHistory, paintBack, rangeDays, rangeLabel, shiftAnchor, startAnchor, WD_NOM } from './history.js?v=3.3';
 export { compareRange, compareText, MONTHS_IN, WD_NOM };
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];
@@ -209,10 +209,10 @@ function drawSummary() {
   $('sRing').innerHTML = `<svg viewBox="0 0 36 36" aria-hidden="true"><circle class="s-tr" cx="18" cy="18" r="${R}"/>${pct ? `<circle class="s-pr" cx="18" cy="18" r="${R}" stroke-dasharray="${(pct / 100 * C).toFixed(2)} ${C.toFixed(2)}"/>` : ''}</svg><b>${pct}%</b>`;
   $('sSum').textContent = cur.total ? marksText(cur.done, cur.total) : JUST_STARTED[range];
   $('sSub').textContent = heroSub(range, cmp.live, cmp.cur.length, cur.open);
-  $('sCmp').textContent = compareText(d, cmp.label);
+  $('sCmp').textContent = keepRange(compareText(d, cmp.label));
   $('sCmp').hidden = d == null;
   $('sCmp').className = `s-cmp${d < 0 ? ' down' : ''}`;
-  put($('sKinds'), kindWords(cur).map(([k, n, w]) => `<div class="s-k ${k}"><b>${n}</b><small><i></i>${w}</small></div>`).join(''));
+  put($('sKinds'), kindWords(cur).map(([k, n, w]) => `<span class="s-k ${k}"><i></i><b>${n}</b> ${w}</span>`).join(''));
 
   $('sDaysTitle').textContent = range === 'year' ? 'По месяцам' : 'По дням';
   put($('sDays'), daysHTML(range, ds, today) + (range === 'year' ? '' : '<div class="tip"></div>'));
