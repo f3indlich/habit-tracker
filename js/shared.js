@@ -1,7 +1,7 @@
 import { NS } from './core.js?v=1.1a';
 import { cloud } from './sync.js?v=1.1a';
 
-export const SHARED_LIM = { lists: 10, members: 5, items: 500, text: 200, name: 40, who: 24, batch: 50, section: 24, hints: 200 };
+export const SHARED_LIM = { lists: 10, members: 5, items: 500, text: 200, name: 40, who: 24, batch: 50, paste: 300, section: 24, hints: 200 };
 export const SHARED_CACHE = NS + '-shared-cache', SHARED_OK = NS + '-shared-ok', SHARED_QUEUE = NS + '-shared-queue', SHARED_SEEN = NS + '-shared-seen';
 export const SHARED_CACHE_MAX = 600000;
 export const SHARED_POLL_MS = 30000;
@@ -14,7 +14,9 @@ const isTime = v => typeof v === 'string' && v.length <= 40 && !isNaN(Date.parse
 const str = (v, n) => typeof v === 'string' ? v.trim().slice(0, n) : '';
 const newId = () => crypto.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16));
 
-export const sh = { uid: null, lists: [], members: {}, items: {}, at: 0, offline: false, error: '', loaded: false, v2: null, live: false, queue: [] };
+export const sh = { uid: null, lists: [], members: {}, items: {}, at: 0, offline: false, error: '', loaded: false, v2: null, v3: null, live: false, queue: [] };
+const KINDS = new Set(['item', 'h1', 'h2']);
+const num = v => typeof v === 'number' && Number.isFinite(v) ? v : null;
 
 export function normShared(raw) {
   const out = { lists: [], members: {}, items: {}, at: 0 };
@@ -40,17 +42,19 @@ export function normShared(raw) {
       updated_at: isTime(x.updated_at) ? x.updated_at : null,
       assigned_to: isId(x.assigned_to) ? x.assigned_to : null, assigned_by: isId(x.assigned_by) ? x.assigned_by : null,
       section: str(x.section, SHARED_LIM.section) || null,
+      kind: KINDS.has(x.kind) ? x.kind : 'item', pos: num(x.pos), indent: x.indent === 1 && (!x.kind || x.kind === 'item') ? 1 : 0,
     }));
   }
   out.at = Number.isFinite(raw.at) ? raw.at : 0;
   return out;
 }
 
-const OPS = new Set(['add', 'done', 'edit', 'del', 'assign', 'section']);
+const OPS = new Set(['add', 'done', 'edit', 'del', 'assign', 'section', 'move', 'indent']);
 export function normQueue(raw) {
   return (Array.isArray(raw) ? raw : []).filter(o => isObj(o) && OPS.has(o.op) && isId(o.id) && isId(o.list)).slice(0, 300).map(o => ({
     op: o.op, id: o.id, list: o.list, text: str(o.text, SHARED_LIM.text) || undefined, done: o.done === true,
     to: isId(o.to) ? o.to : null, section: str(o.section, SHARED_LIM.section) || null, at: isTime(o.at) ? o.at : new Date().toISOString(),
+    kind: KINDS.has(o.kind) ? o.kind : 'item', pos: num(o.pos), indent: o.indent === 1 ? 1 : 0,
   }));
 }
 
@@ -81,7 +85,7 @@ function saveQueue() {
 }
 export function clearShared() {
   stopLive();
-  Object.assign(sh, { uid: null, lists: [], members: {}, items: {}, at: 0, offline: false, error: '', loaded: false, v2: null, queue: [] });
+  Object.assign(sh, { uid: null, lists: [], members: {}, items: {}, at: 0, offline: false, error: '', loaded: false, v2: null, v3: null, queue: [] });
   try { localStorage.removeItem(SHARED_CACHE); localStorage.removeItem(SHARED_QUEUE); } catch {}
 }
 
@@ -94,7 +98,7 @@ const ERRORS = {
   too_many_lists: `Можно участвовать не больше чем в ${SHARED_LIM.lists} общих списках`,
   shared_list_full: `В списке уже ${SHARED_LIM.members} участников`,
   full: `В списке уже ${SHARED_LIM.members} участников`,
-  shared_items_full: `В списке может быть до ${SHARED_LIM.items} записей`,
+  shared_items_full: `В списке может быть до ${SHARED_LIM.items} строк`,
   shared_bad_name: `Название — от 1 до ${SHARED_LIM.name} знаков`,
   shared_bad_display_name: `Имя — от 1 до ${SHARED_LIM.who} знаков`,
   bad_display_name: `Имя — от 1 до ${SHARED_LIM.who} знаков`,
@@ -133,13 +137,23 @@ async function selectV(table, cols, cols2, ids, order) {
   }
   return check(await sb.from(table).select(cols).in('list_id', ids).order(order)) || [];
 }
+const ITEM_COLS3 = ITEM_COLS2 + ', kind, pos, indent';
+async function selectItems(ids) {
+  if (sh.v3 !== false && sh.v2 !== false) {
+    const r = await cloud.sb.from('shared_items').select(ITEM_COLS3).in('list_id', ids).order('created_at');
+    if (!r.error) { sh.v2 = sh.v3 = true; return r.data || []; }
+    if (!noColumn(r.error)) return check(r);
+    sh.v3 = false;
+  }
+  return selectV('shared_items', ITEM_COLS, ITEM_COLS2, ids, 'created_at');
+}
 
 let fetchGen = 0;
 export async function fetchShared() {
   if (!sharedReady()) return false;
   const gen = ++fetchGen;
   const uid = myId();
-  if (sh.uid !== uid) { Object.assign(sh, { lists: [], members: {}, items: {}, at: 0, loaded: false, v2: null }); sh.uid = uid; loadSharedCache(uid); }
+  if (sh.uid !== uid) { Object.assign(sh, { lists: [], members: {}, items: {}, at: 0, loaded: false, v2: null, v3: null }); sh.uid = uid; loadSharedCache(uid); }
   if (!navigator.onLine) { sh.offline = true; return false; }
   try {
     if (sh.queue.length) await flushQueue();
@@ -147,7 +161,7 @@ export async function fetchShared() {
     const ids = lists.map(l => l.id), members = {}, items = {};
     if (ids.length) {
       for (const m of await selectV('shared_members', 'list_id, user_id, display_name', 'list_id, user_id, display_name, notify', ids, 'joined_at')) (members[m.list_id] ??= []).push(m);
-      for (const x of await selectV('shared_items', ITEM_COLS, ITEM_COLS2, ids, 'created_at')) (items[x.list_id] ??= []).push(x);
+      for (const x of await selectItems(ids)) (items[x.list_id] ??= []).push(x);
     }
     if (gen !== fetchGen) return false;
     Object.assign(sh, normShared({ lists, members, items, at: Date.now() }), { uid, offline: false, error: '', loaded: true });
@@ -165,7 +179,7 @@ export const pendingIds = () => new Set(sh.queue.map(o => o.id));
 function applyOp(o) {
   const list = sh.items[o.list] ||= [], i = list.findIndex(x => x.id === o.id), x = list[i];
   if (o.op === 'add') {
-    if (!x) list.push({ id: o.id, text: o.text, done: false, done_by: null, done_at: null, created_by: sh.uid, created_at: o.at, updated_at: o.at, assigned_to: o.to, assigned_by: o.to ? sh.uid : null, section: o.section });
+    if (!x) list.push({ id: o.id, text: o.text, done: o.done === true && (o.kind || 'item') === 'item', done_by: o.done ? sh.uid : null, done_at: o.done ? o.at : null, created_by: sh.uid, created_at: o.at, updated_at: o.at, assigned_to: o.to, assigned_by: o.to ? sh.uid : null, section: o.section, kind: o.kind || 'item', pos: o.pos ?? null, indent: (o.kind || 'item') === 'item' ? o.indent || 0 : 0 });
     return;
   }
   if (!x) return;
@@ -174,16 +188,24 @@ function applyOp(o) {
   else if (o.op === 'del') list.splice(i, 1);
   else if (o.op === 'assign') Object.assign(x, { assigned_to: o.to, assigned_by: o.to ? sh.uid : null });
   else if (o.op === 'section') x.section = o.section;
+  else if (o.op === 'move') { if (o.pos != null) x.pos = o.pos; if (x.kind === 'item' && o.indent != null) x.indent = o.indent; }
+  else if (o.op === 'indent') { if (x.kind === 'item') x.indent = o.indent; }
 }
 function applyQueue() { for (const o of sh.queue) applyOp(o); }
 
+function addRow(o) {
+  const row = { id: o.id, list_id: o.list, text: o.text, created_by: sh.uid };
+  if (sh.v2) { if (o.to) row.assigned_to = o.to; if (o.section) row.section = o.section; }
+  if (sh.v3) { row.kind = o.kind || 'item'; if (o.pos != null) row.pos = o.pos; row.indent = o.indent || 0; if (o.done) row.done = true; }
+  return row;
+}
 async function sendOp(o) {
   const t = cloud.sb.from('shared_items');
   if (o.op === 'add') {
-    const row = { id: o.id, list_id: o.list, text: o.text, created_by: sh.uid };
-    if (sh.v2) { if (o.to) row.assigned_to = o.to; if (o.section) row.section = o.section; }
-    return check(await t.insert([row]));
+    return check(await t.insert([addRow(o)]));
   }
+  if (o.op === 'move') return sh.v3 ? check(await t.update({ pos: o.pos, indent: o.indent }).eq('id', o.id)) : null;
+  if (o.op === 'indent') return sh.v3 ? check(await t.update({ indent: o.indent }).eq('id', o.id)) : null;
   if (o.op === 'done') return check(await t.update({ done: o.done }).eq('id', o.id));
   if (o.op === 'edit') return check(await t.update({ text: o.text }).eq('id', o.id));
   if (o.op === 'del') return check(await t.delete().eq('id', o.id));
@@ -227,6 +249,28 @@ export async function sharedOp(o) {
   return { id: op.id, queued: true };
 }
 
+export async function addSharedRows(listId, rows, afterId = null) {
+  if (!sharedReady()) throw new SharedError('unknown');
+  const list = rows.map(r => {
+    const kind = KINDS.has(r.kind) ? r.kind : 'item';
+    return { kind, text: String(r.text || '').trim().slice(0, SHARED_LIM.text), done: r.done === true && kind === 'item', indent: r.indent === 1 && kind === 'item' ? 1 : 0 };
+  }).filter(r => r.text).slice(0, SHARED_LIM.paste);
+  if (!list.length) return { n: 0, last: null };
+  if ((sh.items[listId]?.length || 0) + list.length > SHARED_LIM.items) throw new SharedError('shared_items_full');
+  const pos = slots(listId, afterId, list.length), at = new Date().toISOString();
+  const ops = list.map((r, i) => ({ op: 'add', id: newId(), list: listId, text: r.text, kind: r.kind, done: r.done, indent: r.indent, pos: pos[i], to: null, section: null, at }));
+  for (const o of ops) applyOp(o);
+  const res = { n: ops.length, last: ops[ops.length - 1].id };
+  if (navigator.onLine && !sh.queue.length) {
+    try { check(await cloud.sb.from('shared_items').insert(ops.map(addRow))); saveSharedCache(); return res; }
+    catch (e) { if (e?.code !== 'offline') { await fetchShared(); throw e; } }
+  }
+  sh.queue.push(...ops);
+  saveQueue();
+  saveSharedCache();
+  sh.offline = !navigator.onLine || sh.offline;
+  return res;
+}
 export async function addSharedItems(listId, texts, extra = {}) {
   const list = texts.map(t => String(t).trim().slice(0, SHARED_LIM.text)).filter(Boolean).slice(0, SHARED_LIM.batch);
   if ((sh.items[listId]?.length || 0) + list.length > SHARED_LIM.items) throw new SharedError('shared_items_full');
@@ -238,6 +282,64 @@ export const editSharedItem = (listId, id, text) => sharedOp({ op: 'edit', list:
 export const deleteSharedItem = (listId, id) => sharedOp({ op: 'del', list: listId, id });
 export const assignSharedItem = (listId, id, to) => sharedOp({ op: 'assign', list: listId, id, to });
 export const setSharedSection = (listId, id, section) => sharedOp({ op: 'section', list: listId, id, section });
+export const setSharedIndent = (listId, id, indent) => sharedOp({ op: 'indent', list: listId, id, indent: indent ? 1 : 0 });
+export const moveSharedItem = (listId, id, pos, indent) => sharedOp({ op: 'move', list: listId, id, pos, indent: indent == null ? (sh.items[listId] || []).find(x => x.id === id)?.indent || 0 : indent ? 1 : 0 });
+
+export const isHead = x => x.kind === 'h1' || x.kind === 'h2';
+export const ordered = listId => [...(sh.items[listId] || [])].sort((a, b) => (a.pos ?? Infinity) - (b.pos ?? Infinity) || String(a.created_at || '').localeCompare(String(b.created_at || '')));
+export function sectionEnd(listId, headId) {
+  const rows = ordered(listId), i = rows.findIndex(x => x.id === headId);
+  if (i < 0) return null;
+  const top = rows[i].kind === 'h1';
+  let j = i;
+  while (j + 1 < rows.length && !(rows[j + 1].kind === 'h1' || (!top && rows[j + 1].kind === 'h2'))) j++;
+  return rows[j].id;
+}
+export function sectionRows(listId, headId) {
+  const rows = ordered(listId), i = rows.findIndex(x => x.id === headId), end = rows.findIndex(x => x.id === sectionEnd(listId, headId));
+  return i < 0 ? [] : rows.slice(i + 1, end + 1).filter(x => !isHead(x));
+}
+export function slots(listId, afterId, n) {
+  const rows = ordered(listId).filter(x => x.pos != null);
+  let i = afterId ? rows.findIndex(x => x.id === afterId) : rows.length - 1;
+  if (afterId && i < 0) i = rows.length - 1;
+  const lo = i >= 0 ? rows[i].pos : 0, hi = i + 1 < rows.length ? rows[i + 1].pos : lo + 1024 * (n + 1);
+  const step = (hi - lo) / (n + 1);
+  return Array.from({ length: n }, (_, k) => lo + step * (k + 1));
+}
+
+const MARK_OPEN = /^(?:[-*•–—▪◦○◯□☐]|\[\s?\]|\d{1,3}[.)])\s*/u;
+const MARK_DONE = /^(?:[✓✔☑✅☒]|\[[xхXХ]\])\s*/u;
+const PICTO = /^\p{Extended_Pictographic}/u;
+export function parseOutline(text) {
+  const out = [];
+  for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
+    if (!raw.trim()) continue;
+    const lead = /^(\t| {2,}| {2,})/.test(raw);
+    let t = raw.trim(), kind = 'item', done = false, marked = false;
+    if (MARK_DONE.test(t)) { t = t.replace(MARK_DONE, ''); done = true; marked = true; }
+    else if (MARK_OPEN.test(t)) { t = t.replace(MARK_OPEN, ''); marked = true; }
+    t = t.trim();
+    if (!t) continue;
+    if (!marked && !lead) {
+      const letters = t.replace(/[^\p{L}]/gu, '');
+      if (/[:：]$/.test(t)) { kind = 'h2'; t = t.replace(/\s*[:：]$/, ''); }
+      else if (PICTO.test(t) || (letters.length >= 3 && letters === letters.toUpperCase() && letters !== letters.toLowerCase())) kind = 'h1';
+    }
+    out.push({ kind, text: t.slice(0, SHARED_LIM.text), done: kind === 'item' && done, indent: kind === 'item' && lead ? 1 : 0 });
+  }
+  if (out.length && !out.some(r => r.kind === 'item')) out.forEach(r => { r.kind = 'item'; });
+  return out;
+}
+export function outlineText(listId) {
+  const list = findShared(listId), lines = list ? [list.name, ''] : [];
+  ordered(listId).forEach((x, i) => {
+    if (x.kind === 'h1') { if (i) lines.push(''); lines.push(x.text); }
+    else if (x.kind === 'h2') lines.push(x.text.replace(/[:：]$/, '') + ':');
+    else lines.push(`${x.indent ? '    ' : ''}${x.done ? '✓' : '☐'} ${x.text}`);
+  });
+  return lines.join('\n').trim();
+}
 export async function setSharedNotify(listId, on) {
   guard();
   check(await cloud.sb.from('shared_members').update({ notify: !!on }).eq('list_id', listId).eq('user_id', myId()));
@@ -299,32 +401,65 @@ export function seedSeen() {
 }
 
 const HINTS = NS + '-shared-hints';
-export function rememberHint(listId, text) {
+const hintKey = t => String(t).trim().toLowerCase().replace(/ё/g, 'е');
+function hintList(listId) {
   try {
-    const all = JSON.parse(localStorage.getItem(HINTS) || '{}'), key = text.trim().toLowerCase();
-    const list = (Array.isArray(all[listId]) ? all[listId] : []).filter(t => t.toLowerCase() !== key);
-    list.unshift(text.trim());
-    all[listId] = list.slice(0, SHARED_LIM.hints);
-    localStorage.setItem(HINTS, JSON.stringify(all));
-  } catch {}
+    const all = JSON.parse(localStorage.getItem(HINTS) || '{}');
+    return (Array.isArray(all[listId]) ? all[listId] : []).map(h => typeof h === 'string' ? { t: h, n: 1 } : isObj(h) && typeof h.t === 'string' ? { t: h.t, n: Number.isFinite(h.n) ? h.n : 1, s: typeof h.s === 'string' ? h.s : undefined } : null).filter(Boolean);
+  } catch { return []; }
 }
+function saveHints(listId, list) {
+  try { const all = JSON.parse(localStorage.getItem(HINTS) || '{}'); all[listId] = list.slice(0, SHARED_LIM.hints); localStorage.setItem(HINTS, JSON.stringify(all)); } catch {}
+}
+export function rememberHint(listId, text, section) {
+  const key = hintKey(text), list = hintList(listId), old = list.find(h => hintKey(h.t) === key);
+  const h = { t: String(text).trim(), n: (old?.n || 0) + 1 };
+  const sec = section === undefined ? old?.s : section || undefined;
+  if (sec) h.s = sec;
+  saveHints(listId, [h, ...list.filter(x => x !== old)]);
+}
+export const hintCount = (listId, text) => hintList(listId).find(h => hintKey(h.t) === hintKey(text))?.n || 0;
+export const lastSection = (listId, text) => hintList(listId).find(h => hintKey(h.t) === hintKey(text))?.s || null;
 export function sharedHints(listId, q) {
-  const f = q.trim().toLowerCase().replace(/ё/g, 'е');
+  const f = hintKey(q);
   if (f.length < 2) return [];
-  let stored = [];
-  try { const all = JSON.parse(localStorage.getItem(HINTS) || '{}'); stored = Array.isArray(all[listId]) ? all[listId] : []; } catch {}
-  const open = new Set((sh.items[listId] || []).filter(x => !x.done).map(x => x.text.toLowerCase()));
-  const pool = [...stored, ...(sh.items[listId] || []).filter(x => x.done).map(x => x.text)];
+  const stored = hintList(listId).map(h => h.t);
+  const open = new Set((sh.items[listId] || []).filter(x => !x.done && !isHead(x)).map(x => hintKey(x.text)));
+  const pool = [...stored, ...(sh.items[listId] || []).filter(x => x.done && !isHead(x)).map(x => x.text)];
   const out = [];
   for (const t of pool) {
-    const k = t.toLowerCase();
-    if (!k.replace(/ё/g, 'е').startsWith(f) || k === f || open.has(k) || out.some(x => x.toLowerCase() === k)) continue;
+    const k = hintKey(t);
+    if (!k.startsWith(f) || k === f || open.has(k) || out.some(x => hintKey(x) === k)) continue;
     out.push(t);
     if (out.length >= 4) break;
   }
   return out;
 }
-export const findOpenDup = (listId, text) => (sh.items[listId] || []).find(x => !x.done && x.text.trim().toLowerCase().replace(/ё/g, 'е') === String(text).trim().toLowerCase().replace(/ё/g, 'е')) || null;
+const QTY_UNIT = '(?:кг|г|гр|л|мл|шт|штук[аи]?|бух\\S*|голов\\S*|пач\\S*|бан\\S*|уп\\S*|бут\\S*|десят\\S*|пуч\\S*|кор\\S*|рул\\S*|пак\\S*)';
+const QTY_DASH = new RegExp(`^(.+?)\\s*[—–]\\s*((?:по\\s+)?[\\d.,]+(?:\\s*[-–]\\s*[\\d.,]+)?\\s*${QTY_UNIT}?\\.?|(?:по\\s+)?[\\d.,]+.{0,12})$`, 'iu');
+const QTY_HYPHEN = new RegExp(`^(.+?)\\s+-\\s+((?:по\\s+)?[\\d.,]+(?:\\s*[-–]\\s*[\\d.,]+)?\\s*${QTY_UNIT}?\\.?)$`, 'iu');
+const QTY_PAREN = /^(.+?)\s*\(([^()]*\d[^()]*)\)$/u;
+export function splitQty(text) {
+  const t = String(text || '').trim();
+  for (const re of [QTY_PAREN, QTY_DASH, QTY_HYPHEN]) {
+    const m = re.exec(t);
+    if (m && m[1].trim() && m[2].trim().length <= 20) return { name: m[1].trim(), qty: m[2].trim() };
+  }
+  return { name: t, qty: '' };
+}
+const SEC_ICONS = [
+  [/молоч|молок|сыр|кефир|йогурт/, '🥛'], [/мяс|рыб|птиц|колбас/, '🥩'], [/круп|макарон|рис|греч/, '🌾'], [/бакал|специ|приправ|соус/, '🧂'],
+  [/овощ|фрукт|зелен|ягод/, '🥬'], [/хлеб|выпеч|тест/, '🍞'], [/напит|вод|сок|чай|кофе/, '🥤'], [/сладк|конфет|десерт|шокол/, '🍫'],
+  [/замороз|мороз/, '🧊'], [/быт|хими|уборк|стир/, '🧴'], [/гигиен|аптек|лекар|космет/, '💊'], [/яйц/, '🥚'], [/дет/, '🧸'], [/живот|корм|кош|собак/, '🐾'],
+];
+const LEAD_EMOJI = /^(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic})*)\s*/u;
+export function sectionLook(name) {
+  const t = String(name || '').trim(), m = LEAD_EMOJI.exec(t);
+  if (m) return { icon: m[1], title: t.slice(m[0].length) || t };
+  const k = t.toLowerCase();
+  return { icon: SEC_ICONS.find(([re]) => re.test(k))?.[1] || '🛒', title: t };
+}
+export const findOpenDup = (listId, text) => (sh.items[listId] || []).find(x => !x.done && !isHead(x) && x.text.trim().toLowerCase().replace(/ё/g, 'е') === String(text).trim().toLowerCase().replace(/ё/g, 'е')) || null;
 
 export const normCode = c => String(c ?? '').toUpperCase().replace(/[\s-]/g, '');
 export const showCode = c => { const n = normCode(c); return n.length > 5 ? n.slice(0, 5) + '-' + n.slice(5) : n; };
@@ -336,5 +471,5 @@ export const myNotify = listId => !!sh.members[listId]?.find(m => m.user_id === 
 
 export function sharedExport(uid = myId()) {
   if (!uid || !sh.lists.length || sh.uid !== uid) return null;
-  return sh.lists.map(l => ({ name: l.name, items: (sh.items[l.id] || []).filter(x => x.created_by === uid).map(x => ({ text: x.text, done: x.done, created_at: x.created_at })) }));
+  return sh.lists.map(l => ({ name: l.name, items: (sh.items[l.id] || []).filter(x => x.created_by === uid).map(x => ({ text: x.text, kind: x.kind || 'item', done: x.done, created_at: x.created_at })) }));
 }

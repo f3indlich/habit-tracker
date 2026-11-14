@@ -12,15 +12,15 @@ const U1 = '11111111-1111-4111-8111-111111111111', U2 = '22222222-2222-4222-8222
 let n = 0;
 const uuid = () => { n++; return `aaaaaaaa-aaaa-4aaa-8aaa-${String(n).padStart(12, '0')}`; };
 
-const db = { lists: [], members: [], items: [], invites: [] }, net = { down: false, calls: 0 };
+const db = { lists: [], members: [], items: [], invites: [], v3: false }, net = { down: false, calls: 0 };
 const TABLES = { shared_lists: 'lists', shared_members: 'members', shared_items: 'items' };
 let me = U1;
 const member = (list, uid = me) => db.members.some(m => m.list_id === list && m.user_id === uid);
 const visibleRows = t => db[TABLES[t]].filter(r => member(t === 'shared_lists' ? r.id : r.list_id));
 function Q(t) {
-  const f = []; let op = 'select', payload = null;
+  const f = []; let op = 'select', payload = null, cols = '';
   const b = {
-    select() { return b; }, order() { return b; },
+    select(c) { cols = c || ''; return b; }, order() { return b; },
     in(c, v) { f.push(r => v.includes(r[c])); return b; }, eq(c, v) { f.push(r => r[c] === v); return b; },
     insert(rows) { op = 'insert'; payload = rows; return b; }, update(p) { op = 'update'; payload = p; return b; }, delete() { op = 'delete'; return b; },
     then(res, rej) { return Promise.resolve().then(run).then(res, rej); },
@@ -29,6 +29,7 @@ function Q(t) {
     net.calls++;
     if (net.down) return { data: null, error: { message: 'Failed to fetch' } };
     const rows = visibleRows(t).filter(r => f.every(fn => fn(r)));
+    if (op === 'select' && t === 'shared_items' && !db.v3 && /kind/.test(cols)) return { data: null, error: { message: 'column shared_items.kind does not exist' } };
     if (op === 'select') return { data: rows.map(r => ({ ...r })), error: null };
     if (op === 'insert') {
       for (const r of payload) {
@@ -174,20 +175,20 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   ok('checklist view replaces the task list', visible($('tShared')) && !visible($('tTabs')) && !visible($('tListView')) && visible($('shText')));
   $('fab').click();
   ok('plus in a shared list focuses the add field', document.activeElement === $('shText') && !$('tFormOv')._shown);
-  ok('add field is 16 px with a label', parseFloat(getComputedStyle($('shText')).fontSize) >= 16 && $('shText').getAttribute('aria-label') === 'Добавить запись');
+  ok('add field is 16 px with a label', parseFloat(getComputedStyle($('shText')).fontSize) >= 16 && $('shText').getAttribute('aria-label') === 'Добавить пункт');
   $('shText').value = 'Молоко'; $('shAdd').requestSubmit();
   await until(() => items().includes('Молоко'));
   ok('enter adds an item and clears the field', $('shText').value === '' && db.items.length === 1 && db.items[0].created_by === U1);
   ok('item shows who added it', $('shItems').querySelector('.sh-meta').textContent.startsWith('Добавил(а) Аня'));
   paste($('shText'), '- Хлеб\n• Яйца\n1. ' + X + '\n\n');
   await until(() => $('confirm')._shown);
-  ok('pasted list asks first', $('cTitle').textContent === 'Добавить 3 записи?' && $('cText').textContent.startsWith('• Хлеб\n• Яйца') && !$('confirm').querySelector('img'));
+  ok('pasted list asks first', $('cTitle').textContent === 'Добавить 3 пункта?' && $('cText').textContent.startsWith('• Хлеб\n• Яйца') && !$('confirm').querySelector('img'));
   $('cYes').click();
   await until(() => db.items.length === 4 && items().length === 4);
   ok('batch adds all lines without markers', items().join('|') === 'Молоко|Хлеб|Яйца|' + X && !document.querySelector('#shItems img'));
   paste($('shText'), Array.from({ length: 60 }, (_, i) => 'п' + i).join('\n'));
   await until(() => $('confirm')._shown);
-  ok('no more than 50 at once', $('cTitle').textContent === 'Добавить 50 записей?');
+  ok('no more than 50 at once', $('cTitle').textContent === 'Добавить 50 пунктов?');
   $('cNo').click(); await until(() => $('confirm').hidden);
   const row = id => $('shItems').querySelector(`.sh-row[data-sid="${id}"]`);
   const milk = db.items[0].id;
@@ -197,7 +198,7 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   $('shItems').querySelector('[data-sact=done-toggle]').click();
   ok('done items fold and open', !!row(milk) && row(milk).querySelector('.sh-meta').textContent.includes('Отметил(а) Аня'));
   row(db.items[1].id).querySelector('.sh-main').click(); await until(() => $('shEditOv')._shown);
-  ok('tap opens editing', $('shEditText').value === 'Хлеб' && $('shEditTitle').textContent === 'Запись');
+  ok('tap opens editing', $('shEditText').value === 'Хлеб' && $('shEditTitle').textContent === 'Пункт');
   $('shEditText').value = 'Хлеб чёрный'; $('shEditForm').requestSubmit();
   await until(() => items().includes('Хлеб чёрный'));
   ok('edit saves for everyone', db.items[1].text === 'Хлеб чёрный');
@@ -209,7 +210,7 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   ok('swipe shows one delete capsule', row(egg).querySelectorAll('.t-acts button').length === 1 && del.textContent === 'Удалить' && del.getBoundingClientRect().height >= 44);
   await until(() => !$('shItems')._swiped);
   del.click();
-  ok('delete hides the item at once and offers undo', !items().includes('Яйца') && db.items.some(x => x.id === egg) && $('toastText').textContent === 'Запись удалена' && !$('toastUndo').hidden);
+  ok('delete hides the item at once and offers undo', !items().includes('Яйца') && db.items.some(x => x.id === egg) && $('toastText').textContent === 'Пункт удалён' && !$('toastUndo').hidden);
   $('toastUndo').click();
   ok('undo brings it back without touching the server', items().includes('Яйца') && db.items.some(x => x.id === egg));
   await new Promise(r => setTimeout(r, 5400));
@@ -376,6 +377,171 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   ok('list is deleted', !$('tLists').querySelector('[data-sl]'), [db.lists.length, sh.lists.length, $('toastText').textContent, $('tLists').innerHTML.length]);
   closeOverlay($('shOv')); await until(() => $('shOv').hidden);
   await closePage();
+}
+
+{
+  ok('outline: emoji or capitals make a group, colon a section', JSON.stringify(parseOutline('🛒 Запас\nЗАКУПКА №1\nКрупы:\nРис').map(r => r.kind)) === '["h1","h1","h2","item"]' && parseOutline('Крупы:\nРис')[0].text === 'Крупы');
+  ok('outline: a section can start with an emoji', parseOutline('🥛 Молочное:\nСметана')[0].kind === 'h2' && parseOutline('🥛 Молочное:\nСметана')[0].text === '🥛 Молочное');
+  const marks = parseOutline('- Хлеб\n• Яйца\n1. Сыр\n☐ Чай\n[ ] Кофе\n✓ Соль\n[x] Мука\n\tПаприка\n    Куркума');
+  ok('outline: bullets and boxes are items, ticks are done, indent is a subitem', marks.length === 9 && marks.every(r => r.kind === 'item') && marks.filter(r => r.done).map(r => r.text).join() === 'Соль,Мука' && marks.filter(r => r.indent).map(r => r.text).join() === 'Паприка,Куркума' && marks[0].text === 'Хлеб' && marks[2].text === 'Сыр', marks);
+  ok('outline: a list of only headings stays a list of items', parseOutline('ХЛЕБ\nМОЛОКО').every(r => r.kind === 'item'));
+  ok('outline: a marked line is never a heading', parseOutline('- ХЛЕБ\n- Крупы:').every(r => r.kind === 'item'));
+  const q = t => { const r = splitQty(t); return r.name + '|' + r.qty; };
+  ok('quantity is split off the name', q('Рис (1 кг)') === 'Рис|1 кг' && q('Свинина (для соусов) — 2 кг') === 'Свинина (для соусов)|2 кг' && q('Перец — по 0.5-1 кг') === 'Перец|по 0.5-1 кг' && q('Хлеб - 1-2 буханки') === 'Хлеб|1-2 буханки', [q('Рис (1 кг)'), q('Хлеб - 1-2 буханки')]);
+  ok('names with numbers or hyphens are left alone', q('Кока-кола') === 'Кока-кола|' && q('Молоко 2,5%') === 'Молоко 2,5%|' && q('Соль') === 'Соль|');
+  ok('section icon comes from its emoji or its meaning', sectionLook('🥦 Зелень').icon === '🥦' && sectionLook('🥦 Зелень').title === 'Зелень' && sectionLook('Молочные продукты').icon === '🥛' && sectionLook('Мясо и рыба').icon === '🥩' && sectionLook('Разное').icon === '🛒');
+
+  db.lists.push({ id: uuid(), name: 'Заметки', owner_id: U1, created_at: new Date().toISOString() });
+  const lid = db.lists[db.lists.length - 1].id;
+  db.members.push({ list_id: lid, user_id: U1, display_name: 'Аня', notify: false }, { list_id: lid, user_id: U2, display_name: 'Боря', notify: false });
+  db.v3 = true;
+  signIn(U1); clearShared(); onLine(true);
+  await openPage();
+  await refresh();
+  $('tLists').querySelector(`[data-sl="${lid}"]`).click();
+  await until(() => !$('tShared').hidden && sh.v3 === true);
+  ok('new server: kind picker under the add field', visible($('shKinds')) && $('shText').placeholder === 'Добавить пункт' && [...$('shKinds').querySelectorAll('[data-kind]')].map(b => b.textContent).join() === 'Пункт,Раздел,Группа');
+  ok('empty list invites to paste a ready list', $('shItems').textContent.includes('вставьте готовый список') && !$('shItems').querySelector('.sh-hero'));
+  $('shKinds').querySelector('[data-kind=h2]').click();
+  ok('picking a section changes the field', $('shText').placeholder === 'Новый раздел' && document.activeElement === $('shText'));
+  $('shText').value = 'Крупы'; $('shAdd').requestSubmit();
+  await until(() => db.items.some(x => x.text === 'Крупы'));
+  const by = t => db.items.find(x => x.text === t);
+  ok('section is saved as a section with a place', by('Крупы').kind === 'h2' && typeof by('Крупы').pos === 'number');
+  ok('after a section the field goes back to items, into that section', $('shText').placeholder === 'Добавить пункт' && visible($('shTarget')) && $('shTarget').textContent.includes('Попадёт в раздел') && $('shTarget').textContent.includes('Крупы'));
+  $('shText').value = 'Рис (1 кг)'; $('shAdd').requestSubmit();
+  await until(() => !!by('Рис (1 кг)'));
+  ok('item goes under the section', by('Рис (1 кг)').pos > by('Крупы').pos);
+
+  paste($('shText'), '🛒 ЗАПАС\nБакалея:\n- Специи\n  Паприка\n✓ Соль\nМолочное:\nМолоко — 2 л');
+  await until(() => $('shPasteOv')._shown);
+  ok('pasting a list shows how it will be laid out', $('shPasteSum').textContent === '1 группа2 раздела4 пункта1 отмечен' && $('shPastePrev').querySelector('.sh-h2').textContent === 'Бакалея' && !!$('shPastePrev').querySelector('.sh-pv.sub') && !!$('shPastePrev').querySelector('.sh-pv.done'), $('shPasteSum').textContent);
+  ok('paste sheet names the list and closes with a pull', $('shPasteTitle').textContent === 'Добавить в «Заметки»' && $('shPasteOv').querySelector('.sheet').classList.contains('pull'));
+  $('shTarget').querySelector('[data-target-pick]');
+  const calls0 = net.calls;
+  $('shPasteOk').click();
+  await until(() => !!by('Соль'));
+  ok('all pasted rows go in one request', net.calls - calls0 <= 3, net.calls - calls0);
+  ok('pasted rows keep kind, tick and indent', by('🛒 ЗАПАС').kind === 'h1' && by('Бакалея').kind === 'h2' && by('Паприка').indent === 1 && by('Соль').done === true);
+  await until(() => !!$('shItems').querySelector('.sh-card'));
+  const card = t => [...$('shItems').querySelectorAll('.sh-card')].find(c => c.querySelector('.sh-sec-t').textContent === t);
+  const names = c => [...c.querySelectorAll('.sh-row .t-text')].map(x => x.textContent).join();
+  ok('summary shows what is left', $('shItems').querySelector('.sh-hero-t b').textContent === 'Осталось 4 из 5' && $('shItems').querySelector('.sh-ring b').textContent === '1', $('shItems').querySelector('.sh-hero').textContent);
+  ok('summary says who else is in the list', $('shItems').querySelector('.sh-hero small').textContent === 'Вместе с: Боря');
+  ok('sections are cards with icon, title and count', !!card('Крупы') && card('Бакалея').querySelector('.sh-sec-ic').textContent === '🧂' && card('Бакалея').querySelector('.sh-sec-n').textContent === '1 из 3' && !!card('Бакалея').querySelector('.sh-bar i'));
+  ok('group is a title above its sections', $('shItems').querySelector('.sh-group .sh-htext').textContent === '🛒 ЗАПАС');
+  ok('quantity sits apart from the name', card('Крупы').querySelector('.t-text').textContent === 'Рис' && card('Крупы').querySelector('.sh-qty').textContent === '1 кг' && card('Молочное').querySelector('.sh-qty').textContent === '2 л');
+  ok('subitem is indented under its item', card('Бакалея').querySelector('.sh-row.sub .t-text').textContent === 'Паприка');
+  ok('bought items sink to the bottom of their section', names(card('Бакалея')) === 'Специи,Паприка,Соль', names(card('Бакалея')));
+
+  card('Молочное').querySelector('.t-box').click();
+  await until(() => by('Молоко — 2 л').done);
+  await until(() => card('Молочное')?.classList.contains('closed'));
+  ok('a fully bought section folds itself', card('Молочное').classList.contains('closed') && card('Молочное').querySelector('.sh-sec-n').textContent === 'всё куплено ✓' && !card('Молочное').querySelector('.sh-row'));
+  card('Молочное').querySelector('[data-sact=fold]').click();
+  ok('it can be opened again and stays open', !card('Молочное').classList.contains('closed') && !!card('Молочное').querySelector('.sh-row'));
+  card('Крупы').querySelector('[data-sact=fold]').click();
+  ok('any section can be folded', card('Крупы').classList.contains('closed'));
+  card('Крупы').querySelector('[data-sact=fold]').click();
+
+  $('shItems').querySelector('[data-filter=left]').click();
+  ok('left filter hides what is bought', !$('shItems').textContent.includes('Соль') && !card('Молочное') && $('shItems').querySelector('[data-filter=left]').getAttribute('aria-pressed') === 'true');
+  db.items.find(x => x.text === 'Специи').assigned_to = U1;
+  await refresh();
+  ok('me tab counts what is mine', $('shItems').querySelector('[data-filter=me]').textContent === 'Мне · 1');
+  $('shItems').querySelector('[data-filter=me]').click();
+  ok('me filter shows only my items, their open subitems and sections', names(card('Бакалея')) === 'Специи,Паприка' && !card('Крупы') && !!card('Бакалея').querySelector('.sh-av'));
+  ok('assignee shows as a letter, not a line of text', card('Бакалея').querySelector('.sh-av').textContent === 'А' && !$('shItems').querySelector('.sh-to'));
+  $('shItems').querySelector('[data-filter=all]').click();
+
+  by('Рис (1 кг)').done = true; by('Рис (1 кг)').done_by = U2; by('Рис (1 кг)').done_at = new Date().toISOString();
+  await refresh();
+  ok('summary names the last thing someone else did', $('shItems').querySelector('.sh-hero small').textContent === 'Боря отметил(а) «Рис» · только что', $('shItems').querySelector('.sh-hero small').textContent);
+
+  for (let i = 0; i < 3; i++) rememberHint(lid, 'Сливки 10%', 'Молочное');
+  $('shText').value = 'Сли'; $('shText').dispatchEvent(new Event('input', { bubbles: true }));
+  ok('hints say how often it was bought', $('shHints').querySelector('[data-hint]').textContent === 'Сливки 10% брали 3 раза');
+  $('shHints').querySelector('[data-hint]').click();
+  await until(() => !!by('Сливки 10%'));
+  ok('a known item goes to the section it went last time', by('Сливки 10%').pos > by('Молоко — 2 л').pos && !!card('Молочное') && names(card('Молочное')).includes('Сливки 10%'), names(card('Молочное')));
+  $('shText').value = 'Сливки 10%'; $('shText').dispatchEvent(new Event('input', { bubbles: true }));
+  ok('the line under the field tells where it will go', $('shTarget').textContent.includes('Молочное') && $('shTarget').textContent.includes('сменить'));
+  $('shText').value = '';
+  $('shTarget').querySelector('[data-target-pick]').click();
+  await until(() => !!document.querySelector('.menu'));
+  const menuBtn = t => [...[...document.querySelectorAll('.menu')].at(-1).querySelectorAll('button')].find(b => b.textContent.includes(t));
+  ok('section picker lists sections and the end', !!menuBtn('Крупы') && !!menuBtn('Бакалея') && !!menuBtn('В конец списка'));
+  menuBtn('Крупы').click();
+  ok('picked section shows under the field', $('shTarget').textContent.includes('Попадёт в раздел') && $('shTarget').textContent.includes('Крупы'));
+  $('shText').value = 'Овсянка'; $('shAdd').requestSubmit();
+  await until(() => !!by('Овсянка'));
+  ok('item lands in the picked section', names(card('Крупы')).startsWith('Овсянка'), names(card('Крупы')));
+  $('shTarget').querySelector('[data-target-pick]').click();
+  await until(() => !!menuBtn('В конец списка'));
+  menuBtn('В конец списка').click();
+  $('shText').value = 'Сливки 10%'; $('shText').dispatchEvent(new Event('input', { bubbles: true }));
+  ok('end of list wins over memory once chosen', $('shTarget').textContent.includes('в конец списка'));
+  $('shText').value = '';
+
+  card('Бакалея').querySelector('[data-sact=head]').click();
+  await until(() => !!menuBtn('Добавить пункт сюда'));
+  ok('section menu has its actions', !!menuBtn('Отметить все в разделе') && !!menuBtn('Переименовать') && !!menuBtn('Переставить строки') && !!menuBtn('Удалить раздел') && menuBtn('Удалить вместе с пунктами').textContent.includes('(3)'));
+  menuBtn('Отметить все в разделе').click();
+  await until(() => by('Специи').done && by('Паприка').done);
+  ok('tick all marks the whole section only', by('Специи').done && by('Паприка').done && !by('Овсянка').done);
+  card('Бакалея').querySelector('[data-sact=fold]').click();
+
+  card('Крупы').querySelector('.sh-main').click(); await until(() => $('shEditOv')._shown);
+  ok('item editor has the subitem switch and who added it', !$('shEditSubRow').hidden && $('shEditSecBox').hidden && $('shEditInfo').textContent === 'Добавил(а) Аня' && $('shEditTitle').textContent === 'Пункт');
+  closeOverlay($('shEditOv')); await until(() => $('shEditOv').hidden);
+  card('Крупы').querySelector('[data-sact=head]').click();
+  await until(() => !!menuBtn('Переименовать'));
+  menuBtn('Переименовать').click(); await until(() => $('shEditOv')._shown);
+  ok('section editor is plain', $('shEditTitle').textContent === 'Раздел' && $('shEditSubRow').hidden && $('shEditEx').hidden);
+  $('shEditText').value = '🌾 Крупы и макароны'; $('shEditForm').requestSubmit();
+  await until(() => !!card('Крупы и макароны'));
+  ok('renamed section takes its own emoji', card('Крупы и макароны').querySelector('.sh-sec-ic').textContent === '🌾');
+
+  card('Крупы и макароны').querySelector('[data-sact=head]').click();
+  await until(() => !!menuBtn('Переставить строки'));
+  menuBtn('Переставить строки').click();
+  await until(() => !!$('shItems').querySelector('[data-grip]'));
+  ok('reorder shows the plain list with handles', !!$('shItems').querySelector('.sh-paper') && !$('shItems').querySelector('.sh-card') && visible($('shReorderDone')));
+  const rowOf = t => [...$('shItems').querySelectorAll('[data-sid]')].find(r => (r.querySelector('.t-text') || r.querySelector('.sh-htext'))?.textContent === t);
+  const order = () => [...$('shItems').querySelectorAll('.sh-paper > [data-sid]')].map(r => (r.querySelector('.t-text') || r.querySelector('.sh-htext')).textContent).join();
+  const oPos = by('Овсянка').pos;
+  rowOf('Овсянка').querySelector('[data-grip]').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+  await until(() => by('Овсянка').pos !== oPos);
+  ok('arrow moves a row one place down, past a group title', order().includes('Рис (1 кг),🛒 ЗАПАС,Овсянка'), [order(), ordered(lid).map(x => x.text + ':' + x.pos).join(' ')]);
+  rowOf('Овсянка').querySelector('[data-grip]').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  await until(() => by('Овсянка').indent === 1);
+  ok('arrow right makes a subitem', by('Овсянка').indent === 1);
+  $('shReorderDone').click();
+  ok('done goes back to cards', !!$('shItems').querySelector('.sh-card') && !$('shItems').querySelector('[data-grip]'));
+
+  card('Молочное').querySelector('[data-sact=head]').click();
+  await until(() => !!menuBtn('Удалить раздел'));
+  menuBtn('Удалить раздел').click();
+  ok('deleting a section keeps its items and offers undo', !card('Молочное') && $('toastText').textContent === 'Раздел удалён' && !$('toastUndo').hidden && $('shItems').textContent.includes('Сливки'));
+  $('toastUndo').click();
+  ok('undo brings the section back', !!card('Молочное'));
+  ok('clear link counts bought items', $('shItems').querySelector('.sh-foot').textContent.startsWith('Очистить купленные'));
+
+  ok('list as text keeps sections, ticks and indents', outlineText(lid).startsWith('Заметки\n\nКрупы и макароны:'.replace('Крупы и макароны', '🌾 Крупы и макароны')) && outlineText(lid).includes('    ☐ Паприка') === false && outlineText(lid).includes('    ✓ Паприка') && outlineText(lid).includes('✓ Соль'), outlineText(lid));
+  ok('text from the app pastes back into the same layout', JSON.stringify(parseOutline(outlineText(lid)).slice(1).map(r => [r.kind, r.done, r.indent])) === JSON.stringify(ordered(lid).map(x => [x.kind, x.done, x.indent])), [outlineText(lid), JSON.stringify(parseOutline(outlineText(lid)).map(r => [r.kind, r.text]))]);
+  $('tLists').querySelector('[data-l=shared]').click(); await until(() => $('shOv')._shown);
+  [...$('shBody').querySelectorAll('.sh-list')].find(x => x.dataset.id === lid).querySelector('[data-m=open]').click();
+  await until(() => !!$('shBody').querySelector('[data-m=sendtext]'));
+  ok('settings share as text, no ticked-down switch any more', !!$('shBody').querySelector('[data-m=sendtext]') && !$('shBody').querySelector('[data-m=donelast]') && $('shBody').textContent.includes('Сообщать о новых пунктах'));
+  closeOverlay($('shOv')); await until(() => $('shOv').hidden);
+
+  db.v3 = false; sh.v3 = null;
+  await refresh();
+  ok('old server: no kinds, items still listed', sh.v3 === false && $('shKinds').hidden && items().includes('Овсянка'));
+  db.v3 = true;
+  await closePage();
+  db.lists = db.lists.filter(l => l.id !== lid); db.items = db.items.filter(x => x.list_id !== lid); db.members = db.members.filter(m => m.list_id !== lid);
+  signOut(); clearShared();
 }
 
 {

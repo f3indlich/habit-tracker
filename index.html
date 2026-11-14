@@ -1005,9 +1005,11 @@
     <div id="tsResults" hidden></div>
     <div id="tShared" hidden>
       <div class="sh-pull" id="shPull" aria-hidden="true"></div>
-      <h3 class="sec-h sh-title"><span id="shTitle"></span><small class="sh-fresh" id="shFresh" role="status"></small></h3>
+      <h3 class="sec-h sh-title"><span id="shTitle"></span><small class="sh-fresh" id="shFresh" role="status"></small><button type="button" class="t-link sh-reorder-done" id="shReorderDone" hidden>Готово</button></h3>
       <p class="sh-banner" id="shBanner" role="status" hidden>Нет сети. Показаны сохранённые данные</p>
-      <form class="t-quick" id="shAdd" novalidate><input type="text" id="shText" maxlength="200" enterkeyhint="send" autocomplete="off" placeholder="Добавить запись" aria-label="Добавить запись"></form>
+      <form class="t-quick" id="shAdd" novalidate><input type="text" id="shText" maxlength="200" enterkeyhint="send" autocomplete="off" placeholder="Добавить пункт" aria-label="Добавить пункт"></form>
+      <div class="sh-kinds" id="shKinds" role="radiogroup" aria-label="Что добавить" hidden><button type="button" role="radio" data-kind="item" aria-checked="true">Пункт</button><button type="button" role="radio" data-kind="h2" aria-checked="false">Раздел</button><button type="button" role="radio" data-kind="h1" aria-checked="false">Группа</button></div>
+      <div class="sh-target" id="shTarget" hidden></div>
       <div class="t-chips sh-hints" id="shHints" hidden></div>
       <div id="shItems"></div>
     </div>
@@ -1142,18 +1144,36 @@
 
 <div class="overlay" id="shEditOv" hidden>
   <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="shEditTitle">
-    <div class="sheet-head"><h2 id="shEditTitle">Запись</h2></div>
+    <div class="sheet-head"><h2 id="shEditTitle">Пункт</h2></div>
     <form class="form" id="shEditForm" novalidate>
       <input type="text" id="shEditText" maxlength="200" enterkeyhint="done" autocomplete="off" aria-labelledby="shEditTitle">
+      <div class="set-row static sh-subrow" id="shEditSubRow" hidden><span class="set-txt"><b id="shSubL">Подпункт</b><small>Сдвинуть вправо под пункт выше</small></span><button type="button" class="switch" role="switch" id="shEditSub" aria-checked="false" aria-labelledby="shSubL"><span></span></button></div>
       <div class="sh-ex" id="shEditEx" hidden>
-        <label class="lbl" for="shEditSec">Раздел</label>
-        <input type="text" id="shEditSec" maxlength="24" list="shSecList" autocomplete="off" placeholder="Без раздела">
-        <datalist id="shSecList"></datalist>
+        <div id="shEditSecBox">
+          <label class="lbl" for="shEditSec">Раздел</label>
+          <input type="text" id="shEditSec" maxlength="24" list="shSecList" autocomplete="off" placeholder="Без раздела">
+          <datalist id="shSecList"></datalist>
+        </div>
         <label class="lbl" for="shEditWho">Кому</label>
         <select id="shEditWho"></select>
       </div>
+      <p class="sh-info" id="shEditInfo" hidden></p>
       <div class="form-actions t-form-actions"><button type="button" data-close>Отмена</button><button type="submit" class="primary">Сохранить</button></div>
     </form>
+  </div>
+</div>
+
+<div class="overlay" id="shPasteOv" hidden>
+  <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="shPasteTitle">
+    <div class="sheet-head">
+      <h2 id="shPasteTitle">Добавить в список</h2>
+      <button class="ghost icon-btn" data-close title="Закрыть" aria-label="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button type="button" class="ghost icon-btn sheet-ok" id="shPasteOk" title="Добавить" aria-label="Добавить"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+    </div>
+    <p class="sh-note">Строка с двоеточием в конце станет разделом, с эмодзи или заглавными буквами — группой разделов, с отступом — подпунктом, с «✓» — отмеченным пунктом.</p>
+    <div class="sh-paste-sum" id="shPasteSum"></div>
+    <p class="sh-note sh-paste-cut" id="shPasteCut" hidden></p>
+    <div class="card t-list sh-paper" id="shPastePrev"></div>
   </div>
 </div>
 

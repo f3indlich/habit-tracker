@@ -413,7 +413,7 @@ function sharedDigest(uid, lists, members, items) {
     const list = lists.find(l => l.id === m.list_id);
     if (!list) continue;
     const since = Date.parse(m.notified_at) || 0;
-    const mine = items.filter(x => x.list_id === m.list_id);
+    const mine = items.filter(x => x.list_id === m.list_id && (x.kind || 'item') === 'item');
     const added = m.notify ? mine.filter(x => x.created_by && x.created_by !== uid && Date.parse(x.created_at) > since) : [];
     const assigned = mine.filter(x => x.assigned_to === uid && x.assigned_by && x.assigned_by !== uid && !x.done && Date.parse(x.assigned_at) > since);
     if (!added.length && !assigned.length) continue;
@@ -424,7 +424,7 @@ function sharedDigest(uid, lists, members, items) {
 
 function sharedLine(d) {
   const parts = [];
-  if (d.added) parts.push(`${d.who.slice(0, 2).join(' и ')}${d.who.length > 2 ? ' и другие' : ''}: +${d.added} ${ruPlural(d.added, 'запись', 'записи', 'записей')}`);
+  if (d.added) parts.push(`${d.who.slice(0, 2).join(' и ')}${d.who.length > 2 ? ' и другие' : ''}: +${d.added} ${ruPlural(d.added, 'пункт', 'пункта', 'пунктов')}`);
   if (d.assigned.length) parts.push(`Вам назначено: ${d.assigned.slice(0, 3).join(', ')}${d.assigned.length > 3 ? ` и ещё ${d.assigned.length - 3}` : ''}`);
   return parts.join('. ');
 }
@@ -558,7 +558,7 @@ if (typeof Deno !== 'undefined') {
           db.from('shared_members').select('list_id, user_id, display_name, notify, notified_at').in('list_id', listIds),
         ]);
         const oldest = (allMem || []).filter(m => users.includes(m.user_id)).reduce((a, m) => (m.notified_at < a ? m.notified_at : a), now.toISOString());
-        const { data: items } = await db.from('shared_items').select('list_id, text, done, created_by, created_at, assigned_to, assigned_by, assigned_at')
+        const { data: items } = await db.from('shared_items').select('*')
           .in('list_id', listIds).or(`created_at.gt.${oldest},assigned_at.gt.${oldest}`);
         const dataOf = new Map((rows || []).map(r => [r.user_id, r.data]));
         for (const uid of users) {
