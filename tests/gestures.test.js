@@ -165,5 +165,23 @@ for (const [id, open] of [['catOv', openCats], ['nameOv', () => openName(false)]
   await wait(350);
 }
 
+{
+  state.tasks = normTasks([{ id: 'pt', text: 'Задача для свайпа', date: key(new Date()) }], key(new Date())); save();
+  openTaskForm(state.tasks[0]); await wait(600);
+  const ts = $('tFormOv').querySelector('.sheet');
+  ok('task sheet has the same pull handle', ts.classList.contains('pull') && getComputedStyle(ts, '::before').width === '36px');
+  ok('task sheet keeps the height it opened with', ts.style.height === ts.offsetHeight + 'px', ts.style.height);
+  const h0 = ts.offsetHeight;
+  $('tfSubAdd')?.click(); $('tfSubAdd')?.click(); $('tfSubAdd')?.click(); await wait(200);
+  ok('adding rows scrolls inside, the sheet does not grow', ts.offsetHeight === h0, [h0, ts.offsetHeight]);
+  closeOverlay($('tFormOv')); await wait(450);
+  openTaskForm(state.tasks[0]); await wait(600);
+  ts.scrollTop = 0;
+  await swipe(ts.querySelector('.sheet-head'), [W / 2, 180], [W / 2, 640], 8, 12);
+  await wait(450);
+  ok('pull down closes an unchanged task', !$('tFormOv')._shown);
+  for (const id of ['tPickOv', 'tRemOv', 'tRepOv', 'tDateOv', 'tListsOv', 'tListOv', 'shOv', 'shEditOv']) ok(`${id} closes with a pull too`, $(id).querySelector('.sheet').classList.contains('pull'));
+}
+
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

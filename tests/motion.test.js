@@ -14,11 +14,17 @@ await wait(700);
 openHistory('c'); await wait(600);
 {
   const tabs = $('hTabs'), month = tabs.querySelector('[data-r=month]');
-  month.click(); await wait(40);
+  const week = tabs.querySelector('[aria-pressed=true]');
+  month.click();
+  const g0 = tabs.querySelector(':scope > .seg-ghost');
+  ok('slide starts in the same tap, before any frame is drawn', !!g0 && tabs.classList.contains('seg-moving'));
+  ok('ghost takes the full pill colour at once', !!g0 && g0.style.background && !/rgba\(.*, 0\)/.test(g0.style.background), g0?.style.background);
+  ok('old tab drops its pill at once, no fade', getComputedStyle(week).transitionProperty.split(',').every(p => !/background|box-shadow/.test(p)), getComputedStyle(week).transitionProperty);
+  await wait(40);
   const ghost = tabs.querySelector(':scope > .seg-ghost');
   ok('segment selection slides to the new tab', !!ghost && ghost.getAnimations().length === 1 && month.classList.contains('seg-under') && month.getAttribute('aria-pressed') === 'true');
   await wait(450);
-  ok('slide leaves no traces', !tabs.querySelector('.seg-ghost') && !month.classList.contains('seg-under') && getComputedStyle(month).backgroundColor !== 'rgba(0, 0, 0, 0)');
+  ok('slide leaves no traces', !tabs.querySelector('.seg-ghost') && !tabs.classList.contains('seg-moving') && !month.classList.contains('seg-under') && getComputedStyle(month).getPropertyValue('opacity') === '1' && getComputedStyle(month).backgroundColor !== 'rgba(0, 0, 0, 0)');
   month.click(); await wait(40);
   ok('same tab does not slide', !tabs.querySelector('.seg-ghost'));
 }

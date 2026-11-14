@@ -387,7 +387,7 @@ export function updateCard(el, h) {
   const day = key(viewDate);
   const c = count(h, viewDate), done = c >= h.target, multi = h.target > 1;
   const skipped = isSkipped(h, viewDate), due = isDue(h, viewDate);
-  const stat = isStat(h), s = stat ? 0 : streak(h);
+  const stat = isStat(h), s = streak(h);
 
   el.style.setProperty('--c', h.color);
   el.classList.toggle('stat', stat);

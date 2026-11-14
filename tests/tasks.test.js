@@ -3,7 +3,7 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
-const moreItem = label => { $('tMoreBtn').click(); return [...([...document.querySelectorAll('.menu')].at(-1)?.querySelectorAll('button') || [])].find(x => x.querySelector('.lbl')?.textContent === label); };
+const moreItem = label => { closeMenu(); $('tMoreBtn').click(); return [...([...document.querySelectorAll('.menu')].at(-1)?.querySelectorAll('button') || [])].find(x => x.querySelector('.lbl')?.textContent === label); };
 const menuState = label => { const b = moreItem(label), r = [b?.querySelector('.menu-n')?.textContent, b?.disabled]; closeMenu(); return r; };
 const secTab = () => $('tLists').querySelector('[data-sec]');
 tv.lateOpen = true;

@@ -88,33 +88,41 @@ const SEGS = '.seg, .pseg, .mini-seg';
 const picked = box => box.querySelector(':scope > [aria-pressed=true], :scope > [aria-checked=true]');
 export function slidePick(box, from) {
   const el = picked(box);
-  if (!el || !box.isConnected || reducedMotion) return;
+  const done = () => { getComputedStyle(box).opacity; box.classList.remove('seg-moving'); };
+  if (!el || !box.isConnected || reducedMotion) return done();
   const to = el.getBoundingClientRect(), b = box.getBoundingClientRect();
-  if (!to.width || (Math.abs(to.left - from.left) < 1 && Math.abs(to.top - from.top) < 1)) return;
-  el.style.transition = 'none';
+  if (!to.width || (Math.abs(to.left - from.left) < 1 && Math.abs(to.top - from.top) < 1)) return done();
+  box.classList.add('seg-moving');
   const cs = getComputedStyle(el), g = document.createElement('i');
   g.className = 'seg-ghost';
   g.setAttribute('aria-hidden', 'true');
   Object.assign(g.style, { left: to.left - b.left - box.clientLeft + 'px', top: to.top - b.top - box.clientTop + 'px', width: to.width + 'px', height: to.height + 'px',
     background: cs.backgroundColor, boxShadow: cs.boxShadow, borderRadius: cs.borderRadius });
-  el.style.transition = '';
   box.querySelectorAll(':scope > .seg-ghost').forEach(x => x.remove());
   box.prepend(g);
   el.classList.add('seg-under');
   const a = g.animate([{ transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})` }, { transform: 'none' }],
     { duration: mv(280, 440), easing: mv('cubic-bezier(.3, .9, .3, 1)', spring()) });
   a.onfinish = a.oncancel = () => {
-    el.style.transition = 'none';
-    el.classList.remove('seg-under');
-    g.remove();
-    requestAnimationFrame(() => { el.style.transition = ''; });
+    if (g.isConnected) { el.classList.remove('seg-under'); g.remove(); }
+    if (!box.querySelector(':scope > .seg-ghost')) done();
   };
 }
+let segTap = null;
 document.addEventListener('click', e => {
   const box = e.target.closest?.(SEGS);
   const from = box && !reducedMotion && picked(box)?.getBoundingClientRect();
-  if (from) setTimeout(() => slidePick(box, from));
+  if (!from) return;
+  box.classList.add('seg-moving');
+  const tap = segTap = { box, from };
+  setTimeout(() => { if (segTap === tap) { segTap = null; slidePick(box, from); } });
 }, true);
+document.addEventListener('click', () => {
+  const tap = segTap;
+  if (!tap) return;
+  segTap = null;
+  slidePick(tap.box, tap.from);
+});
 export function flash(el) {
   el.animate([{ opacity: .22, transform: 'scale(.72)' }, { opacity: 0, transform: 'scale(1)' }],
     { duration: 420, easing: EASE_STD });
@@ -342,7 +350,7 @@ export function addPullDown(ov) {
   sheet.classList.add('pull');
   let top = 0;
   trackTouch(sheet, {
-    start: g => { top = sheet.scrollTop; return isTop(ov) && !g.target.closest('input, textarea'); },
+    start: g => { top = sheet.scrollTop; return isTop(ov) && !g.target.closest('input, textarea, select, .tl-drag'); },
     move: g => {
       if (!g.lock) {
         if (Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy)) return false;
@@ -454,7 +462,7 @@ export function periodSlider({ sheet, zone, track, prev, next, tabs, active, get
 }
 
 for (const ov of document.querySelectorAll('.overlay.page')) addEdgeBack(ov);
-for (const id of ['histOv', 'sumOv', 'dayOv', 'formOv', 'catOv', 'nameOv', 'acctOv', 'installOv', 'delOv', 'lockOv', 'gFormOv']) addPullDown($(id));
+for (const id of ['histOv', 'sumOv', 'dayOv', 'formOv', 'catOv', 'nameOv', 'acctOv', 'installOv', 'delOv', 'lockOv', 'gFormOv', 'tFormOv', 'tPickOv', 'tRemOv', 'tRepOv', 'tDateOv', 'tListsOv', 'tListOv', 'shOv', 'shEditOv']) addPullDown($(id));
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (menuEl) return closeMenu();
@@ -558,9 +566,11 @@ export function closeMenu() {
   m.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.97)' }], { duration: 120, easing: EASE_IN }).onfinish = () => m.remove();
 }
 export function openMenu(anchor, items) {
+  if (menuEl && menuEl._anchor === anchor) return closeMenu();
   closeMenu();
   menuEl = document.createElement('div');
   menuEl.className = 'menu';
+  menuEl._anchor = anchor;
   for (const it of items) {
     if (it === '-') { menuEl.append(document.createElement('hr')); continue; }
     if (it.header) { const h = document.createElement('div'); h.className = 'menu-h'; h.textContent = it.header; menuEl.append(h); continue; }
@@ -611,7 +621,7 @@ export function openPopover(anchor, html, color) {
   menuEl.style.setProperty('--ax', Math.max(18, Math.min(mw - 18, ax - left)) + 'px');
   menuEl.style.transformOrigin = `${Math.round(ax - left)}px ${side === 'below' ? 'top' : 'bottom'}`;
 }
-document.addEventListener('pointerdown', e => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest('.more, .info-btn, .tile-i, .m-warn.stale, #viewBtn')) closeMenu(); });
+document.addEventListener('pointerdown', e => { if (menuEl && !menuEl.contains(e.target) && !menuEl._anchor?.contains(e.target) && !e.target.closest('.more, .info-btn, .tile-i, .m-warn.stale, #viewBtn')) closeMenu(); });
 addEventListener('scroll', closeMenu, { passive: true });
 $('hSheet').addEventListener('scroll', closeMenu, { passive: true });
 export function flipAfter(el, change, ms = 300) {

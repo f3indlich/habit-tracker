@@ -175,7 +175,7 @@ export function renderHistory() {
   const unitWord = n => isWeekly(h, parseKey(lifeEnd(h))) ? plural(n, 'неделя', 'недели', 'недель') : plural(n, 'день', 'дня', 'дней');
   const total = isQuant(h) ? life.fact : life.daysDone;
   const totalWord = isQuant(h) ? `${h.unit || 'раз'} всего` : `${plural(total, 'день', 'дня', 'дней')} всего`;
-  if (isStat(h)) put($('hTrio'), statTrio(h));
+  if (isStat(h)) put($('hTrio'), statTrio(h, cur, unitWord));
   else put($('hTrio'), `<div><b>🔥 ${cur}</b><small>${cur ? `${unitWord(cur)} подряд` : h.archived ? 'в архиве' : 'серии пока нет'}</small></div>`
     + `<div><b>${ls.best}</b><small>рекорд</small></div><div><b${String(Math.round(total)).length > 5 ? ' class="long"' : ''}>${fmtNum(total)}</b><small>${esc(totalWord)}</small></div>`);
   $('hHow').onclick = e => {
@@ -216,21 +216,21 @@ export function renderHistory() {
   paintPeriod(h, ds);
 }
 
-function statTrio(h) {
+function statTrio(h, cur, unitWord) {
   const f = statFacts(h), ago = f.last ? Math.round((parseKey(todayKey()) - parseKey(f.last)) / 864e5) : null;
   const last = ago == null ? '<b>—</b><small>ещё не было</small>' : ago === 0 ? '<b>Сегодня</b><small>последний раз</small>' : `<b>${ago}</b><small>${plural(ago, 'день', 'дня', 'дней')} назад</small>`;
-  const avg = f.avg == null ? '<b>—</b><small>в среднем между</small>' : `<b>${f.avg}</b><small>${plural(f.avg, 'день', 'дня', 'дней')} в среднем</small>`;
-  return `<div>${last}</div><div>${avg}</div><div><b>${f.n}</b><small>${plural(f.n, 'раз', 'раза', 'раз')} всего</small></div>`;
+  const run = `<b>🔥 ${cur}</b><small>${cur ? `${unitWord(cur)} подряд` : h.archived ? 'в архиве' : 'серии пока нет'}</small>`;
+  return `<div>${run}</div><div>${last}</div><div><b>${f.n}</b><small>${plural(f.n, 'раз', 'раза', 'раз')} всего</small></div>`;
 }
 const fmtDay = k => parseKey(k).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
 function paintStatPeriod(h, ds) {
-  const f = statFacts(h, key(ds[0]), key(ds[ds.length - 1])), box = $('hPlan');
+  const f = statFacts(h, key(ds[0]), key(ds[ds.length - 1])), avg = statFacts(h).avg, box = $('hPlan');
   $('hRing').hidden = true;
   box.hidden = false;
   box._id = null;
   box.innerHTML = `<div class="plan-l1"><span class="plan-l1t">${f.n ? `Отмечено <b>${f.n}</b> ${plural(f.n, 'раз', 'раза', 'раз')}` : 'В этом периоде отметок нет'}</span></div>`
     + (f.n ? `<div class="plan-l2"><span>${f.days.length > 12 ? `${f.days.slice(-12).map(fmtDay).join(', ')} и ещё ${f.days.length - 12}` : f.days.map(fmtDay).join(', ')}</span></div>` : '')
-    + '<p class="plan-note">Статистическая привычка: только отметки, без сводки, серий и сравнений</p>';
+    + `<p class="plan-note">${avg ? `В среднем раз в ${avg} ${plural(avg, 'день', 'дня', 'дней')}. ` : ''}Статистическая привычка: только отметки и серия, без сводки и сравнений</p>`;
 }
 
 function paintPeriod(h = findHabit(hist.id), ds = periodDays()) {

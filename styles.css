@@ -680,6 +680,7 @@ body[data-icons=line] .emoji-grid .hicon { border-radius: 50%; }
 :is(.seg, .pseg, .mini-seg) { position: relative; }
 :is(.seg, .pseg, .mini-seg) > button { position: relative; z-index: 1; }
 .seg-ghost { position: absolute; z-index: 0; pointer-events: none; transform-origin: 0 0; }
+:is(.seg, .pseg, .mini-seg).seg-moving > button { transition: color .2s var(--ease), transform .15s var(--ease) !important; }
 :is(.seg, .pseg, .mini-seg) > .seg-under { background: transparent !important; box-shadow: none !important; transition: color .2s var(--ease) !important; }
 .seg button {
   flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 6px; border-radius: 9px; color: var(--muted); font-size: 14.5px; font-weight: 500;
@@ -1731,7 +1732,7 @@ body.recede .wrap { transform: scale(var(--recede)); }
 .t-list-row { background: var(--card); border: 1px solid var(--border); cursor: pointer; }
 .t-list-row[hidden] { display: none; }
 .t-list-row select { margin-left: auto; max-width: 60%; min-height: 44px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 16px; text-align: right; }
-.t-lchips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 12px; padding: 0 16px; scrollbar-width: none; }
+.t-lchips { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; margin: 0 -16px 12px; padding: 0 16px; scrollbar-width: none; }
 .t-lchips::-webkit-scrollbar { display: none; }
 .t-lchips:empty { display: none; }
 .t-lchips .t-chip { flex: none; min-height: 40px; }

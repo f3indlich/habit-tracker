@@ -1,7 +1,7 @@
 import { $, addDays, COLORS, esc, getPref, isVivid, key, plural, MONTHS, NS, parseKey, reducedMotion, setPref, todayKey, weekday, WEEKDAYS } from './core.js?v=3.4b';
 import { IC } from './icons.js?v=3.4b';
 import { save, state } from './storage.js?v=3.4b';
-import { askConfirm, closeMenu, closeOverlay, flipAfter, openMenu, openOverlay, toast } from './ui.js?v=3.4b';
+import { askConfirm, closeMenu, closeOverlay, flipAfter, holdHeight, openMenu, openOverlay, toast } from './ui.js?v=3.4b';
 import { paintTaskMarks, render, sparks, viewDate } from './render.js?v=3.4b';
 import { queueTips } from './tips.js?v=3.4b';
 import { pushState } from './push.js?v=3.4b';
@@ -964,6 +964,7 @@ export function openTaskForm(t = null, date = null) {
   openOverlay($('tFormOv'));
   fitTitle();
   $('tfSubs').querySelectorAll('.t-sin').forEach(fit);
+  holdHeight($('tFormOv').querySelector('.sheet'));
   if (!t) setTimeout(() => $('tfText').focus({ preventScroll: true }), 60);
 }
 function fit(el) {
@@ -1247,9 +1248,11 @@ export function parseLines(text) {
 
 const IC_X = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 const subRow = (s, i) => `<div class="t-sub" role="listitem" data-i="${i}"><button type="button" class="t-sbox" role="checkbox" aria-checked="${s.done}" aria-label="Подзадача выполнена">${IC_CHECK}</button><textarea class="t-sin" rows="1" maxlength="${TASK_LIM.sub}" enterkeyhint="next" autocomplete="off" aria-label="Подзадача ${i + 1}"></textarea><button type="button" class="ghost icon-btn t-sdel" aria-label="Удалить подзадачу">${IC_X}</button></div>`;
+let paintingSubs = false;
 function paintSubs(focus = -1) {
   const box = $('tfSubs');
-  box.innerHTML = tf.subs.map(subRow).join('');
+  paintingSubs = true;
+  try { box.innerHTML = tf.subs.map(subRow).join(''); } finally { paintingSubs = false; }
   box.querySelectorAll('.t-sin').forEach((inp, i) => { inp.value = tf.subs[i].text; fit(inp); });
   $('tfSubAdd').hidden = tf.subs.length >= TASK_LIM.subs;
   if (focus >= 0) box.querySelectorAll('.t-sin')[focus]?.focus();
@@ -1297,7 +1300,7 @@ $('tfSubs').addEventListener('keydown', e => {
 });
 $('tfSubs').addEventListener('focusout', e => {
   const inp = e.target;
-  if (!inp.classList?.contains('t-sin') || inp.value.trim()) return;
+  if (paintingSubs || !inp.classList?.contains('t-sin') || inp.value.trim()) return;
   const row = inp.closest('.t-sub');
   if (e.relatedTarget && row.contains(e.relatedTarget)) return;
   tf.subs.splice(+row.dataset.i, 1);
@@ -1376,7 +1379,7 @@ const IC_PLUS_S = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14
 function paintListChips() {
   const lists = listsOf(), v = curList(), box = $('tLists'), lc = findList(v)?.color;
   if (lc) $('tasksOv').style.setProperty('--list-c', lc); else $('tasksOv').style.removeProperty('--list-c');
-  const sec = !tv.shared && isSection(tv.smart) ? tv.smart : null, vis = visTasks().filter(t => !t.done && !t.archivedAt);
+  const sec = !tv.shared && isSection(tv.smart) ? tv.smart : null, vis = visTasks().filter(t => !t.done && !t.archivedAt && !(t.someday && !t.date && !t.due));
   const open = id => vis.filter(t => inList(t, id)).length;
   const chip = (id, label, color) => { const n = open(id); return `<button type="button" class="t-chip" data-l="${esc(id)}" aria-pressed="${!sec && v === id}">${color ? `<i class="t-ldot" style="--c:${esc(color)}"></i>` : ''}<span>${esc(label)}</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`; };
   const secName = sec && SECTIONS.find(x => x[0] === sec)[1];

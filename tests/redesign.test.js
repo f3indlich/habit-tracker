@@ -2,7 +2,7 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
-const moreItem = label => { $('tMoreBtn').click(); return [...([...document.querySelectorAll('.menu')].at(-1)?.querySelectorAll('button') || [])].find(x => x.querySelector('.lbl')?.textContent === label); };
+const moreItem = label => { closeMenu(); $('tMoreBtn').click(); return [...([...document.querySelectorAll('.menu')].at(-1)?.querySelectorAll('button') || [])].find(x => x.querySelector('.lbl')?.textContent === label); };
 const frame = () => new Promise(r => setTimeout(r, 16));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const until = async (f, ms = 3000) => { const t0 = performance.now(); while (!f()) { if (performance.now() - t0 > ms) return false; await frame(); } return true; };
@@ -216,6 +216,11 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   ok('week header names the month and the week', /^\S+ ?· \d+ неделя$/.test($('tWkMonth').textContent.trim()), $('tWkMonth').textContent);
   $('tMoreBtn').click();
   ok('more menu lists sections, then actions', [...[...document.querySelectorAll('.menu')].at(-1).querySelectorAll('button .lbl')].map(x => x.textContent).join() === 'Когда-нибудь,Выполненные,Архив,Выбрать задачи,Месяц целиком,Создать список', [...[...document.querySelectorAll('.menu')].at(-1).querySelectorAll('button .lbl')].map(x => x.textContent));
+  const pd = el => el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+  pd($('tMoreBtn')); $('tMoreBtn').click();
+  ok('second tap on the more button closes the menu', ![...document.querySelectorAll('.menu')].some(m => m.style.pointerEvents !== 'none'));
+  pd($('tMoreBtn')); $('tMoreBtn').click();
+  ok('third tap opens it again', [...document.querySelectorAll('.menu')].some(m => m.style.pointerEvents !== 'none'));
   closeMenu();
   await closeAll();
 }

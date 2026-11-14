@@ -2,7 +2,7 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
-const moreItem = label => { $('tMoreBtn').click(); return [...([...document.querySelectorAll('.menu')].at(-1)?.querySelectorAll('button') || [])].find(x => x.querySelector('.lbl')?.textContent === label); };
+const moreItem = label => { closeMenu(); $('tMoreBtn').click(); return [...([...document.querySelectorAll('.menu')].at(-1)?.querySelectorAll('button') || [])].find(x => x.querySelector('.lbl')?.textContent === label); };
 const menuState = label => { const b = moreItem(label), r = [b?.querySelector('.menu-n')?.textContent, b?.disabled]; closeMenu(); return r; };
 const secTab = () => $('tLists').querySelector('[data-sec]');
 tv.lateOpen = true;
@@ -100,7 +100,7 @@ const rowIds = box => [...box.querySelectorAll('.t-row')].map(r => r.dataset.id)
 }
 
 {
-  show({ habits: [], log: {}, tasks: [A('i', { date: T }), A('h', { date: T, list: 'home' }), A('w', { date: shift(1), list: 'work' })], taskLists: [{ id: 'home', name: 'Дом', color: '#22c55e' }, { id: 'work', name: 'Работа', color: '#f97316' }] });
+  show({ habits: [], log: {}, tasks: [A('i', { date: T }), A('h', { date: T, list: 'home' }), A('w', { date: shift(1), list: 'work' }), A('s', { someday: true })], taskLists: [{ id: 'home', name: 'Дом', color: '#22c55e' }, { id: 'work', name: 'Работа', color: '#f97316' }] });
   ok('lists survive normalize', state.taskLists.map(l => l.name).join() === 'Дом,Работа');
   ok('lists are limited and checked', normalize({ habits: [], log: {}, taskLists: [...Array.from({ length: 15 }, (_, i) => ({ id: 'l' + i, name: '  ' + 'x'.repeat(40), color: 'red' })), { id: 'l0', name: 'Дубль' }] }).taskLists.every(l => l.name.length === TASK_LIM.listName && COLORS.includes(l.color)) && normalize({ habits: [], log: {}, taskLists: Array.from({ length: 15 }, (_, i) => ({ id: 'l' + i, name: 'a' })) }).taskLists.length === TASK_LIM.lists);
   ok('task in a missing list goes to the inbox', !('list' in normalize({ habits: [], log: {}, tasks: [A('z', { list: 'nope' })], taskLists: [] }).tasks[0]));
@@ -108,6 +108,8 @@ const rowIds = box => [...box.querySelectorAll('.t-row')].map(r => r.dataset.id)
   await openPage();
   const chips = () => [...$('tLists').querySelectorAll('.t-chip')].map(b => b.textContent || b.getAttribute('aria-label'));
   ok('tabs: all, inbox, lists, shared lists and plus', chips().join() === 'Все3,Входящие1,Дом1,Работа1,Общие,Создать список', chips());
+  ok('tab counts leave out someday tasks the list does not show', !rowIds($('tItems')).includes('s'));
+  ok('tab row never scrolls up and down', getComputedStyle($('tLists')).overflowY === 'hidden');
   ok('list tabs show open counts', $('tLists').querySelector('[data-l=all] .cnt').textContent === '3' && $('tLists').querySelector('[data-l=work] .cnt').textContent === '1');
   $('tLists').querySelector('[data-l=home]').click();
   ok('list filter shows only its tasks', rowIds($('tItems')) === 'h' && getPref(TASKS_LIST_STORE, '') === 'home');

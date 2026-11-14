@@ -498,7 +498,7 @@ function syncStatRow() {
     statRow = document.createElement('div');
     statRow.className = 'field';
     statRow.innerHTML = `<div class="rem stat-rem"><div class="rem-head"><span class="rem-ic">${IC_STAT}</span>
-      <span class="rem-tt"><b>Статистическая</b><small>Только отметки, без сводки и серий</small></span>
+      <span class="rem-tt"><b>Статистическая</b><small>Только отметки и серия, без сводки</small></span>
       <button type="button" class="switch" role="switch" aria-label="Статистическая"><span></span></button></div></div>`;
     statRow.querySelector('.rem-head').onclick = () => { form.stat = !form.stat; syncStatRow(); };
   }
