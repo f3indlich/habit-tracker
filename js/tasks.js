@@ -1,6 +1,6 @@
-import { addDays, COLORS, HHMM, key, monday, parseKey, plural, todayKey, WEEKDAYS, weekday, withYear } from './core.js?v=3.4b';
-import { mergeById, mergeFields, newId } from './goals.js?v=3.4b';
-import { normRep, repGhosts } from './repeat.js?v=3.4b';
+import { addDays, COLORS, HHMM, key, monday, parseKey, plural, todayKey, WEEKDAYS, weekday, withYear } from './core.js?v=3.4c';
+import { mergeById, mergeFields, newId } from './goals.js?v=3.4c';
+import { normRep, repGhosts } from './repeat.js?v=3.4c';
 
 export const TASK_LIM = { text: 200, note: 1000, total: 1000, doneDays: 180, sub: 120, subs: 30, subsTotal: 3000, lists: 12, listName: 24 };
 export const newListId = () => newId('l');

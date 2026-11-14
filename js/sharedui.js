@@ -1,15 +1,15 @@
-import { $, esc, getPref, NS, plural, setPref } from './core.js?v=3.4b';
-import { IC } from './icons.js?v=3.4b';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=3.4b';
-import { openAccount } from './sync.js?v=3.4b';
-import { userName } from './settings.js?v=3.4b';
-import { openTasks, parseLines, renderTasks, taskHooks, tv } from './tasksui.js?v=3.4b';
+import { $, esc, getPref, NS, plural, setPref } from './core.js?v=3.4c';
+import { IC } from './icons.js?v=3.4c';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=3.4c';
+import { openAccount } from './sync.js?v=3.4c';
+import { userName } from './settings.js?v=3.4c';
+import { openTasks, parseLines, renderTasks, taskHooks, tv } from './tasksui.js?v=3.4c';
 import {
   addSharedItems, assignSharedItem, clearShared, createSharedInvite, createSharedList, deleteSharedItem, deleteSharedList, editSharedItem, fetchShared,
   findOpenDup, findShared, flushQueue, hasNews, inviteUrl, isSharedOwner, joinSharedList, leaveSharedList, markSeen, memberName, myId, myNotify, normCode,
   pendingIds, rememberHint, removeSharedMember, renameSharedList, seedSeen, setSharedDone, setSharedNotify, setSharedSection, sh, sharedHints,
   SHARED_LIM, SHARED_OK, SHARED_POLL_LIVE_MS, SHARED_POLL_MS, sharedReady, showCode, startLive, stopLive,
-} from './shared.js?v=3.4b';
+} from './shared.js?v=3.4c';
 
 const IC_PEOPLE = '<svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.2a3 3 0 0 1 0 5.6M17.5 13.6A5.5 5.5 0 0 1 20.5 19"/></svg>';
 const IC_CHECK = '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';

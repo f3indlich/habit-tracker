@@ -1,11 +1,11 @@
-import { $, addDays, COLORS, days, HHMM, isToday, key, monday, monthDays, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=3.4b';
-import { EMOJI_TO_ICON, ICONS } from './icons.js?v=3.4b';
-import { toast } from './ui.js?v=3.4b';
-import { render } from './render.js?v=3.4b';
-import { cloud, cloudQueue } from './sync.js?v=3.4b';
-import { visibleHabits } from './privacy.js?v=3.4b';
-import { normGoals } from './goals.js?v=3.4b';
-import { normInboxName, normTaskLists, normTasks } from './tasks.js?v=3.4b';
+import { $, addDays, COLORS, days, HHMM, isToday, key, monday, monthDays, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=3.4c';
+import { EMOJI_TO_ICON, ICONS } from './icons.js?v=3.4c';
+import { toast } from './ui.js?v=3.4c';
+import { render } from './render.js?v=3.4c';
+import { cloud, cloudQueue } from './sync.js?v=3.4c';
+import { visibleHabits } from './privacy.js?v=3.4c';
+import { normGoals } from './goals.js?v=3.4c';
+import { normInboxName, normTaskLists, normTasks } from './tasks.js?v=3.4c';
 
 export let state;
 export function load() {
