@@ -1,5 +1,5 @@
-import { addDays, key, parseKey } from './core.js?v=3.4c';
-import { firstOn, REP_MAX } from './repeat.js?v=3.4c';
+import { addDays, key, parseKey } from './core.js?v=1.1a';
+import { firstOn, REP_MAX } from './repeat.js?v=1.1a';
 
 const WEEK_ACC = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу', 'воскресенье'];
 const WEEK_GEN = ['понедельника', 'вторника', 'среды', 'четверга', 'пятницы', 'субботы', 'воскресенья'];

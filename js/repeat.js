@@ -1,4 +1,4 @@
-import { addDays, key, monday, parseKey, plural, weekday } from './core.js?v=3.4c';
+import { addDays, key, monday, parseKey, plural, weekday } from './core.js?v=1.1a';
 
 export const REP_MAX = { d: 365, w: 52, mo: 24, y: 10 };
 export const REP_UNITS = [['d', 'дн.'], ['w', 'нед.'], ['mo', 'мес.'], ['y', 'лет']];
