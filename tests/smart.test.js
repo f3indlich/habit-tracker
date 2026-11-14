@@ -285,7 +285,9 @@ ok('merge takes remote smart when local unchanged', mg.smart?.at === '20:00');
   ok('shared digest: list with notifications off sends only what is assigned to me', dA.find(d => d.listId === L2)?.added === 0 && dA.find(d => d.listId === L2).assigned.join() === 'Вынести мусор');
   ok('shared digest: nothing for a member with notifications off and no assignments', S.sharedDigest(B, lists, members, items).length === 0);
   const one = S.sharedPayload([dA[0]]);
-  ok('shared push for one list names it and the people', one.title === '«Покупки»' && one.body === 'Боря и Вика: +3 записи' && one.shared === true && one.list === L1 && one.tag === 'shared-' + L1, one);
+  ok('shared push for one list names it and the people', one.title === '«Покупки»' && one.body === 'Боря и Вика: +3 пункта' && one.shared === true && one.list === L1 && one.tag === 'shared-' + L1, one);
+  const withHeads = [...items, { list_id: L1, text: 'Молочное', kind: 'h2', created_by: B, created_at: t(-1), done: false }, { list_id: L1, text: '🛒 ЗАПАС', kind: 'h1', created_by: C, created_at: t(-1), done: false }];
+  ok('shared digest: new sections and groups are not counted as items', S.sharedDigest(A, lists, members, withHeads).find(d => d.listId === L1)?.added === 3);
   const many = S.sharedPayload(dA);
   ok('shared push for several lists is one notification', many.title === 'Общие списки' && many.body.split('\n').length === 2 && many.body.includes('Дом: Вам назначено: Вынести мусор') && many.list === null, many);
 }
