@@ -145,6 +145,11 @@ const put = (el, html) => { if (el._html !== html) { el.innerHTML = html; el._ht
 const R = 15.5, C = 2 * Math.PI * R, r = 14, c = 2 * Math.PI * r;
 const ringSVG = (f, cls = '') => `<svg viewBox="0 0 36 36" aria-hidden="true"><circle class="s-tr${cls}" cx="18" cy="18" r="${r}"/>${f > 0 ? `<circle class="s-pr" cx="18" cy="18" r="${r}" stroke-dasharray="${(f * c).toFixed(2)} ${c.toFixed(2)}"/>` : ''}</svg>`;
 
+$('sumOv')._warm = () => {
+  if (summaryView || !visibleHabits(state).length) return;
+  summaryView = { range: 'week', anchor: new Date(), all: false, back: null };
+  try { renderSummary(); } finally { summaryView = null; }
+};
 export function openSummary() {
   summaryView = { range: summaryView?.range || 'week', anchor: new Date(), all: false, back: null };
   const past = startAnchor(summaryView.range, visibleHabits(state).map(h => h.created).sort()[0]);

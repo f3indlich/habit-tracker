@@ -107,6 +107,7 @@ navigator.storage?.persist?.().catch(() => {});
 }
 
 initCloud().finally(() => guideMod.maybeOnboard());
+if (!TEST_MODE) setTimeout(() => ui.prewarm(['histOv', 'formOv', 'sumOv', 'tFormOv', 'dayOv', 'gFormOv']), 1200);
 
 if (!TEST_MODE && !getPref(NAME_ASKED, '') && !/access_token|refresh_token|error/.test(location.hash) && !new URLSearchParams(location.search).has('action')) {
   setTimeout(() => {

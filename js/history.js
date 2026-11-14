@@ -67,6 +67,12 @@ export function openHistory(id) {
   if (real.range !== 'week' || real.back) renderHistory();
   queueTips(1000);
 }
+$('histOv')._warm = () => {
+  const h = state.habits.find(x => !x.archived);
+  if (!h || hist) return;
+  hist = { id: h.id, range: savedRange(), anchor: parseKey(lifeEnd(h)), back: null };
+  try { renderHistory(); } finally { hist = null; }
+};
 function fitTitle() {
   const h2 = $('hName'), head = h2.closest('.sheet-head');
   head.classList.remove('h-wrap');
@@ -139,10 +145,11 @@ export function rangeLabel(range, ds) {
   return `${a.getDate()}${sameMonth ? '' : ' ' + MONTHS_SHORT[a.getMonth()]} – ${b.getDate()} ${MONTHS_SHORT[b.getMonth()]} ${b.getFullYear()} г.`;
 }
 
+const TIP_DATE = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
 export function dayTip(h, d) {
   h = at(h, d);
   const k = key(d), c = count(h, d);
-  const date = d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' });
+  const date = TIP_DATE.format(d);
   if (k > todayKey()) return `${date}: ещё впереди`;
   if (k < h.created) return `${date}: привычки ещё не было`;
   if (h.archived && k > h.archived) return `${date}: в архиве`;

@@ -125,7 +125,7 @@ document.addEventListener('click', () => {
 });
 export function flash(el) {
   el.animate([{ opacity: .22, transform: 'scale(.72)' }, { opacity: 0, transform: 'scale(1)' }],
-    { duration: 420, easing: EASE_STD });
+    { duration: 300, easing: EASE_STD });
 }
 
 export const VGAP_MIN = 120;
@@ -174,11 +174,11 @@ document.addEventListener('click', e => {
 function cascade(sheet) {
   const items = [...sheet.children].filter(e => !e.hidden && e.offsetParent !== null && !e.matches('[data-close], .tip-layer')).slice(0, 9);
   items.forEach((e, i) => e.animate([{ opacity: 0, transform: mv('translateY(8px)', 'translateY(18px) scale(.97)') }, { opacity: 1, transform: 'none' }],
-    { duration: mv(260, 460), delay: mv(50, 70) + i * mv(24, 38), easing: mv(EASE_STD, spring()), fill: 'backwards' }));
+    { duration: mv(260, 320), delay: 50 + i * mv(24, 20), easing: mv(EASE_STD, spring()), fill: 'backwards' }));
 }
-function syncRecede() {
+function syncRecede(mid = null) {
   const on = !reducedMotion && shownOverlays().some(o => !o.classList.contains('page'));
-  if (on && !document.body.classList.contains('recede')) document.documentElement.style.setProperty('--recede-y', Math.round(scrollY + innerHeight / 2) + 'px');
+  if (on && !document.body.classList.contains('recede')) document.documentElement.style.setProperty('--recede-y', (mid ?? Math.round(scrollY + innerHeight / 2)) + 'px');
   document.body.classList.toggle('recede', on);
 }
 const flingOut = (el, dist, speed) => {
@@ -206,12 +206,12 @@ export function syncTabs() {
     b.setAttribute('aria-current', 'page');
     $('tabLens').style.setProperty('--tab-i', i);
   });
-  if (moved && !reducedMotion) $('tabLens').animate({ scale: [1, '1.16 .92', 1] }, { duration: 420, easing: EASE_STD });
+  if (moved && !reducedMotion) $('tabLens').animate({ scale: [1, '1.16 .92', 1] }, { duration: 300, easing: EASE_STD });
   if (FAB_LABELS[tab]) $('fab').setAttribute('aria-label', FAB_LABELS[tab]);
   if (tab === 'tasks' || tab === 'goals') $('fab').removeAttribute('aria-haspopup'); else $('fab').setAttribute('aria-haspopup', 'menu');
 }
 export function openOverlay(ov) {
-  const fresh = !ov._shown;
+  const fresh = !ov._shown, mid = Math.round(scrollY + innerHeight / 2);
   if (!shownOverlays().length) window.visualViewport?.addEventListener('resize', keepFieldInView);
   if (fresh && HIST && !histHeld) {
     if (histSkip) histWant = true;
@@ -226,16 +226,32 @@ export function openOverlay(ov) {
     for (const o of shownOverlays()) if (o !== ov && isTabPage(o)) { o._exit = `${-dir * 100}%`; closeOverlay(o); }
     if (fresh && from === 'today') shiftHome('0', '-22%');
   }
-  syncRecede();
+  syncRecede(mid);
   syncTabs();
   document.body.classList.add('locked');
-  if (isTabPage(ov)) { void ov.offsetWidth; ov.classList.add('open'); }
-  else requestAnimationFrame(() => requestAnimationFrame(() => { if (ov._shown) ov.classList.add('open'); }));
   const sheet = ov.querySelector('.sheet');
   if (fresh) { sheet.scrollTop = 0; hintPull(sheet); }
+  void ov.offsetWidth;
+  ov.classList.add('open');
   if (fresh && !reducedMotion && !ov.classList.contains('page')) cascade(sheet);
   sheet.tabIndex = -1;
   sheet.focus({ preventScroll: true });
+}
+export function prewarm(ids) {
+  const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 200));
+  const next = () => {
+    const ov = $(ids.shift() || '');
+    if (ov?.hidden && !ov._shown) {
+      try { ov._warm?.(); } catch {}
+      ov.classList.add('warm');
+      ov.hidden = false;
+      void ov.offsetHeight;
+      ov.hidden = true;
+      ov.classList.remove('warm');
+    }
+    if (ids.length) idle(next);
+  };
+  idle(next);
 }
 export function holdHeight(sheet) {
   sheet.style.height = '';

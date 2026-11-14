@@ -95,6 +95,12 @@ export function sectionEl(id) {
   return el;
 }
 
+let refitRaf = 0;
+const metaRO = 'ResizeObserver' in window ? new ResizeObserver(list => {
+  let moved = false;
+  for (const e of list) { const w = e.target.clientWidth; if (e.target._w !== w) { if (e.target._w != null) moved = true; e.target._w = w; } }
+  if (moved && !refitRaf) refitRaf = requestAnimationFrame(() => { refitRaf = 0; render(); });
+}) : null;
 export function buildCard(id) {
   const el = document.createElement('div');
   el.className = 'card habit enter';
@@ -167,6 +173,7 @@ export function buildCard(id) {
     if (el._swiped) return;
     openDay(id, addDays(viewDate, i - 6));
   });
+  metaRO?.observe(el.querySelector('.meta'));
   return el;
 }
 
@@ -465,7 +472,7 @@ export function updateCard(el, h) {
     warnEl.classList.toggle('calm', badge.calm);
     warnEl.classList.toggle('stale', !!badge.stale);
   }
-  const full = s ? `🔥 ${streakText(h, s)}` : '', short = s && !/недел/.test(full) ? `🔥 ${s}` : full, W = meta.clientWidth;
+  const full = s ? `🔥 ${streakText(h, s)}` : '', short = s && !/недел/.test(full) ? `🔥 ${s}` : full, W = meta._w ?? (meta._w = meta.clientWidth);
   let pick = { unit: true, streak: full, warn: warn ? badge.texts[0] : null };
   if (W) {
     const width = el => el.scrollWidth;
@@ -473,9 +480,8 @@ export function updateCard(el, h) {
     const streakW = t => { if (!t) return 0; st.textContent = t; return width(st) + 8; };
     const warnFit = room => warn ? badge.texts.find(t => { label.textContent = t; return label.offsetWidth + 22 <= Math.min(room, 268); }) ?? null : null;
     const tries = [[true, full], [true, short], [false, full], [false, short], [false, '']];
-    const sig = `${W}|${s}|${warn ? badge.texts.join('/') : ''}`, prev = meta._fit;
-    const keep = prev?.sig === sig && (() => { const room = W - leadW(prev.unit) - streakW(prev.streak); if (room < 0) return false; if (!prev.warn) return !warn; label.textContent = prev.warn; return label.offsetWidth + 22 <= Math.min(room, 268); })();
-    pick = keep ? prev : null;
+    const sig = `${W}|${s}|${warn ? badge.texts.join('/') : ''}|${lead}`, prev = meta._fit;
+    pick = prev?.sig === sig ? prev : null;
     if (!pick) for (const [unit, sTxt] of tries) {
       const room = W - leadW(unit) - streakW(sTxt);
       if (room < 0) continue;
@@ -491,6 +497,7 @@ export function updateCard(el, h) {
   }
   meta.classList.toggle('m-nolead', !pick.unit && !!leadEl.querySelector('.m-sched'));
   if (pick.streak) st.textContent = pick.streak;
+  meta.classList.toggle('still', !sameDay);
   st.classList.toggle('on', !!pick.streak);
   if (pick.warn) label.textContent = pick.warn;
   warnEl.classList.toggle('on', !!pick.warn);
@@ -634,6 +641,7 @@ export function markFx(el, color) {
 }
 
 export function removeCard(el) {
+  metaRO?.unobserve(el.querySelector('.meta'));
   el.classList.add('leaving');
   if (reducedMotion) return el.remove();
   const h = el.offsetHeight, out = mv('translateX(-16px)', 'translateX(-36px) scale(.94)');
