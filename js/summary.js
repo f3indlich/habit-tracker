@@ -1,6 +1,6 @@
 import { $, addDays, esc, key, parseKey, plural, todayKey, weekday, WEEKDAYS } from './core.js?v=3.4a';
 import { iconHTML } from './icons.js?v=3.4a';
-import { count, counts, inLife, isQuant, state, targetOn } from './storage.js?v=3.4a';
+import { count, counts, inLife, isQuant, isStat, state, targetOn } from './storage.js?v=3.4a';
 import { closeMenu, holdHeight, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=3.4a';
 import { queueTips } from './tips.js?v=3.4a';
 import { visibleHabits } from './privacy.js?v=3.4a';
@@ -19,7 +19,7 @@ export function dayInfo(d) {
   if (dayCache?.has(k)) return dayCache.get(k);
   if (k > t) return { vals, open, pending: false };
   for (const h of visibleHabits(state)) {
-    if (!inLife(h, k) || !counts(h, d)) continue;
+    if (isStat(h) || !inLife(h, k) || !counts(h, d)) continue;
     const v = Math.min(count(h, d) / targetOn(h, d), 1);
     (k === t && v < 1 ? open : vals).push({ h, v });
   }
@@ -214,7 +214,7 @@ function drawSummary() {
   $('sRing').innerHTML = `<svg viewBox="0 0 36 36" aria-hidden="true"><circle class="s-tr" cx="18" cy="18" r="${R}"/>${pct ? `<circle class="s-pr" cx="18" cy="18" r="${R}" stroke-dasharray="${(pct / 100 * C).toFixed(2)} ${C.toFixed(2)}"/>` : ''}</svg><b>${pct}%</b>`;
   $('sSum').textContent = cur.total ? marksText(cur.done, cur.total) : JUST_STARTED[range];
   $('sSub').textContent = heroSub(range, cmp.live, cmp.cur.length, cur.open);
-  $('sCmp').textContent = keepRange(compareText(d, cmp.label));
+  $('sCmp').textContent = keepRange(compareText(d == null ? null : cur.pct, prev?.pct, cmp.label));
   $('sCmp').hidden = d == null;
   $('sCmp').className = `s-cmp${d < 0 ? ' down' : ''}`;
   put($('sKinds'), kindWords(cur).map(([k, n, w]) => `<span class="s-k ${k}"><i></i><b>${n}</b> ${w}</span>`).join(''));
@@ -222,7 +222,7 @@ function drawSummary() {
   $('sDaysTitle').textContent = range === 'year' ? 'По месяцам' : 'По дням';
   put($('sDays'), daysHTML(range, ds, today) + (range === 'year' ? '' : '<div class="tip"></div>'));
 
-  const quant = visibleHabits(state).filter(isQuant), live = cmp.live || key(ds[ds.length - 1]) === today;
+  const quant = visibleHabits(state).filter(h => isQuant(h) && !isStat(h)), live = cmp.live || key(ds[ds.length - 1]) === today;
   const obs = observations({ streak: live ? streakInfo().cur : 0, cur, prev, over: overWeekday(quant, state, key(cmp.cur[0]), key(cmp.cur[cmp.cur.length - 1]), today) });
   $('sObsWrap').hidden = !obs.length;
   put($('sObs'), obs.map(o => `<li><span aria-hidden="true">${o.icon}</span><span>${esc(o.text)}</span></li>`).join(''));

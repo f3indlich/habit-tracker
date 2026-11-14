@@ -6,7 +6,7 @@ const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') 
 const T = todayKey(), ago = n => key(addDays(new Date(), -n));
 
 const src = await (await fetch((window.__serverSrc || 'supabase/functions/send-reminders/index.ts') + '?x=' + Date.now())).text();
-const S = new parent.Function(src.replace(/^import .*$/mg, '').replace(/if \(typeof Deno[\s\S]*$/, '') + '\nreturn { pendingToday, smartDue, smartPayload, smartCfg, inQuiet, dueReminders, payloadFor, localNow, SMART_TAG, SMART_KEYS, taskReminders, taskFireAt, taskPayload, taskBody };')();
+const S = new parent.Function(src.replace(/^import .*$/mg, '').replace(/if \(typeof Deno[\s\S]*$/, '') + '\nreturn { sharedDigest, sharedPayload, pendingToday, smartDue, smartPayload, smartCfg, inQuiet, dueReminders, payloadFor, localNow, SMART_TAG, SMART_KEYS, taskReminders, taskFireAt, taskPayload, taskBody };')();
 
 const H = (id, extra = {}) => ({ id, name: 'Н-' + id, created: ago(60), ...extra });
 const ids = l => l.map(h => h.id).join();
@@ -37,6 +37,7 @@ const ids = l => l.map(h => h.id).join();
     ok('any day of month: regular reminder fires until the month is done', S.dueReminders({ habits: [rh], log: {} }, 'UTC', noon).length === 1 && S.dueReminders({ habits: [rh], log: { '2026-10-03': { r: 1 } } }, 'UTC', noon).length === 0);
   }
   ok('archived habits are not pending', S.pendingToday({ habits: [H('x', { archived: ago(2) }), H('y', { archived: T })], log: {} }, T).length === 0);
+  ok('stat habit is never pending', S.pendingToday({ habits: [H('s', { stat: true }), H('o')], log: {} }, T).map(h => h.id).join() === 'o');
   ok('habit created tomorrow is not pending', S.pendingToday({ habits: [H('f', { created: key(addDays(new Date(), 1)) })], log: {} }, T).length === 0);
   const pv = S.pendingToday({ habits: [H('p', { private: true }), H('o')], log: {} }, T);
   ok('pending marks private flag', pv.length === 2 && pv[0].private === true && pv[1].private === false, pv);
@@ -124,7 +125,7 @@ for (let round = 0; round < 6; round++) {
   const s = normalize(randomData(25));
   state = s;
   const today = new Date();
-  const client = s.habits.filter(h => !h.archived && counts(h, today) && count(h, today) < targetOn(h, today)).map(h => h.id + ':' + count(h, today) + '/' + targetOn(h, today));
+  const client = s.habits.filter(h => !h.archived && !isStat(h) && counts(h, today) && count(h, today) < targetOn(h, today)).map(h => h.id + ':' + count(h, today) + '/' + targetOn(h, today));
   const server = S.pendingToday(JSON.parse(JSON.stringify(s)), T).map(h => h.id + ':' + h.done + '/' + h.target);
   if (client.join() !== server.join()) mismatch.push({ round, client, server });
 }
@@ -256,6 +257,37 @@ ok('merge takes remote smart when local unchanged', mg.smart?.at === '20:00');
   Object.assign(cloud, { enabled: keep.enabled, session: keep.session }); push.sub = keep.sub;
   if (perm) Object.defineProperty(Notification, 'permission', perm); else delete Notification.permission;
   renderPush();
+}
+
+{
+  const A = 'aaaaaaaa-0000-4000-8000-000000000001', B = 'bbbbbbbb-0000-4000-8000-000000000002', C = 'cccccccc-0000-4000-8000-000000000003';
+  const L1 = '11111111-0000-4000-8000-000000000001', L2 = '22222222-0000-4000-8000-000000000002';
+  const t = m => new Date(Date.now() + m * 60000).toISOString();
+  const lists = [{ id: L1, name: 'Покупки' }, { id: L2, name: 'Дом' }];
+  const members = [
+    { list_id: L1, user_id: A, display_name: 'Аня', notify: true, notified_at: t(-30) },
+    { list_id: L1, user_id: B, display_name: 'Боря', notify: false, notified_at: t(-30) },
+    { list_id: L1, user_id: C, display_name: 'Вика', notify: true, notified_at: t(-30) },
+    { list_id: L2, user_id: A, display_name: 'Аня', notify: false, notified_at: t(-30) },
+    { list_id: L2, user_id: B, display_name: 'Боря', notify: false, notified_at: t(-30) },
+  ];
+  const items = [
+    { list_id: L1, text: 'Молоко', created_by: B, created_at: t(-5), done: false },
+    { list_id: L1, text: 'Хлеб', created_by: B, created_at: t(-4), done: false },
+    { list_id: L1, text: 'Сыр', created_by: C, created_at: t(-3), done: false },
+    { list_id: L1, text: 'Моё', created_by: A, created_at: t(-2), done: false },
+    { list_id: L1, text: 'Старое', created_by: B, created_at: t(-60), done: false },
+    { list_id: L2, text: 'Вынести мусор', created_by: B, created_at: t(-2), assigned_to: A, assigned_by: B, assigned_at: t(-2), done: false },
+    { list_id: L2, text: 'Полить цветы', created_by: B, created_at: t(-2), done: false },
+  ];
+  const dA = S.sharedDigest(A, lists, members, items);
+  ok('shared digest: new items by others since last time, mine and old ones skipped', dA.find(d => d.listId === L1)?.added === 3 && dA.find(d => d.listId === L1).who.join() === 'Боря,Вика', dA);
+  ok('shared digest: list with notifications off sends only what is assigned to me', dA.find(d => d.listId === L2)?.added === 0 && dA.find(d => d.listId === L2).assigned.join() === 'Вынести мусор');
+  ok('shared digest: nothing for a member with notifications off and no assignments', S.sharedDigest(B, lists, members, items).length === 0);
+  const one = S.sharedPayload([dA[0]]);
+  ok('shared push for one list names it and the people', one.title === '«Покупки»' && one.body === 'Боря и Вика: +3 записи' && one.shared === true && one.list === L1 && one.tag === 'shared-' + L1, one);
+  const many = S.sharedPayload(dA);
+  ok('shared push for several lists is one notification', many.title === 'Общие списки' && many.body.split('\n').length === 2 && many.body.includes('Дом: Вам назначено: Вынести мусор') && many.list === null, many);
 }
 
 ok('no page errors', __errs.length === 0, __errs);

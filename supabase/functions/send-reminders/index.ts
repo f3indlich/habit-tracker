@@ -115,7 +115,7 @@ function monthDone(h, log, today) {
 function pendingToday(data, day) {
   const log = data?.log || {}, skip = data?.skip?.[day] || {}, out = [];
   for (const h of data?.habits || []) {
-    if (!h || !h.id || h.archived || !inLife(h, day) || skip[h.id]) continue;
+    if (!h || !h.id || h.archived || h.stat === true || !inLife(h, day) || skip[h.id]) continue;
     const sc = scheduleOn(h, day), done = log[day]?.[h.id] || 0;
     const due = sc.type === 'perWeek' ? done > 0 || weekLeft(h, log, day) > 0
       : isAnyDayOfMonth(sc) ? done > 0 || !monthDone(h, log, day)
@@ -406,6 +406,34 @@ function duePayload(list) {
   return { title: `Сроки задач: ${vis.length}`, body: vis.map(r => r.text).join(', '), tag: 'tasks-due-' + vis[0].day, task: true, ids: [] };
 }
 
+function sharedDigest(uid, lists, members, items) {
+  const name = (lid, u) => members.find(m => m.list_id === lid && m.user_id === u)?.display_name || 'Участник';
+  const out = [];
+  for (const m of members.filter(x => x.user_id === uid)) {
+    const list = lists.find(l => l.id === m.list_id);
+    if (!list) continue;
+    const since = Date.parse(m.notified_at) || 0;
+    const mine = items.filter(x => x.list_id === m.list_id);
+    const added = m.notify ? mine.filter(x => x.created_by && x.created_by !== uid && Date.parse(x.created_at) > since) : [];
+    const assigned = mine.filter(x => x.assigned_to === uid && x.assigned_by && x.assigned_by !== uid && !x.done && Date.parse(x.assigned_at) > since);
+    if (!added.length && !assigned.length) continue;
+    out.push({ listId: list.id, list: list.name, added: added.length, who: [...new Set(added.map(x => name(m.list_id, x.created_by)))], assigned: assigned.map(x => x.text) });
+  }
+  return out;
+}
+
+function sharedLine(d) {
+  const parts = [];
+  if (d.added) parts.push(`${d.who.slice(0, 2).join(' и ')}${d.who.length > 2 ? ' и другие' : ''}: +${d.added} ${ruPlural(d.added, 'запись', 'записи', 'записей')}`);
+  if (d.assigned.length) parts.push(`Вам назначено: ${d.assigned.slice(0, 3).join(', ')}${d.assigned.length > 3 ? ` и ещё ${d.assigned.length - 3}` : ''}`);
+  return parts.join('. ');
+}
+
+function sharedPayload(digest) {
+  if (digest.length === 1) return { title: `«${digest[0].list}»`, body: sharedLine(digest[0]), tag: 'shared-' + digest[0].listId, shared: true, list: digest[0].listId };
+  return { title: 'Общие списки', body: digest.map(d => `${d.list}: ${sharedLine(d)}`).join('\n'), tag: 'shared', shared: true, list: null };
+}
+
 function safeEqual(a, b) {
   const x = new TextEncoder().encode(String(a)), y = new TextEncoder().encode(String(b));
   if (x.length !== y.length) return false;
@@ -519,6 +547,45 @@ if (typeof Deno !== 'undefined') {
         for (const t of tasks) await db.from('push_log').delete().eq('user_id', row.user_id).eq('day', t.day).in('habit_id', t.keys);
       }
     }
+
+    const shared = { users: 0, sent: 0 };
+    if (users.length) {
+      const { data: mem } = await db.from('shared_members').select('list_id, user_id').in('user_id', users);
+      const listIds = [...new Set((mem || []).map(m => m.list_id))];
+      if (listIds.length) {
+        const [{ data: lists }, { data: allMem }] = await Promise.all([
+          db.from('shared_lists').select('id, name').in('id', listIds),
+          db.from('shared_members').select('list_id, user_id, display_name, notify, notified_at').in('list_id', listIds),
+        ]);
+        const oldest = (allMem || []).filter(m => users.includes(m.user_id)).reduce((a, m) => (m.notified_at < a ? m.notified_at : a), now.toISOString());
+        const { data: items } = await db.from('shared_items').select('list_id, text, done, created_by, created_at, assigned_to, assigned_by, assigned_at')
+          .in('list_id', listIds).or(`created_at.gt.${oldest},assigned_at.gt.${oldest}`);
+        const dataOf = new Map((rows || []).map(r => [r.user_id, r.data]));
+        for (const uid of users) {
+          const digest = sharedDigest(uid, lists || [], allMem || [], items || []);
+          if (!digest.length) continue;
+          const list = byUser.get(uid);
+          const latestSub = [...list].sort((a, b) => String(b.last_seen).localeCompare(String(a.last_seen)))[0];
+          if (inQuiet(localNow(latestSub.tz || 'UTC', now).minutes, smartCfg(dataOf.get(uid)?.smart).quiet)) continue;
+          const body = JSON.stringify({ ...sharedPayload(digest), url: './' });
+          let delivered = 0, transient = 0;
+          for (const sub of list) {
+            try {
+              await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, body, { TTL: 3600, urgency: 'normal' });
+              delivered++; summary.sent++;
+            } catch (err) {
+              if (err?.statusCode === 404 || err?.statusCode === 410) { await db.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); summary.removed++; continue; }
+              transient++; summary.failed++;
+              console.error('shared push failed', err?.statusCode, err?.body || err?.message);
+            }
+          }
+          if (!delivered && transient) continue;
+          shared.users++; shared.sent += delivered;
+          await db.from('shared_members').update({ notified_at: now.toISOString() }).eq('user_id', uid).in('list_id', digest.map(d => d.listId));
+        }
+      }
+    }
+    summary.shared = shared;
 
     const old = new Date(now.getTime() - 3 * 864e5).toISOString().slice(0, 10);
     await db.from('push_log').delete().lt('day', old);

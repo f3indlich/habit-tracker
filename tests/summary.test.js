@@ -52,7 +52,7 @@ ok('past month compares with the month before', compareRange('month', rangeDays(
   && compareRange('month', rangeDays('month', P('2026-01-10')), P('2026-01-10'), P('2026-11-11')).label === 'в декабре 2025 года');
 ok('year compares the same span or the whole year', compareRange('year', rangeDays('year', P('2026-11-11')), P('2026-11-11'), P('2026-11-11')).label === 'за тот же срок 2025 года'
   && compareRange('year', rangeDays('year', P('2025-05-01')), P('2025-05-01'), P('2026-11-11')).label === 'в 2024 году');
-ok('comparison in plain words', compareText(9, 'пн–ср прошлой недели') === '▲ на 9% лучше, чем пн–ср прошлой недели' && compareText(-4, 'в сентябре') === '▼ на 4% хуже, чем в сентябре' && compareText(0, 'в сентябре') === 'Так же, как в сентябре' && compareText(null, 'x') === '');
+ok('comparison in plain words', compareText(62, 40, 'пн–ср прошлой недели') === '▲ Лучше, чем пн–ср прошлой недели: 62% против 40%' && compareText(36, 40, 'в сентябре') === '▼ Хуже, чем в сентябре: 36% против 40%' && compareText(40, 40, 'в сентябре') === 'Так же, как в сентябре: 40%' && compareText(null, 40, 'x') === '' && compareText(40, null, 'x') === '');
 ok('marks counted in words', marksText(14, 18) === '14 из 18 отметок' && marksText(1, 1) === '1 из 1 отметки' && marksText(5, 21) === '5 из 21 отметки');
 ok('period line says how much is left today', heroSub('week', true, 3, 4) === 'за 3 дня, на сегодня осталось 4' && heroSub('week', true, 1, 0) === 'за 1 день' && heroSub('month', false, 31, 0) === 'за весь месяц' && heroSub('year', true, 300, 0) === 'с 1 января по сегодня');
 ok('day kinds in words', kindWords({ full: 1, partial: 2, missed: 5 }).map(x => x[1] + ' ' + x[2]).join() === '1 полный,2 частичных,5 пропусков');
@@ -95,7 +95,7 @@ const wst = periodStats(sofar('week'));
 ok('main line counts marks', $('sSum').textContent === marksText(wst.done, wst.total) && $('sRing').textContent === wst.pct + '%', [$('sSum').textContent, $('sRing').textContent, wst.done, wst.total]);
 ok('day kinds add up to the days with a plan', [...$('sKinds').querySelectorAll('b')].map(b => +b.textContent).reduce((a, b) => a + b, 0) === wst.days && /полн/.test($('sKinds').textContent) && /частичн/.test($('sKinds').textContent) && /пропуск/.test($('sKinds').textContent));
 ok('no tiles, info buttons or goals', !$('sSheet').querySelector('.tile, .tile-i') && !$('sGoals') && !$('sFilter') && !/Лучшая серия|сверх нормы/.test($('sSheet').textContent));
-ok('comparison is plain or hidden', $('sCmp').hidden || /^(▲ на \d+% лучше, чем|▼ на \d+% хуже, чем|Так же, как) /.test($('sCmp').textContent), $('sCmp').textContent);
+ok('comparison is plain or hidden', $('sCmp').hidden || /^(▲ Лучше, чем .+: \d+% против \d+%|▼ Хуже, чем .+: \d+% против \d+%|Так же, как .+: \d+%)$/.test($('sCmp').textContent), $('sCmp').textContent);
 const weekSoFar = sofar('week').length, cells = () => [...$('sDays').querySelectorAll('.s-d')];
 ok('week shows seven day rings, future ones dashed', cells().length === 7 && cells().filter(c => c.classList.contains('fut')).length === 7 - weekSoFar && $('sDaysTitle').textContent === 'По дням');
 const tipCell = cells().filter(c => !c.classList.contains('fut') && !c.classList.contains('now'))[0] || cells()[0];

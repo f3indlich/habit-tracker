@@ -568,11 +568,13 @@ export function openMenu(anchor, items) {
     b.innerHTML = `${it.icon}<span class="lbl"></span>`;
     b.querySelector('.lbl').textContent = it.label;
     if (it.danger) b.classList.add('danger');
+    if (it.note != null) { const n = document.createElement('span'); n.className = 'menu-n'; n.textContent = it.note; b.append(n); }
+    if (it.disabled) b.disabled = true;
     b.onclick = () => { closeMenu(); it.run(); };
     menuEl.append(b);
   }
   placeMenu(anchor);
-  menuEl.querySelector('button')?.focus({ preventScroll: true });
+  menuEl.querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
 }
 export function placeMenu(anchor) {
   document.body.append(menuEl);

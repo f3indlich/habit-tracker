@@ -91,6 +91,7 @@ export function mergeStates(base, local, remote) {
     goals: mergeGoalList(base.goals, local.goals, remote.goals),
     tasks: mergeTasks(base.tasks, local.tasks, remote.tasks),
     taskLists: mergeTaskLists(base.taskLists, local.taskLists, remote.taskLists),
+    inboxName: same(local.inboxName, base.inboxName) ? remote.inboxName : local.inboxName,
   };
 }
 

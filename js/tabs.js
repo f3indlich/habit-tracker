@@ -1,4 +1,5 @@
-import { $, reducedMotion, todayKey } from './core.js?v=3.4a';
+import { $, key, reducedMotion, todayKey } from './core.js?v=3.4a';
+import { viewDate } from './render.js?v=3.4a';
 import { closeMenu, closeOverlay, shownOverlays, syncTabs } from './ui.js?v=3.4a';
 import { openForm } from './form.js?v=3.4a';
 import { openGoalForm } from './goalsui.js?v=3.4a';
@@ -15,9 +16,10 @@ export function addForTab(tab = document.body.dataset.tab) {
   if (tab === 'settings') goToday();
   if (tab !== 'tasks') return openForm();
   if (tv.shared && !$('tShared').hidden) return $('shText').focus();
-  const today = todayKey();
-  openTaskForm(null, tv.tab === 'month' && tv.day > today ? tv.day : today);
+  const pick = tv.tab === 'month' ? tv.day : tv.tab === 'list' ? tv.wday : null;
+  openTaskForm(null, ahead(pick));
 }
+const ahead = k => { const today = todayKey(); return k && k > today ? k : today; };
 $('todayTab').onclick = () => goToday();
 $('fab').onclick = () => {
   if (dialOpen()) return closeAddMenu();
@@ -32,7 +34,7 @@ const IC_ADD = {
 };
 const ADD_ITEMS = [
   ['goal', 'Цель', () => openGoalForm()],
-  ['task', 'Задача', () => openTaskForm(null, todayKey())],
+  ['task', 'Задача', () => openTaskForm(null, ahead(document.body.dataset.tab === 'today' ? key(viewDate) : null))],
   ['habit', 'Привычка', () => { if (document.body.dataset.tab === 'settings') goToday(); openForm(); }],
 ];
 const dial = document.createElement('div');

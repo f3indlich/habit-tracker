@@ -135,5 +135,20 @@ const setSub = (i, v) => { ins()[i].value = v; ins()[i].dispatchEvent(new Event(
   show({ habits: [], log: {} });
 }
 
+{
+  const long = 'Что бы из протокола доставлены все документы до конца недели и подписаны у руководителя';
+  show({ habits: [], log: {}, tasks: [A('w', { date: T, subs: [S('a', long), S('b', 'Коротко')] })] });
+  openTaskForm(findTask('w')); await until(() => $('tFormOv')._shown); await tick(); await tick();
+  const [a, b] = ins(), row = a.closest('.t-sub');
+  ok('subtask field is multiline', a.tagName === 'TEXTAREA' && a.rows === 1);
+  ok('long subtask wraps and shows whole', a.offsetHeight > b.offsetHeight + 10 && a.scrollHeight <= a.clientHeight + 1, [a.offsetHeight, b.offsetHeight, a.scrollHeight, a.clientHeight]);
+  ok('short subtask stays one line', Math.abs(b.offsetHeight - b.closest('.t-sub').querySelector('.t-sbox').offsetHeight) <= 1, [b.offsetHeight]);
+  ok('checkbox stays at the top of a long subtask', Math.abs(row.querySelector('.t-sbox').getBoundingClientRect().top - a.getBoundingClientRect().top) <= 1);
+  setSub(1, 'строка\nвторая');
+  ok('line breaks in a subtask become spaces', ins()[1].value === 'строка вторая');
+  $('tFormOv')._guard = null; closeOverlay($('tFormOv')); await until(() => $('tFormOv').hidden);
+  show({ habits: [], log: {} });
+}
+
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

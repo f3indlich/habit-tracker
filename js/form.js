@@ -1,7 +1,7 @@
 import { $, addDays, COLORS, days, EASE_IN, EASE_STD, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, scheduleOf, spring, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=3.4a';
 import { guessIcon, IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=3.4a';
 import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=3.4a';
-import { findHabit, goalOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=3.4a';
+import { findHabit, goalOn, isStat, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=3.4a';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=3.4a';
 import { catName, render } from './render.js?v=3.4a';
 import { hist, renderHistory } from './history.js?v=3.4a';
@@ -477,8 +477,9 @@ export function renderStep() {
   });
 }
 
-let privRow = null;
+let privRow = null, statRow = null;
 export function syncPrivRow() {
+  syncStatRow();
   if (!unlocked) { privRow?.remove(); privRow = null; return; }
   if (!privRow) {
     privRow = document.createElement('div');
@@ -488,10 +489,24 @@ export function syncPrivRow() {
       <button type="button" class="switch" role="switch" aria-label="Личная привычка"><span></span></button></div></div>`;
     privRow.querySelector('.rem-head').onclick = () => { form.priv = !form.priv; syncPrivRow(); };
   }
-  if (!privRow.isConnected) $('why').closest('.field').before(privRow);
+  if (!privRow.isConnected) statRow.before(privRow);
   privRow.querySelector('.rem').classList.toggle('on', form.priv);
   privRow.querySelector('.switch').setAttribute('aria-checked', form.priv);
 }
+function syncStatRow() {
+  if (!statRow) {
+    statRow = document.createElement('div');
+    statRow.className = 'field';
+    statRow.innerHTML = `<div class="rem stat-rem"><div class="rem-head"><span class="rem-ic">${IC_STAT}</span>
+      <span class="rem-tt"><b>Статистическая</b><small>Только отметки, без сводки и серий</small></span>
+      <button type="button" class="switch" role="switch" aria-label="Статистическая"><span></span></button></div></div>`;
+    statRow.querySelector('.rem-head').onclick = () => { form.stat = !form.stat; syncStatRow(); };
+  }
+  if (!statRow.isConnected) $('why').closest('.field').before(statRow);
+  statRow.querySelector('.rem').classList.toggle('on', form.stat);
+  statRow.querySelector('.switch').setAttribute('aria-checked', form.stat);
+}
+const IC_STAT = '<svg class="ic" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>';
 
 export const nextColor = () => {
   const last = [...state.habits].sort((a, b) => (a.created < b.created ? -1 : a.created > b.created ? 1 : 0)).at(-1);
@@ -503,6 +518,7 @@ export function openForm(id = null, priv = false) {
   editingId = h ? id : null;
   iconsOpen = false;
   form.priv = unlocked && (h ? isPrivate(h) : priv);
+  form.stat = isStat(h);
   syncPrivRow();
   $('form').reset();
   $('formTitle').textContent = h ? 'Изменить привычку' : 'Новая привычка';
@@ -535,7 +551,7 @@ export function openForm(id = null, priv = false) {
 }
 let formBase = '';
 export const formSnap = () => JSON.stringify([form.icon, form.color, form.goal, form.sched, form.days, form.times, form.every, form.anchor, form.dom, form.time, form.cat,
-  form.newCat && $('newCatName').value.trim(), { ...form.rem, touched: undefined }, form.priv, ...['name', 'target', 'step', 'unit', 'why'].map(id => $(id).value)]);
+  form.newCat && $('newCatName').value.trim(), { ...form.rem, touched: undefined }, form.priv, form.stat, ...['name', 'target', 'step', 'unit', 'why'].map(id => $(id).value)]);
 $('formOv')._guard = () => formSnap() === formBase || askConfirm('Закрыть без сохранения?',
   editingId ? 'Изменения в привычке не сохранятся.' : 'Новая привычка не будет добавлена.', 'Закрыть');
 
@@ -640,6 +656,8 @@ $('form').onsubmit = async e => {
   const h = editingId && findHabit(editingId);
   const priv = unlocked ? form.priv : isPrivate(h), moved = !!h && unlocked && priv !== isPrivate(h);
   if (priv) data.private = true;
+  const stat = form.stat;
+  if (stat) data.stat = true;
   const sc = formSchedule(h?.created), oldSc = h ? scheduleOf(h) : { type: 'daily' }, schedMoved = !sameSchedule(sc, oldSc);
   data.days = sc.type === 'weekdays' ? [...sc.days] : null;
   data.schedule = !['daily', 'weekdays'].includes(sc.type) || (h && (schedMoved || h.schedule)) ? sc : undefined;
@@ -658,6 +676,7 @@ $('form').onsubmit = async e => {
     Object.assign(h, data, { updated: todayKey() });
     if (!step) delete h.step;
     if (!priv) delete h.private;
+    if (!stat) delete h.stat;
   } else {
     added = crypto.randomUUID?.() || String(Date.now());
     state.habits.push({ id: added, created: todayKey(), ...data });

@@ -141,6 +141,8 @@ export function normTasks(list, today = todayKey()) {
   return out.filter(t => keep.has(t));
 }
 
+export const INBOX = 'Входящие';
+export const normInboxName = v => { const s = typeof v === 'string' ? v.trim().slice(0, TASK_LIM.listName) : ''; return s && s !== INBOX ? s : undefined; };
 export function normTaskLists(list) {
   const ids = new Set(), out = [];
   for (const x of Array.isArray(list) ? list : []) {
@@ -209,23 +211,17 @@ export function ghostMarks(tasks, from, last, today = todayKey(), max = 60) {
   return out;
 }
 
-export const SMART = [['soon', 'Скоро'], ['due', 'Со сроком'], ['imp', 'Важные'], ['late', 'Просрочено'], ['nodate', 'Без даты'], ['rep', 'Повторяющиеся'], ['priv', 'Личные'], ['week', 'Выполнено за неделю']];
-export const SMART_DAYS = 7;
+export const SMART = [['imp', 'Важные'], ['due', 'Со сроком'], ['rep', 'Повторяющиеся'], ['priv', 'Личные']];
+export const SECTIONS = [['someday', 'Когда-нибудь'], ['done', 'Выполненные'], ['arch', 'Архив']];
 export function smartFilter(id, tasks = [], today = todayKey(), { unlocked = false } = {}) {
   const list = unlocked ? tasks : tasks.filter(t => t.private !== true), act = t => !t.done && !t.archivedAt;
-  const end = key(addDays(parseKey(today), SMART_DAYS)), from = key(addDays(parseKey(today), -(SMART_DAYS - 1)));
-  const near = k => !!k && k >= today && k <= end;
-  if (id === 'soon') return list.filter(t => act(t) && !isOverdue(t, today) && (near(effDay(t)) || near(t.due))).sort(byDate);
+  if (id === 'someday' || id === 'done' || id === 'arch') { const g = taskGroups(list, today); return id === 'arch' ? g.archived : g[id]; }
   if (id === 'due') return list.filter(t => act(t) && t.due).sort(byKey(t => t.due));
   if (id === 'imp') return list.filter(t => act(t) && t.important).sort(byDate);
-  if (id === 'late') return list.filter(t => isOverdue(t, today)).sort(byKey(t => overdueDay(t, today)));
-  if (id === 'nodate') return list.filter(t => act(t) && !t.date && !t.due && !t.someday).sort(byDay);
   if (id === 'rep') return list.filter(t => act(t) && t.rep).sort(byDate);
   if (id === 'priv') return unlocked ? list.filter(t => act(t) && t.private === true).sort(byDate) : [];
-  if (id === 'week') return list.filter(t => (t.done && t.doneAt >= from && t.doneAt <= today) || (!t.done && t.rep && t.lastDone && t.lastDone >= from && t.lastDone <= today)).sort((a, b) => { const x = a.done ? a.doneAt : a.lastDone, y = b.done ? b.doneAt : b.lastDone; return x < y ? 1 : x > y ? -1 : 0; });
   return [];
 }
-export const smartCounts = (tasks, today = todayKey(), opts = {}) => Object.fromEntries(SMART.map(([id]) => [id, smartFilter(id, tasks, today, opts).length]));
 
 export function dayMarks(tasks = [], today = todayKey()) {
   const out = {};

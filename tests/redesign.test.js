@@ -2,6 +2,7 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+const moreItem = label => { $('tMoreBtn').click(); return [...([...document.querySelectorAll('.menu')].at(-1)?.querySelectorAll('button') || [])].find(x => x.querySelector('.lbl')?.textContent === label); };
 const frame = () => new Promise(r => setTimeout(r, 16));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const until = async (f, ms = 3000) => { const t0 = performance.now(); while (!f()) { if (performance.now() - t0 > ms) return false; await frame(); } return true; };
@@ -46,7 +47,7 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   ok('capsule does not overlap the title', t.right <= c.left + 1 && b.left >= c.left - 1 && b.right <= c.right + 1, [t.right, c.left]);
   ok('capsule sits on the title row', Math.abs((c.top + c.bottom) / 2 - (t.top + t.bottom) / 2) < 8, [c.top, t.top]);
   ok('title is not cut off', $('title').scrollWidth <= $('title').clientWidth + 1);
-  $('todayBtn').click(); await frame();
+  $('todayBtn').click(); await until(() => key(viewDate) === T && $('todayBtn').hidden);
   ok('today button returns and hides', key(viewDate) === T && $('todayBtn').hidden);
   ok('view button uses the grid icon', !!$('viewBtn').querySelector('rect'));
 }
@@ -86,6 +87,20 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   fab.click(); await until(() => $('tFormOv')._shown);
   ok('plus on the tasks screen adds a task at once', $('tFormOv')._shown && !dialOpen(), [shownIds(), dialOpen()]);
   await closeAll();
+  const dateOf = async () => { fab.click(); await until(() => $('tFormOv')._shown); const d = $('tfDateVal').textContent; await closeAll(); return d; };
+  openTasks(); await until(() => $('tasksOv')._shown);
+  const tab0 = tv.tab, wd0 = tv.wday;
+  tv.tab = 'list'; tv.wday = shift(5);
+  { const d = await dateOf(); ok('plus on a chosen future day takes that day', d === taskWhen(shift(5)), d); }
+  openTasks(); await until(() => $('tasksOv')._shown);
+  tv.wday = shift(-3);
+  { const d = await dateOf(); ok('plus on a past day keeps today', d === 'Сегодня', d); }
+  tv.tab = tab0; tv.wday = wd0;
+  viewDate = parseKey(shift(4)); render();
+  openAddMenu(); item('Задача').click(); await until(() => $('tFormOv')._shown);
+  ok('menu task on a future day of today screen takes that day', $('tfDateVal').textContent === taskWhen(shift(4)), $('tfDateVal').textContent);
+  await closeAll();
+  viewDate = new Date(); render();
 }
 
 {
@@ -157,12 +172,12 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   await pick(shift(2));
   $('tItems').querySelector('[data-act=all-days]').click(); await frame();
   ok('all days link returns to the full list', !$('tWeek').querySelector('.sel') && $('tItems').querySelectorAll('.t-dayg').length === 3);
-  const headBtns = () => ['tSelBtn', 'tMonthBtn', 'tSmartBtn', 'tSearchBtn'].map(id => Math.round($(id).getBoundingClientRect().left)).join();
+  const headBtns = () => ['tSearchBtn', 'tMoreBtn'].map(id => Math.round($(id).getBoundingClientRect().left)).join();
   const hb0 = headBtns(), tt0 = $('tTitle').getBoundingClientRect().top;
-  $('tMonthBtn').click(); await frame();
+  $('tWkMonth').click(); await frame();
   ok('header buttons stay put in the month view', headBtns() === hb0 && $('tTitle').getBoundingClientRect().top === tt0, [hb0, headBtns()]);
-  ok('calendar button opens the month', !$('tMonthView').hidden && $('tWeekRow').hidden && $('tMonthBtn').getAttribute('aria-pressed') === 'true');
-  $('tMonthBtn').click(); await frame();
+  ok('month name above the week opens the month', !$('tMonthView').hidden && $('tWeekRow').hidden && !!$('tCal').querySelector('[data-fold]'));
+  $('tCal').querySelector('[data-fold]').click(); await frame();
   ok('second tap returns to the week', $('tMonthView').hidden && !$('tWeek').hidden);
   const wTop = $('tWeek').getBoundingClientRect().top;
   $('tSearchBtn').click(); await frame();
@@ -170,9 +185,9 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   ok('search cancel stays inside the screen', $('tsClose').getBoundingClientRect().right <= innerWidth - 8);
   $('tsClose').click(); await frame();
   ok('closing search leaves the screen in place', !visible($('tSearch')) && Math.abs($('tWeek').getBoundingClientRect().top - wTop) < 1);
-  $('tSelBtn').click(); await frame();
+  moreItem('Выбрать задачи').click(); await frame();
   const sa = $('tSelAll').getBoundingClientRect().left, sd = $('tSelDone').getBoundingClientRect().left;
-  ok('selection hides the calendar button', !visible($('tMonthBtn')));
+  ok('selection hides the more and search buttons', !visible($('tMoreBtn')) && !visible($('tSearchBtn')));
   $('tSelAll').click(); await frame();
   ok('selection buttons stay put as the count changes', Math.abs($('tSelAll').getBoundingClientRect().left - sa) < 1 && Math.abs($('tSelDone').getBoundingClientRect().left - sd) < 1 && Math.abs($('tWeek').getBoundingClientRect().top - wTop) < 1);
   ok('selection title fits', $('tTitle').scrollWidth <= $('tTitle').clientWidth + 1, [$('tTitle').textContent, $('tTitle').scrollWidth, $('tTitle').clientWidth]);
@@ -198,7 +213,10 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
   pe('pointerdown', r.right - 20); for (let x = r.right - 40; x > r.left + 20; x -= 40) pe('pointermove', x); pe('pointerup', r.left + 20); await still();
   ok('long drag turns the week', firstDay() === mon(shift(7)));
   $('tWkToday').click(); await still();
-  ok('week header names the month', $('tWkMonth').textContent.length > 2);
+  ok('week header names the month and the week', /^\S+ ?· \d+ неделя$/.test($('tWkMonth').textContent.trim()), $('tWkMonth').textContent);
+  $('tMoreBtn').click();
+  ok('more menu lists sections, then actions', [...[...document.querySelectorAll('.menu')].at(-1).querySelectorAll('button .lbl')].map(x => x.textContent).join() === 'Когда-нибудь,Выполненные,Архив,Выбрать задачи,Месяц целиком,Создать список', [...[...document.querySelectorAll('.menu')].at(-1).querySelectorAll('button .lbl')].map(x => x.textContent));
+  closeMenu();
   await closeAll();
 }
 

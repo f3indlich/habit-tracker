@@ -2,6 +2,9 @@ window.__errs = [];
 addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push(String(e.reason?.message || e.reason)));
 const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' :: ' + JSON.stringify(info)));
+const moreItem = label => { $('tMoreBtn').click(); return [...([...document.querySelectorAll('.menu')].at(-1)?.querySelectorAll('button') || [])].find(x => x.querySelector('.lbl')?.textContent === label); };
+const menuState = label => { const b = moreItem(label), r = [b?.querySelector('.menu-n')?.textContent, b?.disabled]; closeMenu(); return r; };
+const secTab = () => $('tLists').querySelector('[data-sec]');
 tv.lateOpen = true;
 const tick = () => new Promise(r => setTimeout(r, 16));
 const until = async (f, ms = 3000) => { const t0 = performance.now(); while (!f()) { if (performance.now() - t0 > ms) return false; await tick(); } return true; };
@@ -104,8 +107,8 @@ const rowIds = box => [...box.querySelectorAll('.t-row')].map(r => r.dataset.id)
   ok('empty state keeps an empty list of lists', Array.isArray(normalize({ habits: [], log: {} }).taskLists));
   await openPage();
   const chips = () => [...$('tLists').querySelectorAll('.t-chip')].map(b => b.textContent || b.getAttribute('aria-label'));
-  ok('chips: all, inbox, lists, plus and shared lists', chips().join() === 'Все,Входящие,Дом,Работа,Изменить списки,Общие', chips());
-  ok('chips do not show counts', !$('tLists').querySelector('.cnt') && !/\d/.test($('tLists').textContent));
+  ok('tabs: all, inbox, lists, shared lists and plus', chips().join() === 'Все3,Входящие1,Дом1,Работа1,Общие,Создать список', chips());
+  ok('list tabs show open counts', $('tLists').querySelector('[data-l=all] .cnt').textContent === '3' && $('tLists').querySelector('[data-l=work] .cnt').textContent === '1');
   $('tLists').querySelector('[data-l=home]').click();
   ok('list filter shows only its tasks', rowIds($('tItems')) === 'h' && getPref(TASKS_LIST_STORE, '') === 'home');
   const dotC = () => getComputedStyle($('tWeek').querySelector(`[data-wk="${T}"] i`)).backgroundColor;
@@ -140,7 +143,7 @@ const rowIds = box => [...box.querySelectorAll('.t-row')].map(r => r.dataset.id)
   $('tForm').requestSubmit(); await until(() => $('tFormOv').hidden);
   ok('form moves the task to a list', findTask('i').list === 'home');
 
-  $('tLists').querySelector('[data-l="+"]').click(); await until(() => $('tListsOv')._shown);
+  moreItem('Изменить списки').click(); await until(() => $('tListsOv')._shown);
   const rows = () => [...$('tlItems').querySelectorAll('.tl-row')];
   const names = () => state.taskLists.map(l => l.name).join();
   ok('lists screen shows the inbox and the lists with open counts', $('tListsOv').querySelector('.tl-inbox').textContent.includes('Входящие') && rows().length === 2 && rows()[0].querySelector('.tl-nm').textContent === 'Дом' && rows()[0].querySelector('.tl-cnt').textContent === '2', rows()[0]?.textContent);
@@ -240,6 +243,28 @@ const rowIds = box => [...box.querySelectorAll('.t-row')].map(r => r.dataset.id)
   ok('search results are escaped', !document.querySelector('#tsResults img') && $('tsResults').querySelector('.t-sname').textContent.startsWith('<img'));
   ok('mark is built from text, not markup', [...$('tsResults').querySelectorAll('mark')].every(m => m.children.length === 0));
   $('tsClose').click();
+  await closePage();
+  show({ habits: [], log: {} });
+}
+
+{
+  show({ habits: [], log: {}, tasks: [A('i', { date: T })], taskLists: [{ id: 'home', name: 'Дом', color: COLORS[0] }] });
+  await openPage();
+  moreItem('Изменить списки').click(); await until(() => $('tListsOv')._shown);
+  $('tlInboxBtn').click(); await until(() => $('tListOv')._shown);
+  ok('inbox opens the editor with its name, without colors or delete', $('tleName').value === 'Входящие' && $('tleColors').hidden && $('tleDelWrap').hidden && $('tleTitle').textContent === 'Список');
+  $('tleName').value = 'Разное'; $('tleName').dispatchEvent(new Event('input', { bubbles: true }));
+  $('tleForm').requestSubmit(); await until(() => $('tListOv').hidden);
+  ok('inbox gets the new name everywhere', state.inboxName === 'Разное' && $('tLists').querySelector('[data-l=inbox]').textContent.startsWith('Разное') && $('tlInboxName').textContent === 'Разное');
+  ok('the name survives normalize and the default is not stored', normalize(JSON.parse(JSON.stringify(state))).inboxName === 'Разное' && !('inboxName' in normalize({ habits: [], log: {}, inboxName: ' Входящие ' })));
+  $('tlItems').querySelector('.tl-open').click(); await until(() => $('tListOv')._shown);
+  ok('a regular list still shows colors and delete, and names the renamed inbox', !$('tleColors').hidden && !$('tleDelWrap').hidden);
+  closeOverlay($('tListOv')); await until(() => $('tListOv').hidden);
+  $('tlInboxBtn').click(); await until(() => $('tListOv')._shown);
+  $('tleName').value = 'Входящие'; $('tleName').dispatchEvent(new Event('input', { bubbles: true }));
+  $('tleForm').requestSubmit(); await until(() => $('tListOv').hidden);
+  ok('typing the default name back clears it', !('inboxName' in state) && $('tlInboxName').textContent === 'Входящие');
+  closeOverlay($('tListsOv')); await until(() => $('tListsOv').hidden);
   await closePage();
   show({ habits: [], log: {} });
 }

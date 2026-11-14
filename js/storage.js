@@ -5,7 +5,7 @@ import { render } from './render.js?v=3.4a';
 import { cloud, cloudQueue } from './sync.js?v=3.4a';
 import { visibleHabits } from './privacy.js?v=3.4a';
 import { normGoals } from './goals.js?v=3.4a';
-import { normTaskLists, normTasks } from './tasks.js?v=3.4a';
+import { normInboxName, normTaskLists, normTasks } from './tasks.js?v=3.4a';
 
 export let state;
 export function load() {
@@ -120,11 +120,14 @@ export function normalize(s) {
       .sort((a, b) => a.until < b.until ? -1 : 1).slice(-GOALS_MAX);
     if (!h.goals.length) delete h.goals;
     if (h.private !== true) delete h.private;
+    if (h.stat !== true) delete h.stat;
   });
   const pname = isObj(s.profile) && typeof s.profile.name === 'string' ? s.profile.name.trim().slice(0, 40) : '';
   if (pname) s.profile = { name: pname }; else delete s.profile;
   s.goals = normGoals(s.goals, seen);
   s.taskLists = normTaskLists(s.taskLists);
+  const inbox = normInboxName(s.inboxName);
+  if (inbox) s.inboxName = inbox; else delete s.inboxName;
   s.tasks = normTasks(s.tasks);
   const listIds = new Set(s.taskLists.map(l => l.id));
   for (const t of s.tasks) if (t.list && !listIds.has(t.list)) delete t.list;
@@ -287,6 +290,7 @@ export function nextDue(h, from = new Date()) {
   return null;
 }
 export const counts = (h, d) => isDue(h, d) && !isSkipped(h, d);
+export const isStat = h => h?.stat === true;
 
 export function weekRun(h, end = lifeEnd(h)) {
   let s = 0, best = 0, run = 0;
@@ -355,6 +359,17 @@ export function agoText(n) {
   if (n < 365) { const mo = Math.floor(n / 30); return `${mo} ${plural(mo, 'месяц', 'месяца', 'месяцев')} назад`; }
   return 'больше года назад';
 }
+export function statFacts(h, from = h.created, to = lifeEnd(h)) {
+  const log = state.log || {}, days = Object.keys(log).filter(k => k >= h.created && k >= from && k <= to && (log[k]?.[h.id] || 0) > 0).sort();
+  const gaps = days.slice(1).map((k, i) => Math.round((parseKey(k) - parseKey(days[i])) / 864e5));
+  return { n: days.length, days, last: days.at(-1) || null, avg: gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length) : null };
+}
+export function statLead(h) {
+  const { last } = statFacts(h);
+  if (!last) return 'Ещё не отмечалась';
+  const n = daysSince(last);
+  return n === 0 ? 'Последний раз сегодня' : n === 1 ? 'Последний раз вчера' : `Последний раз ${agoText(n)}`;
+}
 export function missBadge(h) {
   if (isAnyDayOfMonth(scheduleOn(h, new Date()))) return null;
   const c = count(h, new Date());
@@ -382,7 +397,7 @@ export function activeOn(d) {
 }
 
 export function dayProgress(d) {
-  const hs = activeOn(d).filter(h => counts(h, d));
+  const hs = activeOn(d).filter(h => !isStat(h) && counts(h, d));
   if (!hs.length) return { frac: 0, done: 0, total: 0, partial: 0 };
   const done = hs.filter(h => count(h, d) >= targetOn(h, d)).length;
   const partial = hs.filter(h => count(h, d) > 0 && count(h, d) < targetOn(h, d)).length;
@@ -390,7 +405,7 @@ export function dayProgress(d) {
 }
 
 export function perfectStreak() {
-  const first = visibleHabits(state).filter(h => !h.archived).map(h => h.created).sort()[0];
+  const first = visibleHabits(state).filter(h => !h.archived && !isStat(h)).map(h => h.created).sort()[0];
   if (!first) return 0;
   let s = 0;
   for (let d = new Date(); key(d) >= first; d = addDays(d, -1)) {

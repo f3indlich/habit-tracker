@@ -1,6 +1,6 @@
 import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=3.4a';
 import { setIcon } from './icons.js?v=3.4a';
-import { at, count, counts, findHabit, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=3.4a';
+import { at, count, counts, findHabit, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=3.4a';
 import { askConfirm, closeMenu, countTo, holdHeight, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=3.4a';
 import { catName, changeCount } from './render.js?v=3.4a';
 import { openForm } from './form.js?v=3.4a';
@@ -14,7 +14,7 @@ export const HABIT_HOW = [
   ['Всего', 'Сколько всего сделано за всё время: дней для привычек «да/нет», количество — для привычек со счётом.'],
   ['Сделано и норма', 'Для привычек со счётом: всё, что отмечено за период, и в сколько дней норма выполнена полностью. Перевыполнение в один день не закрывает пропуск в другой. Если норма менялась, каждый день сравнивается с нормой того дня.'],
   ['Выполнено', 'Для привычек «да/нет»: в сколько запланированных дней периода привычка выполнена. Пропуски и дни вне расписания не считаются, сегодняшний — после отметки.'],
-  ['Сравнение', 'С тем же числом дней прошлого периода: в среду неделя сравнивается с понедельником–средой прошлой недели. Не показывается, если в прошлом периоде меньше 3 дней с планом.'],
+  ['Сравнение', 'Сравнивается тот же процент, что указан выше: для привычек со счётом — сколько сделано от нормы, для «да/нет» — доля выполненных дней. Берётся то же число дней прошлого периода: в среду неделя сравнивается с понедельником–средой прошлой недели. Не показывается, если в прошлом периоде меньше 3 дней с планом.'],
   ['По дням недели', 'Появляется, когда в периоде хотя бы 21 день с планом.'],
 ];
 export const WD_NOM = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
@@ -31,11 +31,11 @@ export function compareRange(range, ds, anchor, today = parseKey(todayKey())) {
   return { cur: elapsed, prev: prevDs, label, live };
 }
 export const keepRange = s => s.replace(/(\S)–(\S)/g, '$1\u2060–\u2060$2');
-export function compareText(d, label) {
-  if (d == null) return '';
-  if (d > 0) return `▲ на ${d}% лучше, чем ${label}`;
-  if (d < 0) return `▼ на ${-d}% хуже, чем ${label}`;
-  return `Так же, как ${label}`;
+export function compareText(cur, prev, label) {
+  if (cur == null || prev == null) return '';
+  if (cur > prev) return `▲ Лучше, чем ${label}: ${cur}% против ${prev}%`;
+  if (cur < prev) return `▼ Хуже, чем ${label}: ${cur}% против ${prev}%`;
+  return `Так же, как ${label}: ${cur}%`;
 }
 const put = (el, html) => { if (el._html !== html) { el.innerHTML = html; el._html = html; } };
 const fmtDec = x => (Math.round(x * 10) / 10).toLocaleString('ru-RU');
@@ -175,7 +175,8 @@ export function renderHistory() {
   const unitWord = n => isWeekly(h, parseKey(lifeEnd(h))) ? plural(n, 'неделя', 'недели', 'недель') : plural(n, 'день', 'дня', 'дней');
   const total = isQuant(h) ? life.fact : life.daysDone;
   const totalWord = isQuant(h) ? `${h.unit || 'раз'} всего` : `${plural(total, 'день', 'дня', 'дней')} всего`;
-  put($('hTrio'), `<div><b>🔥 ${cur}</b><small>${cur ? `${unitWord(cur)} подряд` : h.archived ? 'в архиве' : 'серии пока нет'}</small></div>`
+  if (isStat(h)) put($('hTrio'), statTrio(h));
+  else put($('hTrio'), `<div><b>🔥 ${cur}</b><small>${cur ? `${unitWord(cur)} подряд` : h.archived ? 'в архиве' : 'серии пока нет'}</small></div>`
     + `<div><b>${ls.best}</b><small>рекорд</small></div><div><b${String(Math.round(total)).length > 5 ? ' class="long"' : ''}>${fmtNum(total)}</b><small>${esc(totalWord)}</small></div>`);
   $('hHow').onclick = e => {
     if (menuEl?._anchor === e.currentTarget) return closeMenu();
@@ -215,12 +216,39 @@ export function renderHistory() {
   paintPeriod(h, ds);
 }
 
+function statTrio(h) {
+  const f = statFacts(h), ago = f.last ? Math.round((parseKey(todayKey()) - parseKey(f.last)) / 864e5) : null;
+  const last = ago == null ? '<b>—</b><small>ещё не было</small>' : ago === 0 ? '<b>Сегодня</b><small>последний раз</small>' : `<b>${ago}</b><small>${plural(ago, 'день', 'дня', 'дней')} назад</small>`;
+  const avg = f.avg == null ? '<b>—</b><small>в среднем между</small>' : `<b>${f.avg}</b><small>${plural(f.avg, 'день', 'дня', 'дней')} в среднем</small>`;
+  return `<div>${last}</div><div>${avg}</div><div><b>${f.n}</b><small>${plural(f.n, 'раз', 'раза', 'раз')} всего</small></div>`;
+}
+const fmtDay = k => parseKey(k).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '');
+function paintStatPeriod(h, ds) {
+  const f = statFacts(h, key(ds[0]), key(ds[ds.length - 1])), box = $('hPlan');
+  $('hRing').hidden = true;
+  box.hidden = false;
+  box._id = null;
+  box.innerHTML = `<div class="plan-l1"><span class="plan-l1t">${f.n ? `Отмечено <b>${f.n}</b> ${plural(f.n, 'раз', 'раза', 'раз')}` : 'В этом периоде отметок нет'}</span></div>`
+    + (f.n ? `<div class="plan-l2"><span>${f.days.length > 12 ? `${f.days.slice(-12).map(fmtDay).join(', ')} и ещё ${f.days.length - 12}` : f.days.map(fmtDay).join(', ')}</span></div>` : '')
+    + '<p class="plan-note">Статистическая привычка: только отметки, без сводки, серий и сравнений</p>';
+}
+
 function paintPeriod(h = findHabit(hist.id), ds = periodDays()) {
   if (!h) return;
+  if (isStat(h)) {
+    paintStatPeriod(h, ds);
+    $('hDaysTitle').textContent = hist.range === 'year' ? 'По месяцам' : 'По дням';
+    $('hChart').innerHTML = hist.range === 'year' ? yearRows(h, ds) : (hist.range === 'week' ? weekView(h, ds) : monthView(h, ds)) + '<div class="tip"></div>';
+    $('hWdWrap').hidden = true;
+    paintNotes(h, ds);
+    return;
+  }
   const today = todayKey(), p = planStats(h, state, key(ds[0]), key(ds[ds.length - 1]), today), quant = isQuant(h);
   const cmp = compareRange(hist.range, ds, hist.anchor), cur = cmp.cur.length ? planStats(h, state, key(cmp.cur[0]), key(cmp.cur[cmp.cur.length - 1]), today) : p;
   const prev = planStats(h, state, key(cmp.prev[0]), key(cmp.prev[cmp.prev.length - 1]), today);
-  const d = cur.plannedDays && prev.plannedDays >= 3 ? daysPct(cur) - daysPct(prev) : null, cmpTxt = keepRange(compareText(d, cmp.label));
+  const share = x => quant ? (x.plan ? Math.round(x.fact / x.plan * 100) : null) : daysPct(x);
+  const cv = cur.plannedDays && prev.plannedDays >= 3 ? share(cur) : null, pv = cv == null ? null : share(prev);
+  const d = cv == null || pv == null ? null : cv - pv, cmpTxt = keepRange(compareText(d == null ? null : cv, pv, cmp.label));
   if (quant) { $('hRing').hidden = true; renderPlan(h, p, cmpTxt, d); }
   else { $('hPlan').hidden = true; $('hPlan').innerHTML = ''; paintRing(h, ds, p, cmpTxt, d); }
   $('hDaysTitle').textContent = hist.range === 'year' ? 'По месяцам' : 'По дням';
@@ -271,9 +299,16 @@ export function yearRows(h, ds) {
     const a = key(new Date(y, m, 1)), b = key(new Date(y, m + 1, 0));
     if (a > today || b < h.created || (h.archived && a > h.archived)) continue;
     const p = planStats(h, state, a, b, today);
-    rows.push({ m, p, pct: daysPct(p), now: a <= today && b >= today });
+    rows.push({ m, p, pct: daysPct(p), n: statFacts(h, a, b).n, now: a <= today && b >= today });
   }
   if (!rows.length) return '<p class="s-empty">В этом году привычки ещё не было</p>';
+  if (isStat(h)) {
+    const top = Math.max(1, ...rows.map(r => r.n));
+    return `<div class="mrows">${rows.map(r => {
+      const val = r.n ? `${r.n} ${plural(r.n, 'раз', 'раза', 'раз')}` : 'нет отметок';
+      return `<button type="button" class="mrow${r.now ? ' now' : ''}" data-m="${r.m}" aria-label="${esc(`${MONTHS[r.m]}: ${val}`)}"><b>${MONTHS[r.m]}${r.now ? '<small>идёт</small>' : ''}</b><span class="mbar"><i style="width:${Math.round(r.n / top * 100)}%"></i></span><span class="mv">${val}</span></button>`;
+    }).join('')}</div><p class="s-hint">Касание месяца открывает его календарь</p>`;
+  }
   const best = rows.length > 1 ? rows.reduce((a, b) => (b.pct ?? -1) > (a.pct ?? -1) ? b : a) : null;
   return `<div class="mrows">${rows.map(r => {
     const tag = r.now ? 'идёт' : r === best && r.pct ? 'лучший' : '';
@@ -331,7 +366,8 @@ export function renderPlan(h, p = planStats(h, state, period().start, period().e
       <div class="plan-bar" role="img" aria-label="Сделано ${fmtNum(p.fact)} из ${fmtNum(p.plan)}${p.over ? `, из них сверх нормы ${fmtNum(p.over)}` : ''}"><i class="pb-in" style="width:${bar.inW}%"></i>${p.over ? `<i class="pb-over" style="width:${bar.overW}%"></i>` : ''}</div>
     </div>
     ${p.over ? `<div class="plan-lg"><span><i class="pb-dot pb-in"></i>в норму ${fmtNum(p.credited)}</span><span><i class="pb-dot pb-over"></i>сверх нормы ${fmtNum(p.over)}</span></div>` : ''}
-    <div class="plan-l2"><span>Норма выполнена в <b>${p.daysDone} из ${p.plannedDays}</b> ${plural(p.plannedDays, 'дня', 'дней', 'дней')}${pct >= 100 && p.daysDone < p.plannedDays ? ', но не во все дни' : ''}</span>${cmpTxt ? ` <span class="s-cmp${d < 0 ? ' down' : ''}">${cmpTxt}</span>` : ''}</div>
+    ${cmpTxt ? `<p class="plan-cmp"><span class="s-cmp${d < 0 ? ' down' : ''}">${cmpTxt}</span></p>` : ''}
+    <div class="plan-l2"><span>Норма выполнена в <b>${p.daysDone} из ${p.plannedDays}</b> ${plural(p.plannedDays, 'дня', 'дней', 'дней')}${pct >= 100 && p.daysDone < p.plannedDays ? ', но не во все дни' : ''}</span></div>
     ${unitChanged(h, period().start) ? '<p class="plan-note">Единица измерения менялась — старые и новые числа могут не совпадать по смыслу</p>' : ''}`;
   }
   const per = period().start, was = box._id === h.id && box._per === per ? numOf(box.querySelector('.plan-l1 b')?.textContent ?? '') : null;
@@ -351,7 +387,7 @@ export function dayState(h, d) {
   if (isSkipped(h, d)) return 'skip';
   if (c >= targetOn(h, d)) return 'full';
   if (c > 0) return 'part';
-  if (!isDue(h, d)) return 'off';
+  if (!isDue(h, d) || isStat(h)) return 'off';
   return k === todayKey() ? 'pending' : 'miss';
 }
 
@@ -370,7 +406,7 @@ export function weekView(h, ds) {
     const st = dayState(h, d), c = count(h, d), t = targetOn(h, d), multi = t > 1;
     const w = s => `<span class="wk-w">${s}</span>`, of = n => t >= 1000 ? `${n}<span class="wk-t"><wbr>/${t}</span>` : `${n}<wbr>/${t}`;
     return {
-      full: multi ? of(c) : w('готово'), part: of(c), skip: w('пропуск'), off: w('не в плане'),
+      full: multi ? of(c) : w('готово'), part: of(c), skip: w('пропуск'), off: isStat(h) ? '' : w('не в плане'),
       miss: multi ? of(0) : w('нет'), pending: multi ? of(0) : w('сегодня'),
     }[st] || '';
   };
@@ -522,6 +558,8 @@ $('hChart').addEventListener('keydown', e => {
 
 export const legend = (h, norm) => norm != null ? `<div class="cal-legend hb-legend">
   <span><i class="lg norm"></i>норма ${fmtNum(norm)}</span><span><i class="lg sq full"></i>есть</span><span><i class="lg sq part"></i>часть</span><span><i class="lg sq over"></i>сверх</span>
+</div>` : isStat(h) ? `<div class="cal-legend">
+  <span><i class="lg full"></i>отмечено</span>
 </div>` : isQuant(h) ? `<div class="cal-legend">
   <span><i class="lg full"></i>норма есть</span><span><i class="lg part"></i>часть нормы</span><span><i class="lg over"></i>сверх нормы</span>
 </div>` : `<div class="cal-legend">

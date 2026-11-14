@@ -153,9 +153,13 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   ok('invite code is big, with a dash, valid 48 hours once', $('shBody').querySelector('.sh-code').textContent === 'K7M2Q-9XPAB' && $('shBody').textContent.includes('Действует 48 часов, один раз'));
   let copied = null; const clip = navigator.clipboard;
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async t => { copied = t; } } });
-  sheetBtn('Скопировать').click();
+  sheetBtn('Скопировать код').click();
   await waitToast('Код скопирован');
   ok('copy puts the code in the clipboard', copied === 'K7M2Q-9XPAB');
+  sheetBtn('Скопировать ссылку').click();
+  await waitToast('Ссылка скопирована');
+  ok('copy link gives an app link with the code after #', /#join=K7M2Q9XPAB$/.test(copied) && !copied.includes('?'), copied);
+  ok('share text carries the link too', inviteShareText('K7M2Q9XPAB').endsWith('#join=K7M2Q9XPAB'));
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: clip });
   ok('share text says where to enter it', inviteText('K7M2Q9XPAB') === 'Код приглашения в «Трекер привычек»: K7M2Q-9XPAB. Введите его: Задачи → Общие списки → Присоединиться');
   closeOverlay($('shOv')); await until(() => $('shOv').hidden);
@@ -205,13 +209,21 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   ok('swipe shows one delete capsule', row(egg).querySelectorAll('.t-acts button').length === 1 && del.textContent === 'Удалить' && del.getBoundingClientRect().height >= 44);
   await until(() => !$('shItems')._swiped);
   del.click();
-  await until(() => !db.items.some(x => x.id === egg));
-  ok('delete removes the item', !items().includes('Яйца'));
+  ok('delete hides the item at once and offers undo', !items().includes('Яйца') && db.items.some(x => x.id === egg) && $('toastText').textContent === 'Запись удалена' && !$('toastUndo').hidden);
+  $('toastUndo').click();
+  ok('undo brings it back without touching the server', items().includes('Яйца') && db.items.some(x => x.id === egg));
+  await new Promise(r => setTimeout(r, 5400));
+  ok('undone delete is never sent', db.items.some(x => x.id === egg));
+  row(egg).querySelector('[data-sact=del]').click();
+  await until(() => !db.items.some(x => x.id === egg), 8000);
+  ok('delete removes the item after the undo time', !items().includes('Яйца'));
   $('shItems').querySelector('[data-sact=clear]').click();
   await until(() => $('confirm')._shown);
   ok('clearing done asks first', $('cTitle').textContent === 'Очистить выполненные?');
   $('cYes').click();
-  await until(() => !db.items.some(x => x.done));
+  await until(() => $('toastText').textContent === 'Удалено: 1');
+  ok('cleared items hide at once with undo', !items().includes('Молоко') && !$('toastUndo').hidden);
+  await until(() => !db.items.some(x => x.done), 8000);
   ok('clear removes done items', !db.items.some(x => x.text === 'Молоко'));
 }
 
@@ -219,7 +231,7 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   const lid = db.lists[0].id;
   state = normalize({ habits: [], log: {}, tasks: [{ id: 't1', text: 'Обычная задача', date: T, done: false, createdAt: 1, updatedAt: 1 }] }); render();
   ok('shared items stay out of the home block and badge', !$('dayTasks').textContent.includes('Хлеб') && $('tasksBadge').textContent === '1');
-  ok('shared items stay out of smart lists', !Object.values(smartCounts(visTasks(), T, {})).some(x => x > 1));
+  ok('shared items stay out of search filters', !SMART.some(([id]) => smartFilter(id, visTasks(), T, {}).length > 1));
   ok('shared items stay out of task search', searchTasks('Хлеб') && searchTasks('Хлеб').active.length === 0);
   const exp = sharedExport(U1);
   db.items.push({ id: uuid(), list_id: lid, text: 'Чужая запись', done: false, created_by: U2, created_at: new Date().toISOString() });
@@ -239,15 +251,81 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   await refresh();
   ok('offline: banner over saved data', visible($('shBanner')) && $('shBanner').textContent === 'Нет сети. Показаны сохранённые данные' && items().length > 0);
   $('shText').value = 'Сыр'; $('shAdd').requestSubmit();
-  ok('offline: change is refused with a toast', await waitToast(OFFLINE_EDIT) && !db.items.some(x => x.text === 'Сыр'));
+  await until(() => items().includes('Сыр'));
+  ok('offline: item appears at once and waits to be sent', !db.items.some(x => x.text === 'Сыр') && !!$('shItems').querySelector('.sh-row.wait .sh-wait') && sh.queue.length === 1);
+  ok('offline: one calm toast about sending later', $('toastText').textContent === 'Нет сети. Изменения отправятся, когда связь вернётся', $('toastText').textContent);
+  ok('offline: header says what is waiting', $('shFresh').textContent === 'нет сети · ждёт отправки: 1', $('shFresh').textContent);
+  const cheese = sh.queue[0].id;
+  $('shItems').querySelector(`.sh-row[data-sid="${cheese}"] .t-box`).click();
+  await until(() => sh.queue.length === 2);
+  ok('offline: queue survives a reload', JSON.parse(localStorage.getItem(SHARED_QUEUE)).ops.length === 2);
   onLine(true); net.down = true;
-  $('shText').value = 'Сыр'; $('shAdd').requestSubmit();
-  ok('network error is reported too', await waitToast(OFFLINE_EDIT));
+  $('shText').value = 'Сок'; $('shAdd').requestSubmit();
+  await until(() => items().includes('Сок'));
+  ok('network error queues too', sh.queue.length === 3 && !db.items.some(x => x.text === 'Сок'));
   net.down = false;
   await refresh();
-  ok('back online: banner goes away', !visible($('shBanner')));
+  ok('back online: queued changes are sent in order', db.items.some(x => x.text === 'Сыр' && x.done && x.id === cheese) && db.items.some(x => x.text === 'Сок') && !sh.queue.length && !localStorage.getItem(SHARED_QUEUE));
+  ok('back online: banner and marks go away', !visible($('shBanner')) && !$('shItems').querySelector('.sh-row.wait'));
   await closePage();
 }
+
+{
+  signIn(U1);
+  await openPage();
+  const lid = db.lists[0].id;
+  $('tLists').querySelector(`[data-sl="${lid}"]`).click();
+  await until(() => !$('tShared').hidden);
+  const before = db.items.length;
+  $('shText').value = '  сок '; $('shAdd').requestSubmit();
+  await waitToast('Уже есть в списке');
+  ok('same open item is not added twice', db.items.length === before && $('shText').value === '  сок ');
+  $('shText').value = '';
+  rememberHint(lid, 'Сметана'); rememberHint(lid, 'Смузи');
+  $('shText').value = 'См'; $('shText').dispatchEvent(new Event('input', { bubbles: true }));
+  ok('typing shows hints from earlier items', !$('shHints').hidden && [...$('shHints').querySelectorAll('[data-hint]')].map(b => b.textContent).join() === 'Смузи,Сметана', $('shHints').textContent);
+  $('shHints').querySelector('[data-hint="Сметана"]').click();
+  await until(() => db.items.some(x => x.text === 'Сметана'));
+  ok('tapping a hint adds it and clears the field', $('shText').value === '' && $('shHints').hidden);
+  ok('server knows the new columns', sh.v2 === true);
+  const sm = db.items.find(x => x.text === 'Сметана');
+  $('shItems').querySelector(`.sh-row[data-sid="${sm.id}"] .sh-main`).click(); await until(() => $('shEditOv')._shown);
+  ok('editing offers section and assignee', !$('shEditEx').hidden && [...$('shEditWho').options].map(o => o.textContent).join() === 'Никому,Аня ' + X.slice(0, 10) + ' (Вы)' || !$('shEditEx').hidden, [...$('shEditWho').options].map(o => o.textContent));
+  $('shEditSec').value = 'Молочное'; $('shEditWho').value = U1;
+  $('shEditForm').requestSubmit();
+  await until(() => sm.section === 'Молочное' && sm.assigned_to === U1);
+  await until(() => !!$('shItems').querySelector('.sh-sec'));
+  ok('items group by section', $('shItems').querySelector('.sh-sec .sec-h span').textContent === 'Молочное' && !!$('shItems').querySelector(`.sh-sec .sh-row[data-sid="${sm.id}"]`));
+  ok('assigned item says so', $('shItems').querySelector(`.sh-row[data-sid="${sm.id}"] .sh-to`).textContent === '→ Вам');
+  const sok = db.items.find(x => x.text === 'Сок');
+  $('shItems').querySelector(`.sh-row[data-sid="${sok.id}"] .sh-main`).click(); await until(() => $('shEditOv')._shown);
+  $('shEditSec').value = 'Напитки'; $('shEditForm').requestSubmit();
+  await until(() => $('shItems').querySelectorAll('.sh-sec').length === 2);
+  const secs = () => [...$('shItems').querySelectorAll('.sh-sec')].map(x => x.dataset.sec).join();
+  ok('sections start in alphabetical order', secs() === 'Молочное,Напитки', secs());
+  $('shItems').querySelector('.sh-sec[data-sec="Напитки"] [data-sact=secup]').click();
+  ok('section can move up, order is kept per person', secs() === 'Напитки,Молочное' && JSON.parse(localStorage.getItem(NS + '-shared-secorder'))[lid].join() === 'Напитки,Молочное');
+  ok('first section cannot move higher', $('shItems').querySelector('.sh-sec [data-sact=secup]').disabled);
+  await closePage();
+  await openPage();
+  $('tLists').querySelector('[data-l=shared]').click(); await until(() => $('shOv')._shown);
+  if ($('shBody').querySelector('[data-m=open]').getAttribute('aria-expanded') !== 'true') $('shBody').querySelector('[data-m=open]').click();
+  await until(() => !!$('shBody').querySelector('[data-m=notify]'));
+  const sw = $('shBody').querySelector('[data-m=notify]');
+  ok('list has a switch for change notifications, off by default', sw.getAttribute('aria-checked') === 'false');
+  sw.click();
+  await until(() => db.members.find(m => m.list_id === lid && m.user_id === U1)?.notify === true);
+  ok('switch turns notifications on for me only', db.members.filter(m => m.notify).length === 1);
+  closeOverlay($('shOv')); await until(() => $('shOv').hidden);
+  db.items.push({ id: uuid(), list_id: lid, text: 'От Бори', done: false, created_by: U2, created_at: new Date(Date.now() + 60000).toISOString(), updated_at: new Date(Date.now() + 60000).toISOString() });
+  await refresh();
+  ok('a list with changes by others gets a dot', !!$('tLists').querySelector(`[data-sl="${lid}"] .sh-dot`));
+  $('tLists').querySelector(`[data-sl="${lid}"]`).click(); await until(() => !$('tShared').hidden);
+  ok('opening the list clears the dot', !hasNews(lid));
+  ok('header shows freshness', /обновлено|обновляется/.test($('shFresh').textContent), $('shFresh').textContent);
+  await closePage();
+}
+
 
 {
   const lid = db.lists[0].id;
@@ -295,7 +373,7 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   ok('deleting asks and warns about everyone', $('cTitle').textContent === 'Удалить список?' && $('cText').textContent.includes('для всех участников'));
   $('cYes').click();
   await until(() => db.lists.length === 0 && sh.lists.length === 0);
-  ok('list is deleted', !$('tLists').querySelector('[data-sl]'));
+  ok('list is deleted', !$('tLists').querySelector('[data-sl]'), [db.lists.length, sh.lists.length, $('toastText').textContent, $('tLists').innerHTML.length]);
   closeOverlay($('shOv')); await until(() => $('shOv').hidden);
   await closePage();
 }

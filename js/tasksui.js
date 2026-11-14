@@ -8,7 +8,7 @@ import { pushState } from './push.js?v=3.4a';
 import { parseQuick } from './taskparse.js?v=3.4a';
 import { firstOn, nextOccurrence, normRep, REP_MAX, REP_UNITS, repLabel, WD_SHORT } from './repeat.js?v=3.4a';
 import { isPrivate, LONG_MS, LONG_SLOP, shownTasks, unlocked } from './privacy.js?v=3.4a';
-import { absRemind, moveLabel, nextWeekend, SOMEDAY, daysBetween, dayLong, dayMarks, dayShort, ghostMarks, SMART, smartCounts, smartFilter, effDay, dayTasks, doneHeading, DUE_REMIND_HOUR, DUE_REMINDS, dueLabel, dueWhen, isOverdue, isRemind, monthEnd, overdueText, newListId, newSubId, newTaskId, normReminds, normSubs, orderOf, nextMonday, pendingToday, remDay, REMIND_DAYS_MAX, remindAt, remindOffset, remindsOf, remindState, remindText, REMINDS_MAX, TASK_LIM, TASK_REMINDS, subStats, taskGroups, taskWhen, tomorrowOf } from './tasks.js?v=3.4a';
+import { absRemind, moveLabel, nextWeekend, SOMEDAY, daysBetween, dayLong, dayMarks, dayShort, ghostMarks, INBOX, normInboxName, SECTIONS, SMART, smartFilter, effDay, dayTasks, doneHeading, DUE_REMIND_HOUR, DUE_REMINDS, dueLabel, dueWhen, overdueDay, isOverdue, isRemind, monthEnd, overdueText, newListId, newSubId, newTaskId, normReminds, normSubs, orderOf, nextMonday, pendingToday, remDay, REMIND_DAYS_MAX, remindAt, remindOffset, remindsOf, remindState, remindText, REMINDS_MAX, TASK_LIM, TASK_REMINDS, subStats, taskGroups, taskWhen, tomorrowOf } from './tasks.js?v=3.4a';
 import { makeWheel } from './wheel.js?v=3.4a';
 
 export const TASKS_DAY_STORE = NS + '-tasks-day', TASKS_DOTS_STORE = NS + '-tasks-dots', TASKS_LIMIT_STORE = NS + '-tasks-limit', TASKS_FOLD_STORE = NS + '-tasks-fold', TASKS_POS_STORE = NS + '-tasks-pos', TASKS_LIST_STORE = NS + '-tasks-list';
@@ -18,7 +18,6 @@ export const TASK_LIMITS = [3, 5, 10];
 export const SWIPE_BTN = 72, DONE_CAN_ARCHIVE = false;
 export const swipeW = n => n * SWIPE_BTN + 14;
 export const SWIPE_W = swipeW(3);
-const DONE_STEP = 5;
 const IC_CHECK = '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const IC_LIST = '<svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l.8.8L6.3 5M4 12l.8.8 1.5-1.8M4 18l.8.8 1.5-1.8"/></svg>';
 const IC_WARN = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.1M12 3.5l9.5 17h-19z"/></svg>';
@@ -27,12 +26,12 @@ const IC_FWD = '<svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></sv
 const IC_FLAG = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 21V4.5M6 4.5h11l-2.4 4 2.4 4H6"/></svg>';
 const IC_REP = '<svg class="ic" viewBox="0 0 24 24"><path d="M17 2.5l3 3-3 3M4 11.5v-1a5 5 0 0 1 5-5h11M7 21.5l-3-3 3-3M20 12.5v1a5 5 0 0 1-5 5H4"/></svg>';
 const IC_BELL = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 21h4"/></svg>';
-const IC_DOWN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
 const IC_MOVE = '<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4M10 13.5l2.5 2-2.5 2"/></svg>';
 
 const monthOf = k => { const d = parseKey(k); return new Date(d.getFullYear(), d.getMonth(), 1); };
 
-export const tv = { sel: null, someOpen: false, lateOpen: false, wday: null, wkOff: 0, tab: 'list', day: todayKey(), month: monthOf(todayKey()), doneOpen: false, doneShown: DONE_STEP, archOpen: false, archShown: DONE_STEP, dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
+const IC_DOWN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+export const tv = { sel: null, lateOpen: false, wday: null, wkOff: 0, tab: 'list', day: todayKey(), month: monthOf(todayKey()), dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
 export const doneDelay = { ms: 600 };
 const pendingDone = new Map();
 export const taskHooks = { chips: () => '', render: null, open: null, select: null, leave: null };
@@ -109,9 +108,9 @@ function agendaRow(t, today) {
 }
 function lateHTML(list, today) {
   if (!list.length) return '';
-  const head = `<button type="button" class="card t-late-bar" data-act="late-toggle" aria-expanded="${tv.lateOpen}">${IC_WARN}<span>Просрочено: ${list.length}</span><em>${tv.lateOpen ? 'Скрыть' : 'Показать'}</em></button>`;
+  const head = `<div class="card t-late-bar"><button type="button" class="t-late-main" data-act="late-toggle" aria-expanded="${tv.lateOpen}">${IC_WARN}<span><b>Просрочено: ${list.length}</b><small>${list.length > 1 ? 'самая старая' : 'срок'} — ${esc(dayShort(overdueDay(list[0], today), today))}</small></span>${IC_DOWN}</button><button type="button" class="t-late-go" data-act="all-today">На сегодня</button></div>`;
   if (!tv.lateOpen) return `<section class="t-group late" data-day="late">${head}</section>`;
-  return `<section class="t-group late open" data-day="late">${head}<div class="t-links t-late-links"><button type="button" class="t-link" data-act="all-arch">Всё в архив</button><button type="button" class="t-link" data-act="all-today">Всё на сегодня</button></div><div class="card t-list">${list.slice(0, tv.shown.overdue ||= LIST_STEP).map(t => rowHTML(t, 'list', today)).join('')}</div>${moreBtn('overdue', list.length)}</section>`;
+  return `<section class="t-group late open" data-day="late">${head}<div class="t-links t-late-links"><button type="button" class="t-link" data-act="all-arch">Всё в архив</button></div><div class="card t-list">${list.slice(0, tv.shown.overdue ||= LIST_STEP).map(t => rowHTML(t, 'list', today)).join('')}</div>${moreBtn('overdue', list.length)}</section>`;
 }
 function moreBtn(g, total) {
   const rest = total - (tv.shown[g] || LIST_STEP);
@@ -151,12 +150,13 @@ function oneDayHTML(all, k, today) {
   const body = list.length ? `<div class="card t-list">${list.map(t => agendaRow(t, today)).join('')}${add}</div>` : `<div class="card t-dayempty"><p>На этот день задач нет</p>${add}</div>`;
   return `<section class="t-group t-dayg t-onlyday" data-day="${k}"><h3 class="sec-h t-dh"><span>${esc(a)}</span><small>${esc(b)}</small><span class="cnt">${open || ''}</span><button type="button" class="t-link t-alldays" data-act="all-days">Все дни</button></h3>${body}</section>`;
 }
+const isoWeek = d => { const t = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - weekday(d)), y = new Date(t.getFullYear(), 0, 4); return 1 + Math.round((t - y) / 864e5 / 7 - (3 - weekday(y)) / 7); };
 const wkStart = (today, wk = tv.wkOff) => { const d = parseKey(today); return addDays(d, wk * 7 - weekday(d)); };
 function paintWeekHead(today) {
   const s = wkStart(today), e = addDays(s, 6), m = (d, y) => d.toLocaleDateString('ru-RU', { month: 'long', ...(y ? { year: 'numeric' } : {}) });
   const y = s.getFullYear() !== parseKey(today).getFullYear() || e.getFullYear() !== parseKey(today).getFullYear();
   const txt = s.getMonth() === e.getMonth() ? m(s, y) : `${m(s, false)} – ${m(e, y)}`;
-  $('tWkMonth').textContent = (txt[0].toUpperCase() + txt.slice(1)).replace(/ г\.$/, '');
+  $('tWkMonth').innerHTML = `<b>${esc((txt[0].toUpperCase() + txt.slice(1)).replace(/ г\.$/, ''))}</b><span>· ${isoWeek(s)} неделя</span>${IC_DOWN}`;
   $('tWkToday').style.visibility = tv.wkOff || (tv.wday && tv.wday !== today) ? 'visible' : 'hidden';
 }
 {
@@ -276,32 +276,6 @@ function groupHTML(title, list, mode, today, extra = {}) {
   </section>`;
 }
 
-function doneHTML(done, today) {
-  if (!done.length) return '';
-  const head = `<button type="button" class="t-done-head" data-act="done-toggle" aria-expanded="${tv.doneOpen}"><span>Выполненные</span><span class="cnt">${done.length}</span>${IC_DOWN}</button>`;
-  if (!tv.doneOpen) return `<section class="t-group">${head}</section>`;
-  const shown = done.slice(0, tv.doneShown), days = [...new Set(shown.map(t => t.doneAt))];
-  const body = days.map(k => `<h4 class="t-done-day">${esc(doneHeading(k, today))}</h4><div class="card t-list">${shown.filter(t => t.doneAt === k).map(t => rowHTML(t, 'none', today)).join('')}</div>`).join('');
-  const more = done.length > tv.doneShown ? `<button type="button" class="t-more-btn" data-act="done-more">Показать ещё ${done.length - tv.doneShown}</button>` : '';
-  return `<section class="t-group open">${head}${body}${more}</section>`;
-}
-
-function archiveHTML(list, today) {
-  if (!list.length) return '';
-  const head = `<button type="button" class="t-done-head" data-act="arch-toggle" aria-expanded="${tv.archOpen}"><span>Архив</span><span class="cnt">${list.length}</span>${IC_DOWN}</button>`;
-  if (!tv.archOpen) return `<section class="t-group">${head}</section>`;
-  const more = list.length > tv.archShown ? `<button type="button" class="t-more-btn" data-act="arch-more">Показать ещё ${list.length - tv.archShown}</button>` : '';
-  return `<section class="t-group open">${head}<div class="card t-list">${list.slice(0, tv.archShown).map(t => rowHTML(t, 'none', today)).join('')}</div>${more}</section>`;
-}
-
-function somedayHTML(list, today) {
-  if (!list.length) return '';
-  const head = `<button type="button" class="t-done-head" data-act="some-toggle" aria-expanded="${tv.someOpen}"><span>Когда-нибудь</span><span class="cnt">${list.length}</span>${IC_DOWN}</button>`;
-  if (!tv.someOpen) return `<section class="t-group">${head}</section>`;
-  const lim = tv.shown.someday ||= LIST_STEP, more = list.length > lim ? `<button type="button" class="t-more-btn" data-act="more" data-g="someday">Показать ещё ${Math.min(list.length - lim, LIST_STEP)}</button>` : '';
-  return `<section class="t-group open">${head}<div class="card t-list">${list.slice(0, lim).map(t => rowHTML(t, 'none', today)).join('')}</div>${more}</section>`;
-}
-
 function emptyHTML() {
   return `<div class="empty t-empty"><div class="t-empty-ic">${IC_LIST}</div><b>Здесь будут Ваши дела</b><p>Нажмите «+», запишите первое дело и выберите день, когда им заняться. Оно появится на экране этого дня.</p></div>`;
 }
@@ -316,16 +290,13 @@ function renderList() {
     lateHTML(g.overdue, today),
     agendaHTML(g, today),
     groupHTML('Без даты', g.nodate, 'none', today, { g: 'nodate' }),
-    somedayHTML(g.someday, today),
-    doneHTML(g.done.filter(t => t.doneAt !== today), today),
-    archiveHTML(g.archived, today),
   ].join('');
 }
 
 const pad = n => String(n).padStart(2, '0');
 const monthKey = (m, d) => `${m.getFullYear()}-${pad(m.getMonth() + 1)}-${pad(d)}`;
 
-export function calHTML(month, sel, marks, today = todayKey()) {
+export function calHTML(month, sel, marks, today = todayKey(), fold = false) {
   const first = new Date(month.getFullYear(), month.getMonth(), 1), start = addDays(first, -weekday(first));
   const cells = Array.from({ length: 42 }, (_, i) => {
     const d = addDays(start, i), k = key(d), m = marks[k], own = d.getMonth() === month.getMonth();
@@ -333,7 +304,8 @@ export function calHTML(month, sel, marks, today = todayKey()) {
     return `<button type="button" class="t-d${own ? '' : ' out'}${k === today ? ' now' : ''}${k === sel ? ' pick' : ''}" data-k="${k}" aria-pressed="${k === sel}" aria-label="${esc(dayLong(k, today))}"><span>${d.getDate()}</span>${dots}</button>`;
   }).join('');
   const wd = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(x => `<small>${x}</small>`).join('');
-  return `<div class="t-cal-head"><b>${MONTHS[month.getMonth()]} ${month.getFullYear()} г.</b><span><button type="button" class="ghost icon-btn" data-nav="-1" aria-label="Предыдущий месяц">${IC_BACK}</button><button type="button" class="ghost icon-btn" data-nav="1" aria-label="Следующий месяц">${IC_FWD}</button></span></div><div class="t-grid">${wd}${cells}</div>`;
+  const title = `${MONTHS[month.getMonth()]} ${month.getFullYear()} г.`;
+  return `<div class="t-cal-head">${fold ? `<button type="button" class="t-wkmonth up" data-fold aria-label="Свернуть до недели"><b>${title}</b>${IC_DOWN}</button>` : `<b>${title}</b>`}<span><button type="button" class="ghost icon-btn" data-nav="-1" aria-label="Предыдущий месяц">${IC_BACK}</button><button type="button" class="ghost icon-btn" data-nav="1" aria-label="Следующий месяц">${IC_FWD}</button></span></div><div class="t-grid">${wd}${cells}</div>`;
 }
 
 export function monthMarks(tasks, today = todayKey(), month = null) {
@@ -348,7 +320,7 @@ export function monthMarks(tasks, today = todayKey(), month = null) {
 function renderMonth() {
   const today = todayKey(), all = screenTasks(), list = dayTasks(all, tv.day, today);
   paintListChips();
-  $('tCal').innerHTML = calHTML(tv.month, tv.day, monthMarks(all, today, tv.month), today);
+  $('tCal').innerHTML = calHTML(tv.month, tv.day, monthMarks(all, today, tv.month), today, true);
   $('tMonthHead').innerHTML = `<span>${esc(tv.day === today ? `Сегодня, ${dayLong(tv.day, today)}` : dayLong(tv.day, today))}</span><span class="cnt">${list.length}</span>`;
   $('tMonthItems').innerHTML = list.map(t => rowHTML(t, t.due === tv.day && t.date !== tv.day ? 'dueday' : t.date && t.date !== tv.day ? 'list' : 'none', today)).join('');
 }
@@ -357,20 +329,18 @@ export function renderTasks() {
   for (const b of $('tTabs').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.t === tv.tab);
   $('tShared').hidden = !tv.shared;
   if (tv.sel && (tv.shared || (!tv.smart && tv.tab !== 'list'))) exitSelect(false);
-  $('tSelBtn').disabled = !!tv.shared || (!tv.smart && tv.tab !== 'list');
   if (tv.shared) {
-    for (const id of ['tTabs', 'tSmartBar', 'tListView', 'tMonthView', 'tsResults']) $(id).hidden = true;
+    for (const id of ['tTabs', 'tsFilters', 'tListView', 'tMonthView', 'tsResults', 'tWkHead', 'tWeekRow']) $(id).hidden = true;
     paintListChips();
     return taskHooks.render?.(tv.shared);
   }
   taskHooks.leave?.();
-  const sm = tv.smart && smartOn(tv.smart) && (tv.smart !== 'priv' || unlocked) ? tv.smart : (tv.smart = null);
+  const sm = tv.smart && (tv.smart !== 'priv' || unlocked) && (isSection(tv.smart) || !$('tSearch').hidden) ? tv.smart : (tv.smart = null);
   $('tTabs').hidden = !!sm;
   $('tWeekRow').hidden = $('tWkHead').hidden = !!sm || tv.tab !== 'list';
-  $('tMonthBtn').setAttribute('aria-pressed', !sm && tv.tab === 'month');
-  $('tMonthBtn').disabled = !!sm || !!tv.shared;
-  $('tSmartBar').hidden = !sm;
-  $('tSmartBtn').setAttribute('aria-pressed', !!sm);
+  $('tsFilters').hidden = $('tSearch').hidden;
+  $('tLists').hidden = !$('tSearch').hidden;
+  if (!$('tSearch').hidden) paintFilters();
   $('tListView').hidden = !sm && tv.tab !== 'list';
   $('tMonthView').hidden = !!sm || tv.tab !== 'month';
   if (sm) renderSmart(); else if (tv.tab === 'list') renderList(); else renderMonth();
@@ -394,11 +364,34 @@ export function openTasks() {
   queueTips(700);
 }
 $('tasksBtn').onclick = () => openTasks();
-$('tMonthBtn').onclick = () => {
+function toggleMonth() {
   exitSelect(false);
   tv.smart = null;
   tv.tab = tv.tab === 'month' ? 'list' : 'month';
   renderTasks();
+}
+$('tWkMonth').onclick = () => toggleMonth();
+const IC_SEC = {
+  someday: '<svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+  done: '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  arch: '<svg class="ic" viewBox="0 0 24 24"><path d="M3 4h18v4H3zM5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></svg>',
+};
+const IC_SELECT = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/></svg>';
+const IC_MONTH = '<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg>';
+const IC_LISTS = '<svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>';
+$('tMoreBtn').onclick = () => {
+  const all = screenTasks(), today = todayKey(), sm = tv.smart && !tv.shared ? tv.smart : null;
+  openMenu($('tMoreBtn'), [
+    { header: 'Разделы' },
+    ...SECTIONS.map(([id, name]) => {
+      const n = smartFilter(id, all, today, { unlocked }).length;
+      return { icon: IC_SEC[id], label: name, note: String(n), disabled: !n && sm !== id, run: () => { closeSearch(); setSmart(id); } };
+    }),
+    '-',
+    { icon: IC_SELECT, label: 'Выбрать задачи', disabled: !!tv.shared || (!sm && tv.tab !== 'list'), run: () => enterSelect() },
+    { icon: IC_MONTH, label: tv.tab === 'month' ? 'Только неделя' : 'Месяц целиком', disabled: !!sm || !!tv.shared, run: () => toggleMonth() },
+    { icon: IC_LISTS, label: listsOf().length ? 'Изменить списки' : 'Создать список', run: () => (listsOf().length ? openListsSheet() : openListEditor()) },
+  ]);
 };
 $('tWeek').onclick = e => {
   const b = e.target.closest('[data-wk]');
@@ -415,6 +408,7 @@ $('tTabs').onclick = e => {
   renderTasks();
 };
 $('tCal').onclick = e => {
+  if (e.target.closest('[data-fold]')) return toggleMonth();
   const nav = e.target.closest('[data-nav]');
   if (nav) {
     tv.month = new Date(tv.month.getFullYear(), tv.month.getMonth() + +nav.dataset.nav, 1);
@@ -729,15 +723,10 @@ function listAct(el) {
   const a = el.dataset.act, t = el.closest('.t-row') ? findTask(el.closest('.t-row').dataset.id) : el.dataset.id ? findTask(el.dataset.id) : null;
   if (a === 'subs' && t) { if (tv.subOpen.has(t.id)) tv.subOpen.delete(t.id); else tv.subOpen.add(t.id); return renderTasks(); }
   if (a === 'sub' && t) return toggleSub(t, el.dataset.s);
-  if (a === 'done-toggle') { tv.doneOpen = !tv.doneOpen; tv.doneShown = DONE_STEP; return renderList(); }
-  if (a === 'done-more') { tv.doneShown += DONE_STEP * 2; return renderList(); }
-  if (a === 'arch-toggle') { tv.archOpen = !tv.archOpen; tv.archShown = DONE_STEP; return renderList(); }
-  if (a === 'arch-more') { tv.archShown += DONE_STEP * 2; return renderList(); }
   if (a === 'smart-more') { tv.smartShown += LIST_STEP; return renderTasks(); }
   if (a === 'more') { tv.shown[el.dataset.g] = (tv.shown[el.dataset.g] || LIST_STEP) + LIST_STEP; return renderList(); }
   if (a === 'all-today') return allToToday();
   if (a === 'all-arch') return archiveOverdue();
-  if (a === 'some-toggle') { tv.someOpen = !tv.someOpen; return renderList(); }
   if (a === 'late-toggle') { tv.lateOpen = !tv.lateOpen; return renderList(); }
   if (a === 'all-days') { tv.wday = null; return renderList(); }
   if (a === 'move' && t) { closeRow(); return openMove([t]); }
@@ -846,7 +835,6 @@ function paintSel() {
   for (const b of $('tSelBar').querySelectorAll('button')) b.disabled = !(b.dataset.s === 'del' ? list.length : act.length);
   $('tSelBar').querySelector('[data-s=list]').hidden = !listsOf().length;
 }
-$('tSelBtn').onclick = () => enterSelect();
 $('tSelDone').onclick = () => exitSelect();
 $('tSelAll').onclick = () => {
   const open = selRows().filter(r => !r.classList.contains('done')), all = open.length && open.every(r => tv.sel.has(r.dataset.id));
@@ -975,14 +963,15 @@ export function openTaskForm(t = null, date = null) {
   tf.base = tfSnap();
   openOverlay($('tFormOv'));
   fitTitle();
+  $('tfSubs').querySelectorAll('.t-sin').forEach(fit);
   if (!t) setTimeout(() => $('tfText').focus({ preventScroll: true }), 60);
 }
-function fitTitle() {
-  if (window.CSS?.supports?.('field-sizing', 'content')) return;
-  const el = $('tfText');
+function fit(el) {
+  if (window.CSS?.supports?.('field-sizing', 'content') || !el.offsetParent) return;
   el.style.height = 'auto';
   el.style.height = el.scrollHeight + 'px';
 }
+const fitTitle = () => fit($('tfText'));
 $('tFormOv')._guard = () => tfSnap() === tf.base || askConfirm('Закрыть без сохранения?', tf.id ? 'Изменения в задаче не сохранятся.' : 'Новая задача не будет добавлена.', 'Закрыть');
 $('tfText').addEventListener('input', () => {
   const el = $('tfText');
@@ -1257,11 +1246,11 @@ export function parseLines(text) {
 }
 
 const IC_X = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-const subRow = (s, i) => `<div class="t-sub" role="listitem" data-i="${i}"><button type="button" class="t-sbox" role="checkbox" aria-checked="${s.done}" aria-label="Подзадача выполнена">${IC_CHECK}</button><input type="text" class="t-sin" maxlength="${TASK_LIM.sub}" enterkeyhint="next" autocomplete="off" aria-label="Подзадача ${i + 1}"><button type="button" class="ghost icon-btn t-sdel" aria-label="Удалить подзадачу">${IC_X}</button></div>`;
+const subRow = (s, i) => `<div class="t-sub" role="listitem" data-i="${i}"><button type="button" class="t-sbox" role="checkbox" aria-checked="${s.done}" aria-label="Подзадача выполнена">${IC_CHECK}</button><textarea class="t-sin" rows="1" maxlength="${TASK_LIM.sub}" enterkeyhint="next" autocomplete="off" aria-label="Подзадача ${i + 1}"></textarea><button type="button" class="ghost icon-btn t-sdel" aria-label="Удалить подзадачу">${IC_X}</button></div>`;
 function paintSubs(focus = -1) {
   const box = $('tfSubs');
   box.innerHTML = tf.subs.map(subRow).join('');
-  box.querySelectorAll('.t-sin').forEach((inp, i) => { inp.value = tf.subs[i].text; });
+  box.querySelectorAll('.t-sin').forEach((inp, i) => { inp.value = tf.subs[i].text; fit(inp); });
   $('tfSubAdd').hidden = tf.subs.length >= TASK_LIM.subs;
   if (focus >= 0) box.querySelectorAll('.t-sin')[focus]?.focus();
 }
@@ -1278,7 +1267,11 @@ function insertSubs(at, texts) {
 }
 const subIndex = el => +el.closest('.t-sub').dataset.i;
 $('tfSubs').addEventListener('input', e => {
-  if (e.target.classList.contains('t-sin')) tf.subs[subIndex(e.target)].text = e.target.value;
+  const el = e.target;
+  if (!el.classList.contains('t-sin')) return;
+  if (/[\r\n]/.test(el.value)) el.value = el.value.replace(/\s*[\r\n]+\s*/g, ' ');
+  tf.subs[subIndex(el)].text = el.value;
+  fit(el);
 });
 $('tfSubs').addEventListener('click', e => {
   const box = e.target.closest('.t-sbox'), del = e.target.closest('.t-sdel');
@@ -1383,20 +1376,35 @@ const IC_PLUS_S = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14
 function paintListChips() {
   const lists = listsOf(), v = curList(), box = $('tLists'), lc = findList(v)?.color;
   if (lc) $('tasksOv').style.setProperty('--list-c', lc); else $('tasksOv').style.removeProperty('--list-c');
-  const chip = (id, label, color) => `<button type="button" class="t-chip" data-l="${esc(id)}" aria-pressed="${v === id}">${color ? `<i class="t-ldot" style="--c:${esc(color)}"></i>` : ''}<span>${esc(label)}</span></button>`;
-  box.innerHTML = (lists.length ? chip('all', 'Все') + chip('inbox', 'Входящие') + lists.map(l => chip(l.id, l.name, l.color)).join('') : '')
-    + `<button type="button" class="t-chip t-chip-add" data-l="+" aria-label="${lists.length ? 'Изменить списки' : 'Создать список'}">${IC_PLUS_S}${lists.length ? '' : '<span>Список</span>'}</button>`
-    + taskHooks.chips(tv.shared);
+  const sec = !tv.shared && isSection(tv.smart) ? tv.smart : null, vis = visTasks().filter(t => !t.done && !t.archivedAt);
+  const open = id => vis.filter(t => inList(t, id)).length;
+  const chip = (id, label, color) => { const n = open(id); return `<button type="button" class="t-chip" data-l="${esc(id)}" aria-pressed="${!sec && v === id}">${color ? `<i class="t-ldot" style="--c:${esc(color)}"></i>` : ''}<span>${esc(label)}</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`; };
+  const secName = sec && SECTIONS.find(x => x[0] === sec)[1];
+  const secTab = sec ? `<button type="button" class="t-chip t-chip-on" data-sec="${sec}" aria-pressed="true" aria-label="${secName}, закрыть раздел">${IC_SEC[sec]}<span>${secName}</span><span class="cnt">${smartList(sec).length}</span><span class="t-x" aria-hidden="true">${IC_X}</span></button>` : '';
+  box.innerHTML = secTab + chip('all', 'Все') + (lists.length ? chip('inbox', inboxName()) + lists.map(l => chip(l.id, l.name, l.color)).join('') : '')
+    + taskHooks.chips(tv.shared)
+    + `<button type="button" class="t-chip t-chip-add" data-l="+" aria-label="Создать список">${IC_PLUS_S}</button>`;
   if (tv.shared) box.querySelectorAll('[data-l][aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  const on = box.querySelector('[aria-pressed=true]');
+  if (on && (on.offsetLeft < box.scrollLeft || on.offsetLeft + on.offsetWidth > box.scrollLeft + box.clientWidth)) box.scrollLeft = on.offsetLeft - 16;
+  fadeTabs();
 }
+function fadeTabs() {
+  const box = $('tLists');
+  box.classList.toggle('fade', box.scrollLeft + box.clientWidth < box.scrollWidth - 2);
+}
+$('tLists').addEventListener('scroll', fadeTabs, { passive: true });
+const isSection = id => SECTIONS.some(x => x[0] === id);
 $('tLists').onclick = e => {
+  if (e.target.closest('[data-sec]')) return setSmart(null);
   const sl = e.target.closest('[data-sl]');
   if (sl) return taskHooks.select?.(sl.dataset.sl);
   const b = e.target.closest('[data-l]');
   if (!b) return;
-  if (b.dataset.l === '+') return listsOf().length ? openListsSheet() : openListEditor();
+  if (b.dataset.l === '+') return openListEditor();
   if (b.dataset.l === 'shared') return taskHooks.open?.();
   tv.shared = null;
+  if (isSection(tv.smart)) tv.smart = null;
   setPref(TASKS_LIST_STORE, b.dataset.l);
   tv.shown = {};
   renderTasks();
@@ -1420,6 +1428,8 @@ function paintListsSheet() {
   if (!$('tListsOv')._shown) return;
   const lists = listsOf(), full = lists.length >= TASK_LIM.lists;
   $('tlInbox').textContent = listOpen('') || '';
+  $('tlInboxName').textContent = inboxName();
+  $('tlInboxBtn').setAttribute('aria-label', `Изменить список «${inboxName()}»`);
   $('tlItems').innerHTML = lists.length ? lists.map(listRow).join('') : '<p class="tl-empty">Списков пока нет</p>';
   $('tlAdd').disabled = full;
   $('tlHint').textContent = full ? `Это предел — ${TASK_LIM.lists} списков. Удалите ненужный, чтобы добавить новый.` : `Касание открывает список. Порядок меняется перетаскиванием за ⋮⋮. До ${TASK_LIM.lists} списков.`;
@@ -1442,7 +1452,7 @@ export async function deleteList(id) {
   const l = findList(id);
   if (!l) return false;
   const n = tasksOf().filter(t => t.list === id).length;
-  const yes = await askConfirm('Удалить список?', n ? `Задачи из списка «${l.name}» перейдут во «Входящие».` : `Список «${l.name}» пустой.`, 'Удалить');
+  const yes = await askConfirm('Удалить список?', n ? `Задачи из списка «${l.name}» перейдут ${inboxTo()}.` : `Список «${l.name}» пустой.`, 'Удалить');
   if (!yes) return false;
   const now = Date.now();
   for (const t of tasksOf()) if (t.list === id) { delete t.list; t.updatedAt = now; }
@@ -1461,6 +1471,7 @@ function moveList(id, to) {
   return true;
 }
 $('tlAdd').onclick = () => openListEditor();
+$('tlInboxBtn').onclick = () => openListEditor('inbox');
 $('tlItems').addEventListener('click', e => {
   const b = e.target.closest('.tl-open');
   if (b) openListEditor(b.closest('.tl-row').dataset.id);
@@ -1511,13 +1522,26 @@ const tle = { id: null, color: COLORS[0] };
 $('tleColors').innerHTML = COLORS.map((c, i) => `<button type="button" role="radio" class="tle-c" data-c="${c}" style="--c:${c}" aria-label="${COLOR_NAMES[i] || c}" aria-checked="false"></button>`).join('');
 function paintListEditor() {
   const name = $('tleName').value;
-  $('tlePv').style.setProperty('--c', tle.color);
+  $('tlePv').style.setProperty('--c', tle.color || 'var(--muted)');
   $('tleCount').textContent = `${[...name].length} / ${TASK_LIM.listName}`;
   $('tleOk').disabled = !name.trim();
   for (const b of $('tleColors').children) { const on = b.dataset.c === tle.color; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1; }
 }
 export function openListEditor(id = null) {
-  const l = id ? findList(id) : null;
+  const inbox = id === 'inbox', l = id && !inbox ? findList(id) : null;
+  $('tleColorsLbl').hidden = $('tleColors').hidden = inbox;
+  if (inbox) {
+    tle.id = 'inbox';
+    tle.color = null;
+    $('tleTitle').textContent = 'Список';
+    $('tleName').value = inboxName();
+    $('tleHint').hidden = false;
+    $('tleHint').textContent = 'Сюда попадают задачи без списка. Название можно поменять, а удалить этот список нельзя.';
+    $('tleDelWrap').hidden = true;
+    paintListEditor();
+    return openOverlay($('tListOv'));
+  }
+  $('tleHint').textContent = 'Цвет списка виден в чипах, у задач и точками в календаре.';
   if (!l && listsOf().length >= TASK_LIM.lists) { toast(`Можно завести до ${TASK_LIM.lists} списков`); return; }
   const used = new Set(listsOf().map(x => x.color));
   tle.id = l ? l.id : null;
@@ -1528,7 +1552,7 @@ export function openListEditor(id = null) {
   $('tleDelWrap').hidden = !l;
   if (l) {
     const n = tasksOf().filter(t => t.list === l.id).length;
-    $('tleDelNote').textContent = n ? `${n} ${plural(n, 'задача', 'задачи', 'задач')} ${plural(n, 'перейдёт', 'перейдут', 'перейдут')} во «Входящие»` : 'В списке нет задач';
+    $('tleDelNote').textContent = n ? `${n} ${plural(n, 'задача', 'задачи', 'задач')} ${plural(n, 'перейдёт', 'перейдут', 'перейдут')} ${inboxTo()}` : 'В списке нет задач';
   }
   paintListEditor();
   openOverlay($('tListOv'));
@@ -1553,6 +1577,14 @@ $('tleForm').addEventListener('submit', e => {
   e.preventDefault();
   const name = $('tleName').value.trim().slice(0, TASK_LIM.listName);
   if (!name) return;
+  if (tle.id === 'inbox') {
+    const v = normInboxName(name);
+    if (v) state.inboxName = v; else delete state.inboxName;
+    save();
+    renderTasks();
+    closeOverlay($('tListOv'));
+    return paintListsSheet();
+  }
   const l = tle.id && findList(tle.id);
   if (l) {
     l.name = name;
@@ -1569,6 +1601,7 @@ $('tleDel').onclick = async () => {
 };
 function listMenu(b) {
   const id = b.dataset.l;
+  if (id === 'inbox') return openMenu(b, [{ icon: IC.edit, label: 'Переименовать', run: () => openListEditor('inbox') }, { icon: IC_LIST, label: 'Все списки', run: openListsSheet }]);
   openMenu(b, [
     { icon: IC.edit, label: 'Изменить список', run: () => openListEditor(id) },
     { icon: IC_LIST, label: 'Все списки', run: openListsSheet },
@@ -1580,7 +1613,7 @@ function listMenu(b) {
   const box = $('tLists');
   let lp = null, fired = false;
   const cancel = () => { if (lp) { clearTimeout(lp.t); lp = null; } };
-  const listChip = t => { const b = t.closest?.('.t-chip[data-l]'); return b && findList(b.dataset.l) ? b : null; };
+  const listChip = t => { const b = t.closest?.('.t-chip[data-l]'); return b && (b.dataset.l === 'inbox' || findList(b.dataset.l)) ? b : null; };
   box.addEventListener('pointerdown', e => {
     const b = listChip(e.target);
     fired = false;
@@ -1700,7 +1733,7 @@ export function openSearch() {
   $('tSearch').hidden = false;
   $('tSearchBtn').setAttribute('aria-expanded', 'true');
   $('tsText').value = '';
-  renderSearch();
+  renderTasks();
   $('tsText').focus({ preventScroll: true });
 }
 export function closeSearch() {
@@ -1708,6 +1741,8 @@ export function closeSearch() {
   const was = !$('tSearch').hidden;
   $('tSearch').hidden = true;
   $('tSearchBtn').setAttribute('aria-expanded', 'false');
+  if (tv.smart && !isSection(tv.smart)) tv.smart = null;
+  renderTasks();
   if (was && !reducedMotion) $('tasksOv').querySelectorAll('.page-head > :not(.t-search)').forEach(el => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' }));
   $('tsText').value = '';
   renderSearch();
@@ -1728,7 +1763,7 @@ $('tfImpRow').onclick = () => { tf.imp = !tf.imp; paintImp(); };
 function paintListSelect(v) {
   const lists = listsOf(), sel = $('tfList');
   $('tfListRow').hidden = !lists.length;
-  sel.replaceChildren(new Option('Входящие', ''), ...lists.map(l => new Option(l.name, l.id)));
+  sel.replaceChildren(new Option(inboxName(), ''), ...lists.map(l => new Option(l.name, l.id)));
   sel.value = lists.some(l => l.id === v) ? v : '';
 }
 
@@ -1833,21 +1868,9 @@ $('trOk').onclick = () => {
   setRep(rep);
 };
 
-export const SMART_STORE = NS + '-smart-';
-export const smartOn = id => getPref(SMART_STORE + id, '1') !== '0';
+export const inboxName = () => state.inboxName || INBOX;
+const inboxTo = () => state.inboxName ? `в «${state.inboxName}»` : `во «${INBOX}»`;
 export const smartList = id => smartFilter(id, screenTasks(), todayKey(), { unlocked });
-function smartVisible() {
-  const counts = smartCounts(screenTasks(), todayKey(), { unlocked });
-  return SMART.filter(([id]) => smartOn(id) && (id !== 'priv' || (unlocked && counts.priv > 0))).map(([id, name]) => [id, name, counts[id]]);
-}
-function paintSmartSheet() {
-  const rows = smartVisible();
-  $('tsmItems').innerHTML = rows.length ? rows.map(([id, name, n]) => `<button type="button" class="t-smart-row" data-sm="${id}" aria-pressed="${tv.smart === id}"><span>${esc(name)}</span><span class="cnt">${n}</span></button>`).join('') : '<p class="t-snone">Все срезы выключены в настройках</p>';
-}
-export function openSmartSheet() {
-  paintSmartSheet();
-  openOverlay($('tSmartOv'));
-}
 export function setSmart(id) {
   exitSelect(false);
   tv.smart = id;
@@ -1855,46 +1878,38 @@ export function setSmart(id) {
   tv.smartShown = LIST_STEP;
   renderTasks();
 }
-$('tSmartBtn').onclick = () => openSmartSheet();
-$('tsmItems').onclick = e => {
-  const b = e.target.closest('[data-sm]');
-  if (!b) return;
-  closeOverlay($('tSmartOv'));
-  setSmart(b.dataset.sm);
+function paintFilters() {
+  const all = screenTasks(), today = todayKey();
+  $('tsFilters').innerHTML = SMART.filter(([id]) => id !== 'priv' || unlocked).map(([id, name]) => {
+    const n = smartFilter(id, all, today, { unlocked }).length, on = tv.smart === id;
+    return `<button type="button" class="t-chip t-chip-sec" data-f="${id}" aria-pressed="${on}"${n || on ? '' : ' disabled'}><span>${esc(name)}</span><span class="cnt">${n}</span></button>`;
+  }).join('');
+}
+$('tsFilters').onclick = e => {
+  const b = e.target.closest('[data-f]');
+  if (b) setSmart(tv.smart === b.dataset.f ? null : b.dataset.f);
 };
-$('tSmartOff').onclick = () => { setSmart(null); $('tSmartBtn').focus({ preventScroll: true }); };
 function smartDayOf(id, t, today) {
-  if (id === 'week') return t.done ? t.doneAt : t.lastDone;
+  if (id === 'done') return t.doneAt;
+  if (id === 'someday' || id === 'arch') return '';
   if (id === 'due') return t.due;
-  if (id === 'late') return t.date && t.date < today ? t.date : t.due;
   return effDay(t);
 }
 function renderSmart() {
-  const today = todayKey(), id = tv.smart, list = smartList(id), name = SMART.find(x => x[0] === id)[1];
-  $('tSmartName').textContent = `Срез: ${name}`;
+  const today = todayKey(), id = tv.smart, list = smartList(id), sec = isSection(id);
   paintListChips();
-  if (!list.length) { $('tItems').innerHTML = '<p class="t-snone">В этом срезе нет задач</p>'; return; }
+  if (!list.length) { $('tItems').innerHTML = `<p class="t-snone">${sec ? 'Здесь пока пусто' : 'Таких задач нет'}</p>`; return; }
   const shown = list.slice(0, tv.smartShown), groups = [];
   for (const t of shown) {
     const k = smartDayOf(id, t, today) || '';
     if (!groups.length || groups.at(-1).k !== k) groups.push({ k, items: [] });
     groups.at(-1).items.push(t);
   }
-  const head = k => !k ? 'Без даты' : id === 'week' ? doneHeading(k, today) : taskWhen(k, today);
-  const rest = list.length - shown.length;
-  $('tItems').innerHTML = groups.map(g => `<section class="t-group"><h3 class="sec-h"><span>${esc(head(g.k))}</span><span class="cnt">${g.items.length}</span></h3><div class="card t-list">${g.items.map(t => rowHTML(t, 'none', today)).join('')}</div></section>`).join('')
+  const head = k => !k ? 'Без даты' : id === 'done' ? doneHeading(k, today) : taskWhen(k, today);
+  const rest = list.length - shown.length, plain = id === 'someday' || id === 'arch';
+  $('tItems').innerHTML = groups.map(g => `<section class="t-group">${plain ? '' : `<h3 class="sec-h"><span>${esc(head(g.k))}</span><span class="cnt">${g.items.length}</span></h3>`}<div class="card t-list">${g.items.map(t => rowHTML(t, 'none', today)).join('')}</div></section>`).join('')
     + (rest > 0 ? `<button type="button" class="t-more-btn" data-act="smart-more">Показать ещё ${Math.min(rest, LIST_STEP)}</button>` : '');
 }
-function paintSmartSettings() {
-  $('tSmartSet').innerHTML = SMART.filter(([id]) => id !== 'priv' || unlocked).map(([id, name]) => `<div class="set-row static"><span class="set-txt"><b id="tsmL-${id}">${esc(name)}</b></span><button type="button" class="switch" role="switch" data-sm="${id}" aria-checked="${smartOn(id)}" aria-labelledby="tsmL-${id}"><span></span></button></div>`).join('');
-}
-$('tSmartSet').onclick = e => {
-  const b = e.target.closest('[data-sm]');
-  if (!b) return;
-  setPref(SMART_STORE + b.dataset.sm, smartOn(b.dataset.sm) ? '0' : '1');
-  paintSmartSettings();
-  if (tv.smart === b.dataset.sm && !smartOn(b.dataset.sm)) tv.smart = null;
-};
 
 export function doneTaskFromPush(id) {
   const t = findTask(id);
@@ -1927,7 +1942,6 @@ export function renderDayTasks() {
 }
 
 function syncSettings() {
-  paintSmartSettings();
   $('tDaySwitch').setAttribute('aria-checked', dayOn());
   $('tDotsSwitch').setAttribute('aria-checked', dotsOn());
   const n = dayLimit();

@@ -1,6 +1,6 @@
 import { $, addDays, COLORS, esc, getPref, key, NS, plural, setPref, todayKey } from './core.js?v=3.4a';
 import { IC, iconHTML } from './icons.js?v=3.4a';
-import { count, findHabit, isDue, isQuant, save, state, streak, streakText, targetOn } from './storage.js?v=3.4a';
+import { count, findHabit, isDue, isQuant, isStat, save, state, streak, streakText, targetOn } from './storage.js?v=3.4a';
 import { askConfirm, closeMenu, closeOverlay, openMenu, openOverlay, toast } from './ui.js?v=3.4a';
 import { queueTips } from './tips.js?v=3.4a';
 import { addLongPress, isPrivate, unlocked } from './privacy.js?v=3.4a';
@@ -479,7 +479,7 @@ $('gForm').onsubmit = async e => {
   $('gSheet').scrollTop = 0;
 };
 
-export const linkable = g => state.habits.filter(h => !h.archived && !(g.habitIds || []).includes(h.id) && (!isPrivate(h) || (isPrivate(g) && unlocked)));
+export const linkable = g => state.habits.filter(h => !h.archived && !isStat(h) && !(g.habitIds || []).includes(h.id) && (!isPrivate(h) || (isPrivate(g) && unlocked)));
 const linkedShown = g => (g.habitIds || []).map(findHabit).filter(h => h && (!isPrivate(h) || (isPrivate(g) && unlocked)));
 
 function habitLine(h, today) {

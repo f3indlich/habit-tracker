@@ -184,6 +184,18 @@ openForm('a'); await wait(400);
 $('formOv').querySelector('.priv-rem .rem-head').click();
 $('form').requestSubmit(); await wait(500);
 ok('switch moves habit back', !findHabit('a').private && $('toastText').textContent === 'Перенесено в обычные');
+{
+  await wait(300);
+  const touch = document.createElement('style');
+  touch.textContent = [...document.styleSheets].flatMap(s => { try { return [...s.cssRules]; } catch { return []; } })
+    .filter(r => r instanceof CSSMediaRule && r.conditionText === '(pointer: coarse)').flatMap(r => [...r.cssRules].map(x => x.cssText)).join('\n');
+  document.head.append(touch);
+  const sec = document.querySelector('.priv-sec');
+  sec.scrollIntoView({ block: 'center' }); await wait(100);
+  const reach = b => { const r = b.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!t && b.contains(t); };
+  ok('touch: private header buttons take taps', reach(sec.querySelector('.priv-add')) && reach(sec.querySelector('.priv-set')), [...sec.querySelectorAll('.priv-acts button')].map(b => { const r = b.getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.className; }));
+  touch.remove();
+}
 document.querySelector('.priv-sec .priv-add').click(); await wait(400);
 ok('plus in private section starts private habit', $('formOv').querySelector('.priv-rem .switch').getAttribute('aria-checked') === 'true');
 openForm('p'); await wait(400);
@@ -282,6 +294,58 @@ unlocked = false;
 setMap(state.log, key(new Date()), 'p', 0);
 markDoneFromPush('p'); await wait(200);
 ok('push done link ignored for locked private habit', !count(findHabit('p'), new Date()), count(findHabit('p'), new Date()));
+
+{
+  reset(); await wait(100);
+  const T = key(new Date());
+  const slog = { [ago(30)]: { s: 1 }, [ago(16)]: { s: 1 }, [ago(2)]: { s: 1 }, [T]: { a: 1 } };
+  show(normalize({ habits: [
+    { id: 'a', name: 'Вода', icon: 'water', color: '#3b82f6', created: ago(40) },
+    { id: 's', name: 'Стрижка', icon: 'check', color: '#22c55e', created: ago(40), stat: true },
+    { id: 'z', name: 'Новая', icon: 'check', color: '#22c55e', created: ago(40), stat: 'да' },
+  ], log: slog }));
+  await wait(200);
+  ok('stat flag kept only when true', isStat(findHabit('s')) && !('stat' in findHabit('z')));
+  openForm('s'); await wait(400);
+  ok('stat switch shows while personal is closed, on for a stat habit', $('formOv').querySelector('.stat-rem .switch')?.getAttribute('aria-checked') === 'true' && !$('formOv').querySelector('.priv-rem'));
+  $('form').requestSubmit(); await wait(500);
+  ok('saving while locked keeps the stat flag', findHabit('s').stat === true);
+  openForm('a'); await wait(400);
+  $('formOv').querySelector('.stat-rem .rem-head').click();
+  $('form').requestSubmit(); await wait(500);
+  ok('stat can be switched on without opening personal', findHabit('a').stat === true && !findHabit('a').private);
+  openForm('a'); await wait(400);
+  $('formOv').querySelector('.stat-rem .rem-head').click();
+  $('form').requestSubmit(); await wait(500);
+  ok('and switched off again', !('stat' in findHabit('a')));
+  ok('stat habit stays out of day progress', dayProgress(new Date()).total === 2 && dayProgress(new Date()).done === 1, dayProgress(new Date()));
+  ok('stat habit stays out of the summary days', !dayInfo(parseKey(ago(2))).vals.some(x => x.h.id === 's') && !dayInfo(new Date()).open.some(x => x.h.id === 's'));
+  ok('stat habit cannot be linked to a goal', !linkable({ habitIds: [] }).some(h => h.id === 's'));
+  ok('a day without a mark is not a miss', dayState(findHabit('s'), parseKey(ago(5))) === 'off' && dayState(findHabit('z'), parseKey(ago(5))) === 'miss');
+  const f = statFacts(findHabit('s'));
+  ok('stat facts: count, last and average gap', f.n === 3 && f.last === ago(2) && f.avg === 14, f);
+  const card = cards.get('s'), meta = card.querySelector('.meta');
+  ok('stat card says when it was last time, no streak or warning', meta.querySelector('.m-lead').textContent === 'Последний раз 2 дня назад' && !meta.querySelector('.m-streak').textContent && card.classList.contains('stat'), meta.textContent);
+  ok('stat card week dots show no misses', [...card.querySelectorAll('.dot')].every(d => !/^dot $/.test(d.className)), [...card.querySelectorAll('.dot')].map(d => d.className));
+  openHistory('s'); await wait(500);
+  ok('stat history shows last time, average gap and total', /2\s*дня назад/.test($('hTrio').textContent) && /14\s*дней в среднем/.test($('hTrio').textContent) && /3\s*раза всего/.test($('hTrio').textContent), $('hTrio').textContent);
+  ok('stat history has no ring or comparison', $('hRing').hidden && !$('hPlan').querySelector('.s-cmp') && $('hPlan').textContent.includes('Статистическая'));
+  closeOverlay($('histOv')); await wait(400);
+  unlock(); await wait(200);
+  openForm(); await wait(400);
+  const ss = $('formOv').querySelector('.stat-rem .switch');
+  ok('with personal open the stat switch sits under the private one, off for a new habit', !!ss && ss.getAttribute('aria-checked') === 'false' && ss.closest('.field').previousElementSibling?.querySelector('.priv-rem'));
+  ss.closest('.rem-head').click();
+  $('name').value = 'Замена фильтра'; $('name').dispatchEvent(new Event('input', { bubbles: true }));
+  $('form').requestSubmit(); await wait(500);
+  const nh = state.habits.find(h => h.name === 'Замена фильтра');
+  ok('new habit can be stat without being private', !!nh && nh.stat === true && !nh.private, nh);
+  openForm('s'); await wait(400);
+  $('formOv').querySelector('.stat-rem .rem-head').click();
+  $('form').requestSubmit(); await wait(500);
+  ok('switching it off makes it a regular habit again', !('stat' in findHabit('s')) && dayProgress(new Date()).total === 3);
+  reset(); await wait(100);
+}
 
 reset();
 ok('unlock state not persisted', ![...Object.keys(localStorage), ...Object.keys(sessionStorage)].some(k => /unlock/i.test(k + localStorage.getItem(k))));

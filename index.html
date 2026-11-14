@@ -380,8 +380,6 @@
           <div class="pseg t-pos" id="tPosSeg" role="radiogroup" aria-labelledby="tPosLbl"></div>
         </div>
       </div>
-      <p class="t-set-sub" id="tSmartSetLbl">Умные списки: показывать в листе</p>
-      <div class="set-card" id="tSmartSet" role="group" aria-labelledby="tSmartSetLbl"></div>
     </section>
     <section class="set-group" data-sp="look">
       <h3>Цвета</h3>
@@ -985,10 +983,8 @@
       <h2 id="tTitle">Задачи</h2>
       <button type="button" class="t-link t-sel-x" id="tSelAll" hidden>Все</button>
       <button type="button" class="t-link t-sel-x" id="tSelDone" hidden>Готово</button>
-      <button type="button" class="ghost icon-btn t-search-btn" id="tSelBtn" aria-label="Выбрать задачи"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.4 2.4 4.6-4.9"/></svg></button>
-      <button type="button" class="ghost icon-btn" id="tMonthBtn" aria-label="Календарь месяца" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></button>
-      <button type="button" class="ghost icon-btn" id="tSmartBtn" aria-label="Срезы" aria-haspopup="dialog" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg></button>
       <button type="button" class="ghost icon-btn" id="tSearchBtn" aria-label="Поиск задач" aria-expanded="false" aria-controls="tSearch"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
+      <button type="button" class="ghost icon-btn" id="tMoreBtn" aria-label="Ещё" aria-haspopup="menu"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></button>
       <div class="t-search" id="tSearch" hidden>
         <input type="search" id="tsText" placeholder="Поиск по задачам" aria-label="Поиск по задачам" autocomplete="off" enterkeyhint="search">
         <button type="button" class="t-link" id="tsClose">Отмена</button>
@@ -999,18 +995,20 @@
       <button type="button" data-t="month">Месяц</button>
     </div>
     <div class="t-chips t-lchips" id="tLists" role="group" aria-label="Списки задач"></div>
-    <div class="t-wkhead" id="tWkHead"><b id="tWkMonth"></b><button type="button" class="t-link" id="tWkToday">Сегодня</button></div>
+    <div class="t-chips t-lchips t-sfilters" id="tsFilters" role="group" aria-label="Фильтры поиска" hidden></div>
+    <div class="t-wkhead" id="tWkHead"><button type="button" class="t-wkmonth" id="tWkMonth" aria-label="Показать месяц целиком"></button><button type="button" class="t-link" id="tWkToday">Сегодня</button></div>
     <div class="t-weekrow" id="tWeekRow">
       <button type="button" class="ghost icon-btn t-wknav" id="tWkPrev" aria-label="Предыдущая неделя"><svg class="ic" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
       <div class="t-wkvp" id="tWkVp"><div class="t-wktrack" id="tWkTrack"><div class="t-week" id="tWeek" role="group" aria-label="Неделя"></div></div></div>
       <button type="button" class="ghost icon-btn t-wknav" id="tWkNext" aria-label="Следующая неделя"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
-    <div class="t-smartbar" id="tSmartBar" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span id="tSmartName"></span><button type="button" class="ghost icon-btn" id="tSmartOff" aria-label="Убрать срез"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div id="tsResults" hidden></div>
     <div id="tShared" hidden>
-      <h3 class="sec-h sh-title"><span id="shTitle"></span></h3>
+      <div class="sh-pull" id="shPull" aria-hidden="true"></div>
+      <h3 class="sec-h sh-title"><span id="shTitle"></span><small class="sh-fresh" id="shFresh" role="status"></small></h3>
       <p class="sh-banner" id="shBanner" role="status" hidden>Нет сети. Показаны сохранённые данные</p>
       <form class="t-quick" id="shAdd" novalidate><input type="text" id="shText" maxlength="200" enterkeyhint="send" autocomplete="off" placeholder="Добавить запись" aria-label="Добавить запись"></form>
+      <div class="t-chips sh-hints" id="shHints" hidden></div>
       <div id="shItems"></div>
     </div>
     <div id="tListView">
@@ -1133,14 +1131,6 @@
   </div>
 </div>
 
-<div class="overlay" id="tSmartOv" hidden>
-  <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="tsmTitle">
-    <div class="sheet-head"><h2 id="tsmTitle">Умные списки</h2></div>
-    <div class="card t-list t-smart-list" id="tsmItems"></div>
-    <p class="field-hint">Срез показывает задачи выбранного списка. Какие срезы видны здесь, можно выбрать в настройках.</p>
-    <div class="form-actions t-form-actions"><button type="button" data-close>Закрыть</button></div>
-  </div>
-</div>
 
 <div class="overlay" id="shOv" hidden>
   <div class="card sheet sh-sheet" role="dialog" aria-modal="true" aria-labelledby="shOvTitle">
@@ -1155,6 +1145,13 @@
     <div class="sheet-head"><h2 id="shEditTitle">Запись</h2></div>
     <form class="form" id="shEditForm" novalidate>
       <input type="text" id="shEditText" maxlength="200" enterkeyhint="done" autocomplete="off" aria-labelledby="shEditTitle">
+      <div class="sh-ex" id="shEditEx" hidden>
+        <label class="lbl" for="shEditSec">Раздел</label>
+        <input type="text" id="shEditSec" maxlength="24" list="shSecList" autocomplete="off" placeholder="Без раздела">
+        <datalist id="shSecList"></datalist>
+        <label class="lbl" for="shEditWho">Кому</label>
+        <select id="shEditWho"></select>
+      </div>
       <div class="form-actions t-form-actions"><button type="button" data-close>Отмена</button><button type="submit" class="primary">Сохранить</button></div>
     </form>
   </div>
@@ -1163,7 +1160,7 @@
 <div class="overlay" id="tListsOv" hidden>
   <div class="card sheet" role="dialog" aria-modal="true" aria-labelledby="tlTitle">
     <div class="sheet-head"><h2 id="tlTitle">Списки</h2><button class="ghost icon-btn" data-close title="Закрыть"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-    <div class="card tl-box"><div class="tl-row tl-inbox"><span class="tl-dot tl-dot-in"><svg class="ic" viewBox="0 0 24 24"><path d="M3.5 13.5h5l1.5 2.5h4l1.5-2.5h5M6 5.5h12l2.5 8V19h-17v-5.5z"/></svg></span><span class="tl-nm">Входящие</span><span class="tl-cnt" id="tlInbox"></span></div></div>
+    <div class="card tl-box"><div class="tl-row tl-inbox"><button type="button" class="tl-open" id="tlInboxBtn"><span class="tl-dot tl-dot-in"><svg class="ic" viewBox="0 0 24 24"><path d="M3.5 13.5h5l1.5 2.5h4l1.5-2.5h5M6 5.5h12l2.5 8V19h-17v-5.5z"/></svg></span><span class="tl-nm" id="tlInboxName">Входящие</span><span class="tl-cnt" id="tlInbox"></span><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></div></div>
     <h3 class="sec-h tl-cap">Мои списки</h3>
     <div class="card tl-box"><div id="tlItems" class="tl-items"></div><button type="button" class="tl-add" id="tlAdd"><span class="tl-dot tl-dot-add"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span>Новый список</span></button></div>
     <p class="field-hint tl-hint" id="tlHint"></p>

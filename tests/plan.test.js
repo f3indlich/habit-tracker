@@ -241,5 +241,19 @@ ok('yes/no habit: no plan block in new period too', $('hPlan').hidden && !$('hPl
 closeOverlay($('histOv')); hist = null; await wait(400);
 try { localStorage.removeItem(HIST_STORE); } catch {}
 
+{
+  const st0 = state, log = {};
+  for (let i = 0; i < 7; i++) { log[dk(2, i)] = { u: i === 0 || i === 4 ? 20 : 0 }; log[dk(1, i)] = { u: 15 }; }
+  show(normalize({ habits: [{ id: 'u', name: 'Подтягивания', target: 20, unit: 'раз', created: dk(3, 0) }], log }));
+  openHistory('u'); await wait(500);
+  hist.range = 'week'; hist.anchor = wk(1); renderHistory(); await wait(150);
+  const cmpEl = $('hPlan').querySelector('.s-cmp');
+  ok('more done with fewer full days reads as better', cmpEl?.textContent === '▲ Лучше, чем неделей раньше: 75% против 29%' && !cmpEl.classList.contains('down'), cmpEl?.textContent);
+  ok('comparison sits under the done line, not the norm line', !!cmpEl?.closest('.plan-cmp') && !$('hPlan').querySelector('.plan-l2 .s-cmp'));
+  closeOverlay($('histOv')); hist = null; await wait(400);
+  try { localStorage.removeItem(HIST_STORE); } catch {}
+  show(st0);
+}
+
 ok('no page errors', __errs.length === 0, __errs);
 return R.join('\n');

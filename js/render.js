@@ -1,6 +1,6 @@
-import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, NS, ofDays, OVER_HINT, parseKey, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=3.4a';
+import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, NS, ofDays, OVER_HINT, parseKey, plural, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=3.4a';
 import { IC, setIcon } from './icons.js?v=3.4a';
-import { activeOn, at, count, isDue, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=3.4a';
+import { activeOn, at, count, isDue, isStat, statLead, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=3.4a';
 import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast, flipAfter } from './ui.js?v=3.4a';
 import { drawEmptyTpl, openCats, openForm } from './form.js?v=3.4a';
 import { day, dayTip, hist, openDay, openHistory, renderDay, renderHistory, setHist } from './history.js?v=3.4a';
@@ -387,9 +387,10 @@ export function updateCard(el, h) {
   const day = key(viewDate);
   const c = count(h, viewDate), done = c >= h.target, multi = h.target > 1;
   const skipped = isSkipped(h, viewDate), due = isDue(h, viewDate);
-  const s = streak(h);
+  const stat = isStat(h), s = stat ? 0 : streak(h);
 
   el.style.setProperty('--c', h.color);
+  el.classList.toggle('stat', stat);
   el.classList.toggle('complete', done);
   el.classList.toggle('skipped', skipped);
   el.classList.toggle('offday', !due && !done);
@@ -447,12 +448,13 @@ export function updateCard(el, h) {
   el.querySelector('.name').textContent = h.name;
   const meta = el.querySelector('.meta');
   const weekly = isWeekly(h, viewDate), nd = !due && !c && !weekly ? nextDue(h, viewDate) : null;
-  const lead = skipped ? '<span class="badge skip">Пропущено</span>'
+  const lead = stat ? `<span>${esc(statLead(h))}</span>`
+    : skipped ? '<span class="badge skip">Пропущено</span>'
     : weekly ? `<span>${weekDone(h, state, viewDate) >= weekQuota(h, viewDate) ? 'На эту неделю всё сделано' : `${weekDone(h, state, viewDate)} из ${weekQuota(h, viewDate)}<span class="m-unit"> ${isToday(viewDate) ? 'на этой неделе' : 'за неделю'}</span>`}</span>`
     : nd ? `<span>Следующий раз: ${nd.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>`
     : multi ?`<span>${c} / ${h.target}${h.unit ? `<span class="m-unit"> ${esc(h.unit)}</span>` : ''}</span>`
     : `<span class="m-sched">${esc(schedText(h)[0].toUpperCase() + schedText(h).slice(1))}</span>`;
-  const badge = isToday(viewDate) && !skipped && due ? missBadge(h) : null, warn = !!badge;
+  const badge = !stat && isToday(viewDate) && !skipped && due ? missBadge(h) : null, warn = !!badge;
   if (meta.dataset.lead !== lead) {
     meta.querySelector('.m-lead').innerHTML = lead; meta.dataset.lead = lead;
     if (multi && grew && !reducedMotion) meta.querySelector('.m-lead > span').animate([{ color: h.color }, { color: h.color, offset: .35 }, {}], { duration: 700, easing: 'ease-out' });
@@ -496,7 +498,7 @@ export function updateCard(el, h) {
   const todayK = todayKey();
   el.querySelectorAll('.dcol').forEach((col, i) => {
     const d = addDays(viewDate, i - 6), k = key(d), v = count(h, d), dot = col.lastElementChild;
-    dot.className = 'dot ' + (v >= targetOn(h, d) ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : !isDue(h, d) ? 'off' : '');
+    dot.className = 'dot ' + (v >= targetOn(h, d) ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : !isDue(h, d) || isStat(h) ? 'off' : '');
     col.classList.toggle('cur', i === 6);
     col.classList.toggle('today', k === todayK);
     dot.textContent = d.getDate();
@@ -512,15 +514,16 @@ export function updateCard(el, h) {
   const L = stripLayout(view, layoutKey);
   if (mh.dataset.k !== layoutKey) { mh.dataset.k = layoutKey; mh.className = `mh ${L.cls}`; mh.innerHTML = L.html; mh._cells = [...mh.querySelectorAll('i')]; }
   const { log, skip } = state, id = h.id, end = lifeEnd(h);
-  let dueN = 0, fullN = 0;
+  let dueN = 0, fullN = 0, marks = 0;
   mh._cells.forEach((cell, i) => {
     const k = L.keys[i], tgt = targetOn(h, L.days[i]), v = log[k]?.[id] || 0, sk = !!skip[k]?.[id], out = k > todayK || k < h.created;
     const cls = (out ? 'x' : v >= tgt ? 'l3' : v * 2 >= tgt ? 'l2' : v > 0 ? 'l1' : sk ? 'sk' : '')
       + (k === day ? ' cur' : '');
     if (cell.className !== cls) cell.className = cls;
+    if (!out && v > 0) marks++;
     if (!out && k <= end && !sk && isDue(h, L.days[i]) && !(k === todayK && v < tgt)) { dueN++; if (v >= tgt) fullN++; }
   });
-  mh.querySelector('.sh-r').textContent = dueN ? `${fullN} из ${ofDays(dueN)} · ${Math.round(fullN / dueN * 100)}%` : 'пока нет данных';
+  mh.querySelector('.sh-r').textContent = isStat(h) ? (marks ? `${marks} ${plural(marks, 'раз', 'раза', 'раз')}` : 'отметок нет') : dueN ? `${fullN} из ${ofDays(dueN)} · ${Math.round(fullN / dueN * 100)}%` : 'пока нет данных';
 }
 
 export const stripCache = new Map();
@@ -824,7 +827,7 @@ export function renderHero() {
   if (today) {
     const ps = perfectStreak();
     if (ps) chips.push(`⭐ Идеально ${days(ps)} подряд`);
-    const best = visibleHabits(state).filter(h => !h.archived).map(h => ({ h, s: streak(h) })).sort((a, b) => b.s - a.s)[0];
+    const best = visibleHabits(state).filter(h => !h.archived && !isStat(h)).map(h => ({ h, s: streak(h) })).sort((a, b) => b.s - a.s)[0];
     if (best?.s >= 2) chips.push(`🔥 ${streakText(best.h, best.s)} · ${best.h.name}`);
   }
   if (!chips.length && !future) {
