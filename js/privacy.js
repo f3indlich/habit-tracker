@@ -1,4 +1,4 @@
-import { NS } from './core.js?v=1.1b';
+import { NS } from './core.js?v=1.1c';
 
 export const LOCK_STORE = NS + '-lock';
 export const PIN_ITER = 200000;

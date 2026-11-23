@@ -1,5 +1,5 @@
-import { addDays, key, NS, parseKey, weekday } from './core.js?v=1.1b';
-import { goalOn, isDue, MAX_COUNT } from './storage.js?v=1.1b';
+import { addDays, key, NS, parseKey, weekday } from './core.js?v=1.1c';
+import { goalOn, isDue, MAX_COUNT } from './storage.js?v=1.1c';
 
 export const HIST_STORE = NS + '-hist-period';
 export const HIST_RANGES = ['week', 'month', 'year'];
