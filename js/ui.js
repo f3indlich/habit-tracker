@@ -622,18 +622,25 @@ export function openPopover(anchor, html, color) {
   menuEl.innerHTML = html;
   menuEl._anchor = anchor;
   document.body.append(menuEl);
-  const r = anchor.getBoundingClientRect(), mw = menuEl.offsetWidth;
+  const r = anchor.getBoundingClientRect(), mw = menuEl.offsetWidth, vh = viewportHeight();
   const mh = menuEl.offsetHeight, ax = r.left + r.width / 2, left = Math.round((innerWidth - mw) / 2);
-  const side = mh + 8 <= viewportHeight() - r.bottom - 16 ? 'below' : mh + 8 <= r.top - 16 ? 'above' : 'center';
+  const roomBelow = vh - r.bottom - 16, roomAbove = r.top - 16;
+  // body.locked clips fixed children; with a sheet open prefer a scrollable centered popover
+  const bodyClip = document.body.classList.contains('locked');
+  const side = bodyClip || (mh + 8 > roomBelow && mh + 8 > roomAbove) ? 'center'
+    : mh + 8 <= roomBelow ? 'below' : 'above';
   menuEl.dataset.side = side;
   menuEl.style.left = left + 'px';
   if (side === 'center') {
-    menuEl.style.maxHeight = viewportHeight() - 32 + 'px';
-    menuEl.style.top = Math.max(16, Math.round((viewportHeight() - menuEl.offsetHeight) / 2)) + 'px';
+    menuEl.style.maxHeight = vh - 32 + 'px';
+    menuEl.style.top = Math.max(16, Math.round((vh - Math.min(mh, vh - 32)) / 2)) + 'px';
     menuEl.style.transformOrigin = 'center';
     return;
   }
-  menuEl.style.top = Math.round(side === 'below' ? r.bottom + 8 : r.top - mh - 8) + 'px';
+  const room = side === 'below' ? roomBelow : roomAbove;
+  menuEl.style.maxHeight = Math.max(160, room) + 'px';
+  const h = menuEl.offsetHeight;
+  menuEl.style.top = Math.round(side === 'below' ? r.bottom + 8 : r.top - h - 8) + 'px';
   menuEl.style.setProperty('--ax', Math.max(18, Math.min(mw - 18, ax - left)) + 'px');
   menuEl.style.transformOrigin = `${Math.round(ax - left)}px ${side === 'below' ? 'top' : 'bottom'}`;
 }

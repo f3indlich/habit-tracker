@@ -882,7 +882,7 @@ body[data-view="365d"] #sections .habit.dragging, body.reordering #sections .hab
 body.reordering .wrap { padding-bottom: 110px; }
 .menu-h { font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px 4px; }
 
-.menu.pop { position: fixed; width: min(340px, calc(100vw - 32px)); padding: 14px 16px 6px; overflow: visible; }
+.menu.pop { position: fixed; width: min(340px, calc(100vw - 32px)); padding: 14px 16px 6px; overflow-x: visible; overflow-y: auto; }
 .menu.pop[data-side=center] { overflow-y: auto; }
 .menu.pop[data-side=center]::before { display: none; }
 .menu.pop::before {

@@ -126,7 +126,7 @@ $('hInfo').click(); await waitFor(() => menuEl && symmetric(menuEl) && !menuEl.g
 ok('habit info popover centered', menuEl && symmetric(menuEl) && menuEl.querySelector('.facts'), menuEl?.getBoundingClientRect());
 const arrowX = menuEl && parseFloat(menuEl.style.getPropertyValue('--ax')) + menuEl.getBoundingClientRect().left;
 const hr = $('hInfo').getBoundingClientRect();
-ok('popover arrow points at button', Math.abs(arrowX - (hr.left + hr.width / 2)) < 2, { arrowX, btn: hr.left + hr.width / 2 });
+ok('popover arrow points at button', menuEl?.dataset.side === 'center' || Math.abs(arrowX - (hr.left + hr.width / 2)) < 2, { arrowX, btn: hr.left + hr.width / 2, side: menuEl?.dataset.side });
 $('hInfo').click(); await waitFor(() => !menuEl);
 ok('second tap closes habit info', !menuEl);
 closeOverlay($('histOv')); hist = null; await wait(400);
