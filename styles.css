@@ -2383,8 +2383,8 @@ body[data-cards=rings]:not(.reordering) .habit .check .over { top: -4px; right: 
 .hwd .hw-bot i { background: var(--warn); }
 .hwd small { font-size: 11px; color: var(--muted); }
 .hwd-t { margin: 10px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
-.heat-head { display: flex; align-items: center; gap: 10px; margin: 14px 4px 6px; }
-.heat-head .heat-title { flex: 1; min-width: 0; margin: 0; }
+.heat-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin: 14px 4px 6px; }
+.heat-head .heat-title { flex: 1 1 auto; min-width: 0; margin: 0; }
 #hHeatWrap .heat-head { margin: 14px 4px 6px; }
 .hm-modes { display: inline-flex; flex: none; gap: 2px; padding: 2px; border-radius: 10px; background: var(--track); }
 .hm-mode {
@@ -2436,6 +2436,23 @@ body[data-cards=rings]:not(.reordering) .habit .check .over { top: -4px; right: 
   display: block; width: 48px; height: 6px; border-radius: 999px;
   background: linear-gradient(90deg, color-mix(in srgb, var(--text) 4%, var(--track)), var(--c));
 }
+.hm-chart { position: relative; margin: 0 0 2px; }
+.hm-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.hm-chart-grid { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.hm-chart-ylab {
+  fill: var(--faint); font: 500 9px var(--f-ui); font-variant-numeric: tabular-nums;
+}
+.hm-chart-xlab { fill: var(--muted); font: 600 10px var(--f-ui); font-variant-numeric: tabular-nums; }
+.hm-chart-area { fill: color-mix(in srgb, var(--c) 22%, transparent); }
+.hm-chart-line { stroke: var(--c); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.hm-chart-dot {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; padding: 0;
+  border: 2px solid var(--card); border-radius: 50%; background: var(--c); cursor: pointer;
+  box-sizing: border-box;
+}
+.hm-chart-dot.hm-chart-hot { box-shadow: 0 0 0 1.5px var(--text); }
+.hm-chart-dot:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+.hm-chart-foot { margin: 6px 2px 0; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
 .h-notes { padding: 2px 14px; }
 .hn { display: flex; gap: 10px; width: 100%; padding: 9px 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
 .hn + .hn { border-top: 1px solid var(--border); }

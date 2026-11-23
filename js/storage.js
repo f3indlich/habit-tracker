@@ -262,9 +262,21 @@ export function setSkip(h, d, on) {
 export const HEAT_MIN = 5;
 export const HEAT_MODES = [12, 24];
 export const HEAT_MODE_STORE = NS + '-heat-mode';
+export const HEAT_VIEW_STORE = NS + '-heat-view';
 export const HEAT_WD_SHORT = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 export const heatModeOf = v => +v === 12 ? 12 : 24;
-export const heatFallbackHHMM = time => ({ morning: '08:00', day: '13:00', evening: '20:00', any: '12:00' }[time] || '12:00');
+export const heatViewOf = v => v === 'chart' ? 'chart' : 'map';
+/** Сумма отметок по слотам времени (все дни недели). */
+export function heatProfile(hm) {
+  const values = (hm?.slots || []).map((_, s) => {
+    let n = 0;
+    for (let wd = 0; wd < 7; wd++) n += hm.grid?.[wd]?.[s] || 0;
+    return n;
+  });
+  let peakSlot = 0, max = 0;
+  for (let i = 0; i < values.length; i++) if (values[i] > max) { max = values[i]; peakSlot = i; }
+  return { values, max, peakSlot };
+}
 export const heatHour = t => Math.min(23, Math.max(0, parseInt(String(t).slice(0, 2), 10) || 0));
 export const heatPeriod = hour => hour < 6 ? { noun: 'ночь', adv: 'ночью' } : hour < 12 ? { noun: 'утро', adv: 'утром' } : hour < 18 ? { noun: 'день', adv: 'днём' } : { noun: 'вечер', adv: 'вечером' };
 export const heatSlotOfHour = (hour, mode = 24) => heatModeOf(mode) === 12 ? Math.floor(hour / 2) : hour;
@@ -302,16 +314,14 @@ export function habitHeatmap(h, s, from, to, mode = 24) {
   let total = 0;
   if (!h || !s) return { grid, total, peak: null, peakText: '', empty: true, max: 0, mode, slots };
   const log = s.log || {}, logAt = s.logAt || {};
-  const fallback = heatFallbackHHMM(h.time);
   const lifeTo = h.archived && h.archived < to ? h.archived : to;
   for (const k of Object.keys(log)) {
     if (k < h.created || k < from || k > lifeTo) continue;
     const c = log[k]?.[h.id] || 0;
     if (!(c > 0)) continue;
     const wd = weekday(parseKey(k));
-    const times = logAt[k]?.[h.id];
-    for (let i = 0; i < c; i++) {
-      const t = (Array.isArray(times) && times[i]) || fallback;
+    const times = Array.isArray(logAt[k]?.[h.id]) ? logAt[k][h.id] : [];
+    for (const t of times.slice(0, c)) {
       grid[wd][heatSlotOfHHMM(t, mode)]++;
       total++;
     }

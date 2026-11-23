@@ -6,7 +6,7 @@ const R = [], ok = (name, cond, info = '') => R.push((cond ? 'PASS ' : 'FAIL ') 
 const ago = n => key(addDays(new Date(), -n));
 const mondayOf = d => key(addDays(d, -weekday(d)));
 
-try { localStorage.removeItem(HEAT_MODE_STORE); } catch {}
+try { localStorage.removeItem(HEAT_MODE_STORE); localStorage.removeItem(HEAT_VIEW_STORE); } catch {}
 
 ok('heat slots: 24 hours and 12 pairs', heatSlots(24).length === 24 && heatSlots(12).length === 12 && heatSlots(24)[19].label === '19' && heatSlots(12)[4].label === '8', [heatSlots(12)[0].label, heatSlots(12)[4].label]);
 ok('band starts at 6/12/18', heatSlots(24)[6].band && heatSlots(24)[12].band && heatSlots(24)[18].band && !heatSlots(24)[7].band);
@@ -49,7 +49,14 @@ const old = habitHeatmap(
   { log: { [ago(3)]: { h: 1 }, [ago(4)]: { h: 1 }, [ago(5)]: { h: 1 } }, logAt: {} },
   ago(20), todayKey(), 24
 );
-ok('old marks without time use habit preference (20:00)', old.total === 3 && old.grid.reduce((s, row) => s + row[20], 0) === 3, old);
+ok('old marks without logAt are skipped', old.total === 0 && old.empty === true && old.max === 0, old);
+const partialDay = ago(2);
+const partial = habitHeatmap(
+  { id: 'h', created: ago(20), time: 'any' },
+  { log: { [partialDay]: { h: 3 } }, logAt: { [partialDay]: { h: ['09:15'] } } },
+  ago(20), todayKey(), 24
+);
+ok('only timed marks count when logAt shorter than count', partial.total === 1 && partial.grid[weekday(parseKey(partialDay))][9] === 1, partial);
 
 const peakH = { id: 'p', created: ago(40), time: 'any' };
 const peakLog = {}, peakAt = {};
@@ -66,6 +73,10 @@ ok('peak text 12: пт · 18–19', !peak12.empty && peak12.peak.slot === 9 && p
 ok('empty state under threshold', habitHeatmap(peakH, { log: { [ago(1)]: { p: 2 } }, logAt: { [ago(1)]: { p: ['10:00', '10:05'] } } }, ago(5), todayKey(), 24).empty === true);
 ok('heatPeakText helper', heatPeakText({ wd: 1, slot: 8, n: 5 }, 24) === 'Чаще: вт · 8' && heatPeakText({ wd: 1, slot: 4, n: 5 }, 12) === 'Чаще: вт · 8–9' && heatPeakText(null) === '');
 ok('heatLevel steps', heatLevel(0, 10) === 0 && heatLevel(1, 10) === 1 && heatLevel(10, 10) === 3 && heatLevel(4, 10) === 2);
+
+const prof = heatProfile(peak24);
+ok('heatProfile sums slots and finds peak', prof.max === peak24.max && prof.values[19] === peak24.max && prof.peakSlot === 19, prof);
+ok('heatViewOf defaults to map', heatViewOf() === 'map' && heatViewOf('chart') === 'chart' && heatViewOf('x') === 'map');
 
 const fresh = async data => { state = normalize(data); viewDate = new Date(); cards.forEach(e => e.remove()); cards.clear(); render(); await wait(200); };
 await fresh({ habits: [{ id: 't', name: 'Тест', target: 1, time: 'morning', color: '#2563eb', created: ago(40) }], log: {}, logAt: {} });
@@ -86,13 +97,25 @@ openHistory('t');
 $('hTabs').querySelector('[data-r="month"]').click();
 await wait(80);
 ok('default mode is 12', savedHeatMode() === 12 && $('hHeat').querySelector('.hm-grid')?.dataset.mode === '12', savedHeatMode());
+ok('default view is map', savedHeatView() === 'map' && $('hHeatViews').querySelector('[data-hv="map"][aria-pressed="true"]'));
 ok('heatmap block visible in habit sheet', !$('hHeatWrap').hidden && $('hHeat').querySelector('.hm-grid') && $('hHeat').querySelector('.hm-peak'), $('hHeat').innerHTML.slice(0, 200));
 ok('modes live in the title row', $('hHeatModes') && $('hHeatModes').closest('.heat-head') && $('hHeatModes').querySelector('[data-hm="12"][aria-pressed="true"]'));
+ok('views live in the title row', $('hHeatViews') && $('hHeatViews').closest('.heat-head'));
 ok('12 mode has 84 cells and hot peak', $('hHeat').querySelectorAll('.hm-cell[data-tip]').length === 84 && $('hHeat').querySelector('.hm-hot') && $('hHeat').querySelector('.hm-grad'), $('hHeat').querySelectorAll('.hm-cell').length);
+
+$('hHeatViews').querySelector('[data-hv="chart"]').click();
+await wait(40);
+ok('switch to chart shows profile', savedHeatView() === 'chart' && $('hHeat').querySelector('.hm-chart') && $('hHeat').querySelectorAll('.hm-chart-dot').length === 12 && !$('hHeat').querySelector('.hm-grid'), $('hHeat').innerHTML.slice(0, 180));
+ok('chart keeps peak text and foot', $('hHeat').querySelector('.hm-peak') && $('hHeat').querySelector('.hm-chart-foot') && $('hHeat').querySelector('.hm-chart-hot'));
+ok('chart has quiet y-scale', $('hHeat').querySelectorAll('.hm-chart-grid').length >= 2 && $('hHeat').querySelectorAll('.hm-chart-ylab').length >= 2);
 
 $('hHeatModes').querySelector('[data-hm="24"]').click();
 await wait(40);
-ok('switch to 24 keeps preference and 168 cells', savedHeatMode() === 24 && $('hHeat').querySelector('.hm-grid')?.dataset.mode === '24' && $('hHeat').querySelectorAll('.hm-cell').length === 168 && getPref(HEAT_MODE_STORE) === '24');
+ok('chart 24 has 24 dots', savedHeatMode() === 24 && savedHeatView() === 'chart' && $('hHeat').querySelectorAll('.hm-chart-dot').length === 24 && getPref(HEAT_MODE_STORE) === '24');
+
+$('hHeatViews').querySelector('[data-hv="map"]').click();
+await wait(40);
+ok('back to map 24 has 168 cells', savedHeatView() === 'map' && $('hHeat').querySelector('.hm-grid')?.dataset.mode === '24' && $('hHeat').querySelectorAll('.hm-cell').length === 168 && getPref(HEAT_VIEW_STORE) === 'map');
 
 const merged = mergeStates(
   { habits: [], log: {}, logAt: {} },

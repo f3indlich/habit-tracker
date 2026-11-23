@@ -1,6 +1,6 @@
 import { $, addDays, days, ofDays, esc, fmtLong, getPref, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, setPref, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.1c';
 import { setIcon } from './icons.js?v=1.1c';
-import { at, count, counts, findHabit, habitHeatmap, heatLevel, heatModeOf, HEAT_MIN, HEAT_MODE_STORE, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=1.1c';
+import { at, count, counts, findHabit, habitHeatmap, heatLevel, heatModeOf, heatProfile, heatViewOf, HEAT_MIN, HEAT_MODE_STORE, HEAT_VIEW_STORE, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=1.1c';
 import { askConfirm, closeMenu, countTo, holdHeight, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=1.1c';
 import { catName, changeCount } from './render.js?v=1.1c';
 import { openForm } from './form.js?v=1.1c';
@@ -16,7 +16,7 @@ export const HABIT_HOW = [
   ['Выполнено', 'Для привычек «да/нет»: в сколько запланированных дней периода привычка выполнена. Пропуски и дни вне расписания не считаются, сегодняшний — после отметки.'],
   ['Сравнение', 'Сравнивается тот же процент, что указан выше: для привычек со счётом — сколько сделано от нормы, для «да/нет» — доля выполненных дней. Берётся то же число дней прошлого периода: в среду неделя сравнивается с понедельником–средой прошлой недели. Не показывается, если в прошлом периоде меньше 3 дней с планом.'],
   ['По дням недели', 'Появляется, когда в периоде хотя бы 21 день с планом.'],
-  ['Когда отмечали', 'Карта по дням недели и часам (режимы 12 и 24). Нужно не меньше 5 отметок; у старых без времени — предпочитаемое время привычки.'],
+  ['Когда отмечали', 'Карта или график-профиль по часам (режимы 12 и 24). Только отметки со временем; нужно не меньше 5 таких.'],
 ];
 export const WD_NOM = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
 const WD_IN = ['в понедельник', 'во вторник', 'в среду', 'в четверг', 'в пятницу', 'в субботу', 'в воскресенье'];
@@ -349,19 +349,70 @@ function paintWeekdays(h, ds) {
 }
 
 export const savedHeatMode = () => heatModeOf(getPref(HEAT_MODE_STORE, '12'));
+export const savedHeatView = () => heatViewOf(getPref(HEAT_VIEW_STORE, 'map'));
 function syncHeatModes(mode) {
   for (const b of $('hHeatModes').children) b.setAttribute('aria-pressed', heatModeOf(b.dataset.hm) === mode ? 'true' : 'false');
+}
+function syncHeatViews(view) {
+  for (const b of $('hHeatViews').children) b.setAttribute('aria-pressed', heatViewOf(b.dataset.hv) === view ? 'true' : 'false');
+}
+function heatChartTicks(yMax) {
+  if (yMax <= 1) return [0, 1];
+  if (yMax === 2) return [0, 1, 2];
+  const mid = Math.max(1, Math.round(yMax / 2));
+  return mid === yMax ? [0, yMax] : [0, mid, yMax];
+}
+function paintHeatChart(hm) {
+  const { values, max, peakSlot } = heatProfile(hm);
+  const n = values.length, W = 320, H = 140, padL = 26, padR = 8, padT = 14, padB = 28;
+  const plotW = W - padL - padR, plotH = H - padT - padB, yMax = Math.max(max, 1);
+  const xAt = i => padL + (n <= 1 ? plotW / 2 : i * plotW / (n - 1));
+  const yAt = v => padT + plotH - (v / yMax) * plotH;
+  const pts = values.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p).join(' ');
+  const area = `${line} L${xAt(n - 1).toFixed(1)},${(padT + plotH).toFixed(1)} L${xAt(0).toFixed(1)},${(padT + plotH).toFixed(1)} Z`;
+  const ticks = heatChartTicks(yMax);
+  const grid = ticks.map(t => {
+    const y = yAt(t).toFixed(1);
+    return `<line class="hm-chart-grid" x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}"/>
+      <text class="hm-chart-ylab" x="${padL - 5}" y="${(+y + 3).toFixed(1)}" text-anchor="end">${t}</text>`;
+  }).join('');
+  const step = hm.mode === 24 ? 3 : 1;
+  const labels = hm.slots.map((s, i) => {
+    if (i !== 0 && i !== n - 1 && i % step && !s.band) return '';
+    return `<text class="hm-chart-xlab" x="${xAt(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(s.label)}</text>`;
+  }).join('');
+  const dots = values.map((v, i) => {
+    const s = hm.slots[i], tip = `${s.tip}: ${v} ${plural(v, 'раз', 'раза', 'раз')}`;
+    const hot = i === peakSlot && max ? ' hm-chart-hot' : '';
+    return `<button type="button" class="hm-chart-dot${hot}" style="left:${(xAt(i) / W * 100).toFixed(2)}%;top:${(yAt(v) / H * 100).toFixed(2)}%" data-tip="${esc(tip)}" aria-label="${esc(tip)}"></button>`;
+  }).join('');
+  const peak = hm.slots[peakSlot], when = hm.mode === 24 ? String(peak.hour) : `${peak.hour}–${peak.to}`;
+  return `<p class="hm-peak">${esc(hm.peakText)}</p>
+    <div class="hm-chart" data-mode="${hm.mode}">
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Когда отмечали: профиль по часам">
+        ${grid}
+        <path class="hm-chart-area" d="${area}"/>
+        <path class="hm-chart-line" d="${line}" fill="none"/>
+        ${labels}
+      </svg>
+      ${dots}
+    </div>
+    <p class="hm-chart-foot">${esc(when)} · ${max} ${plural(max, 'отметка', 'отметки', 'отметок')} в пиковый слот</p>
+    <div class="tip"></div>`;
 }
 function paintHeatmap(h, ds) {
   const wrap = $('hHeatWrap'), box = $('hHeat');
   if (!ds.length) { wrap.hidden = true; return put(box, ''); }
-  const mode = savedHeatMode();
+  const mode = savedHeatMode(), view = savedHeatView();
   const hm = habitHeatmap(h, state, key(ds[0]), key(ds[ds.length - 1]), mode);
   wrap.hidden = false;
   syncHeatModes(mode);
+  syncHeatViews(view);
   if (hm.empty) {
     return put(box, `<p class="hm-empty">Пока мало отметок — нужно хотя бы ${HEAT_MIN}, чтобы увидеть, когда Вы обычно выполняете привычку</p>`);
   }
+  if (view === 'chart') return put(box, paintHeatChart(hm));
   const cells = [];
   for (let slot = 0; slot < hm.slots.length; slot++) {
     const s = hm.slots[slot], band = s.band ? ' hm-band' : '';
@@ -382,8 +433,17 @@ function paintHeatmap(h, ds) {
     <div class="tip"></div>`);
 }
 $('hHeatWrap').addEventListener('click', e => {
+  if (!hist) return;
+  const hv = e.target.closest('[data-hv]');
+  if (hv) {
+    const view = heatViewOf(hv.dataset.hv);
+    if (view === savedHeatView()) return;
+    setPref(HEAT_VIEW_STORE, view);
+    paintHeatmap(findHabit(hist.id), periodDays());
+    return;
+  }
   const b = e.target.closest('[data-hm]');
-  if (!b || !hist) return;
+  if (!b) return;
   const mode = heatModeOf(b.dataset.hm);
   if (mode === savedHeatMode()) return;
   setPref(HEAT_MODE_STORE, String(mode));
