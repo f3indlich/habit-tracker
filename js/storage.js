@@ -1,4 +1,4 @@
-import { $, addDays, COLORS, days, HHMM, isToday, key, monday, monthDays, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=1.1b';
+import { $, addDays, COLORS, days, HHMM, isToday, key, monday, monthDays, NS, parseKey, plural, SCHED_TYPES, schedDue, scheduleOf, STORE, TIMES, todayKey, toMin, weekday } from './core.js?v=1.1b';
 import { EMOJI_TO_ICON, ICONS } from './icons.js?v=1.1b';
 import { toast } from './ui.js?v=1.1b';
 import { render } from './render.js?v=1.1b';
@@ -74,6 +74,7 @@ export function normalize(s) {
   if (!isObj(s) || !Array.isArray(s.habits) || !isObj(s.log)) s = { habits: [], log: {} };
   if (!isObj(s.skip)) s.skip = {};
   if (!isObj(s.notes)) s.notes = {};
+  if (!isObj(s.logAt)) s.logAt = {};
   const catIds = new Set();
   s.categories = (Array.isArray(s.categories) ? s.categories : []).filter(c => {
     if (!isObj(c) || typeof c.id !== 'string' || !c.id || catIds.has(c.id)) return false;
@@ -142,6 +143,15 @@ export function normalize(s) {
       if (!seen.has(id) || !(v > 0)) delete map[k][id]; else map[k][id] = map === s.skip ? 1 : v;
     }
     if (!Object.keys(map[k]).length) delete map[k];
+  }
+  for (const k of Object.keys(s.logAt)) {
+    if (!isKey(k) || !isObj(s.logAt[k])) { delete s.logAt[k]; continue; }
+    for (const id of Object.keys(s.logAt[k])) {
+      const c = s.log[k]?.[id] || 0;
+      const times = (Array.isArray(s.logAt[k][id]) ? s.logAt[k][id] : []).filter(t => typeof t === 'string' && HHMM.test(t)).slice(0, c || 0);
+      if (!seen.has(id) || !c || !times.length) delete s.logAt[k][id]; else s.logAt[k][id] = times;
+    }
+    if (!Object.keys(s.logAt[k]).length) delete s.logAt[k];
   }
   for (const k of Object.keys(s.notes)) {
     if (!isKey(k) || !isObj(s.notes[k])) { delete s.notes[k]; continue; }
@@ -218,16 +228,100 @@ export function stepOf(h) { return h.step || 1; }
 export function units(h) { return Math.ceil(h.target / stepOf(h)); }
 export function stepUp(h, c) { return Math.min(countCap(h.target), c + stepOf(h)); }
 export function stepDown(h, c) { return Math.max(0, c - (c % stepOf(h) || stepOf(h))); }
-export function setCount(h, d, n) {
+export function nowHHMM(d = new Date()) {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+export function syncLogAt(id, k, prev, n, atTime) {
+  state.logAt ??= {};
+  const times = [...(state.logAt[k]?.[id] || [])];
+  if (n > prev) {
+    const stamp = typeof atTime === 'string' && HHMM.test(atTime) ? atTime : nowHHMM();
+    while (times.length < n) times.push(stamp);
+  } else if (n < times.length) times.length = n;
+  setMap(state.logAt, k, id, n && times.length ? times.slice(0, n) : 0);
+}
+export function setCount(h, d, n, atTime) {
+  const k = key(d), prev = state.log[k]?.[h.id] || 0;
   n = Math.max(0, Math.min(countCap(targetOn(h, d)), n));
-  setMap(state.log, key(d), h.id, n);
-  if (n) setMap(state.skip, key(d), h.id, 0);
+  setMap(state.log, k, h.id, n);
+  if (n) setMap(state.skip, k, h.id, 0);
+  syncLogAt(h.id, k, prev, n, atTime);
   save(); render();
 }
 export function setSkip(h, d, on) {
-  setMap(state.skip, key(d), h.id, on ? 1 : 0);
-  if (on) setMap(state.log, key(d), h.id, 0);
+  const k = key(d);
+  setMap(state.skip, k, h.id, on ? 1 : 0);
+  if (on) {
+    setMap(state.log, k, h.id, 0);
+    state.logAt ??= {};
+    setMap(state.logAt, k, h.id, 0);
+  }
   save(); render();
+}
+
+export const HEAT_MIN = 5;
+export const HEAT_MODES = [12, 24];
+export const HEAT_MODE_STORE = NS + '-heat-mode';
+export const HEAT_WD_SHORT = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+export const heatModeOf = v => +v === 12 ? 12 : 24;
+export const heatFallbackHHMM = time => ({ morning: '08:00', day: '13:00', evening: '20:00', any: '12:00' }[time] || '12:00');
+export const heatHour = t => Math.min(23, Math.max(0, parseInt(String(t).slice(0, 2), 10) || 0));
+export const heatPeriod = hour => hour < 6 ? { noun: 'ночь', adv: 'ночью' } : hour < 12 ? { noun: 'утро', adv: 'утром' } : hour < 18 ? { noun: 'день', adv: 'днём' } : { noun: 'вечер', adv: 'вечером' };
+export const heatSlotOfHour = (hour, mode = 24) => heatModeOf(mode) === 12 ? Math.floor(hour / 2) : hour;
+export const heatSlotOfHHMM = (t, mode = 24) => heatSlotOfHour(heatHour(t), mode);
+export const heatBandStart = hour => hour === 6 || hour === 12 || hour === 18;
+export function heatSlots(mode = 24) {
+  mode = heatModeOf(mode);
+  const step = mode === 12 ? 2 : 1, out = [];
+  for (let h = 0; h < 24; h += step) {
+    const p = heatPeriod(h);
+    out.push({
+      hour: h, from: h, to: h + step - 1,
+      label: String(h),
+      tip: mode === 24 ? `${h}:00` : `${p.noun} ${h}–${h + 1}`,
+      adv: p.adv,
+      band: heatBandStart(h),
+    });
+  }
+  return out;
+}
+export const heatLevel = (n, max) => !n || !max ? 0 : Math.max(1, Math.ceil(n / max * 3));
+export function heatPeakText(peak, mode = 24, slots = heatSlots(mode)) {
+  if (!peak?.n) return '';
+  const s = slots[peak.slot];
+  if (!s) return '';
+  mode = heatModeOf(mode);
+  const when = mode === 24 ? String(s.hour) : `${s.hour}–${s.to}`;
+  return `Чаще: ${HEAT_WD_SHORT[peak.wd]} · ${when}`;
+}
+/** Чистая агрегация отметок по слотам «день недели × час». mode: 12 (по 2 ч) или 24 (по часу). Без DOM. */
+export function habitHeatmap(h, s, from, to, mode = 24) {
+  mode = heatModeOf(mode);
+  const slots = heatSlots(mode);
+  const grid = Array.from({ length: 7 }, () => Array(slots.length).fill(0));
+  let total = 0;
+  if (!h || !s) return { grid, total, peak: null, peakText: '', empty: true, max: 0, mode, slots };
+  const log = s.log || {}, logAt = s.logAt || {};
+  const fallback = heatFallbackHHMM(h.time);
+  const lifeTo = h.archived && h.archived < to ? h.archived : to;
+  for (const k of Object.keys(log)) {
+    if (k < h.created || k < from || k > lifeTo) continue;
+    const c = log[k]?.[h.id] || 0;
+    if (!(c > 0)) continue;
+    const wd = weekday(parseKey(k));
+    const times = logAt[k]?.[h.id];
+    for (let i = 0; i < c; i++) {
+      const t = (Array.isArray(times) && times[i]) || fallback;
+      grid[wd][heatSlotOfHHMM(t, mode)]++;
+      total++;
+    }
+  }
+  let peak = null, max = 0;
+  for (let wd = 0; wd < 7; wd++) for (let slot = 0; slot < slots.length; slot++) {
+    const n = grid[wd][slot];
+    if (n > max) { max = n; peak = { wd, slot, n, hour: slots[slot].hour }; }
+  }
+  return { grid, total, peak, peakText: heatPeakText(peak, mode, slots), empty: total < HEAT_MIN, max, mode, slots };
 }
 
 export function scheduleOn(h, d) {

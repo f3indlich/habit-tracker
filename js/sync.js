@@ -32,7 +32,7 @@ export const delFailText = () => 'Не удалось удалить аккау�
 export const emailMatches = (input, email) => { const a = String(input ?? '').trim().toLowerCase(); return !!a && a === String(email ?? '').trim().toLowerCase(); };
 export const isAccountGone = e => !!e && (e.code === 'user_not_found' || String(e.code) === '23503' || /User from sub claim in JWT does not exist/i.test(e.message || ''));
 
-export const emptyState = () => ({ habits: [], categories: [], log: {}, skip: {}, notes: {}, goals: [], tasks: [], taskLists: [] });
+export const emptyState = () => ({ habits: [], categories: [], log: {}, logAt: {}, skip: {}, notes: {}, goals: [], tasks: [], taskLists: [] });
 export const canon = v => JSON.stringify(v, (k, x) => x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(n => [n, x[n]])) : x);
 export const same = (a, b) => canon(a) === canon(b);
 export function loadBase() {
@@ -58,8 +58,8 @@ export function mergeStates(base, local, remote) {
     for (const day of new Set([...Object.keys(B), ...Object.keys(L), ...Object.keys(R)])) {
       const b = B[day] || {}, l = L[day] || {}, r = R[day] || {};
       for (const id of new Set([...Object.keys(b), ...Object.keys(l), ...Object.keys(r)])) {
-        const v = l[id] !== b[id] ? l[id] : r[id];
-        if (v) (out[day] ??= {})[id] = v;
+        const v = JSON.stringify(l[id]) !== JSON.stringify(b[id]) ? l[id] : r[id];
+        if (v && !(Array.isArray(v) && !v.length)) (out[day] ??= {})[id] = v;
       }
     }
     return out;
@@ -83,6 +83,7 @@ export function mergeStates(base, local, remote) {
     habits: mergeList(base.habits || [], local.habits || [], remote.habits || []).map(mergeGoals),
     categories: mergeList(base.categories || [], local.categories || [], remote.categories || []),
     log: mergeDays(base.log || {}, local.log || {}, remote.log || {}),
+    logAt: mergeDays(base.logAt || {}, local.logAt || {}, remote.logAt || {}),
     skip: mergeDays(base.skip || {}, local.skip || {}, remote.skip || {}),
     notes: mergeDays(base.notes || {}, local.notes || {}, remote.notes || {}),
     profile: same(local.profile, base.profile) ? remote.profile : local.profile,

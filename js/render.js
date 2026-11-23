@@ -362,13 +362,14 @@ export function addSwipe(el, id) {
 export function changeCount(h, d, n, clearSkip = false, announce = false) {
   if (key(d) > todayKey()) return;
   h = at(h, d);
-  const prev = count(h, d), prevSkip = isSkipped(h, d);
+  const k = key(d), prev = count(h, d), prevSkip = isSkipped(h, d);
+  const prevAt = [...(state.logAt?.[k]?.[h.id] || [])];
   n = Math.max(0, Math.min(countCap(h.target), n));
   if (n === prev && !(clearSkip && prevSkip)) return;
-  if (clearSkip && prevSkip) setMap(state.skip, key(d), h.id, 0);
+  if (clearSkip && prevSkip) setMap(state.skip, k, h.id, 0);
   setCount(h, d, n);
   const wasDone = prev >= h.target, isDone = n >= h.target;
-  if (isDone && !wasDone && key(d) === key(viewDate)) markFx(cards.get(h.id), h.color);
+  if (isDone && !wasDone && k === key(viewDate)) markFx(cards.get(h.id), h.color);
   navigator.vibrate?.(wasDone && isDone && n > prev ? 6 : n > prev ? 12 : [6, 40, 6]);
   if (announce || wasDone !== isDone || (n === 0 && prev > 1)) {
     const dayNote = isToday(d) ? '' : ` (${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })})`;
@@ -377,8 +378,10 @@ export function changeCount(h, d, n, clearSkip = false, announce = false) {
     if (isPrivate(h) && text.startsWith(h.name)) text = 'Привычка' + text.slice(h.name.length);
     toast(text, () => {
       if (!findHabit(h.id)) return;
-      setMap(state.log, key(d), h.id, prev);
-      if (prevSkip) setMap(state.skip, key(d), h.id, 1);
+      setMap(state.log, k, h.id, prev);
+      state.logAt ??= {};
+      setMap(state.logAt, k, h.id, prevAt.length ? prevAt : 0);
+      if (prevSkip) setMap(state.skip, k, h.id, 1);
       save(); render();
       if (day?.id === h.id && key(day.d) === key(d)) renderDay();
       if (hist) renderHistory();
@@ -915,7 +918,7 @@ export async function deleteForever(id) {
     `${isPrivate(h) ? 'Привычка' : `Привычка «${h.name}»`} и вся её история будут стёрты. Это нельзя отменить.`, 'Удалить');
   if (!ok || !findHabit(id)) return;
   state.habits = state.habits.filter(x => x.id !== id);
-  for (const map of [state.log, state.skip, state.notes]) for (const k in map) setMap(map, k, id, 0);
+  for (const map of [state.log, state.logAt, state.skip, state.notes]) for (const k in map) setMap(map, k, id, 0);
   if (hist?.id === id) { closeOverlay($('histOv')); setHist(null); }
   save(); render();
 }

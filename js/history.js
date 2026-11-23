@@ -1,6 +1,6 @@
-import { $, addDays, days, ofDays, esc, fmtLong, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.1b';
+import { $, addDays, days, ofDays, esc, fmtLong, getPref, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, setPref, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.1b';
 import { setIcon } from './icons.js?v=1.1b';
-import { at, count, counts, findHabit, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=1.1b';
+import { at, count, counts, findHabit, habitHeatmap, heatLevel, heatModeOf, HEAT_MIN, HEAT_MODE_STORE, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=1.1b';
 import { askConfirm, closeMenu, countTo, holdHeight, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=1.1b';
 import { catName, changeCount } from './render.js?v=1.1b';
 import { openForm } from './form.js?v=1.1b';
@@ -16,6 +16,7 @@ export const HABIT_HOW = [
   ['Выполнено', 'Для привычек «да/нет»: в сколько запланированных дней периода привычка выполнена. Пропуски и дни вне расписания не считаются, сегодняшний — после отметки.'],
   ['Сравнение', 'Сравнивается тот же процент, что указан выше: для привычек со счётом — сколько сделано от нормы, для «да/нет» — доля выполненных дней. Берётся то же число дней прошлого периода: в среду неделя сравнивается с понедельником–средой прошлой недели. Не показывается, если в прошлом периоде меньше 3 дней с планом.'],
   ['По дням недели', 'Появляется, когда в периоде хотя бы 21 день с планом.'],
+  ['Когда отмечали', 'Тепловая карта: в какие дни недели и в какое время чаще ставили отметки. Режим 12 — слоты по 2 часа, режим 24 — каждый час. Нужно не меньше 5 отметок в выбранном периоде. У новых отметок учитывается точное время; у старых без времени — предпочитаемое время привычки.'],
 ];
 export const WD_NOM = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
 const WD_IN = ['в понедельник', 'во вторник', 'в среду', 'в четверг', 'в пятницу', 'в субботу', 'в воскресенье'];
@@ -55,7 +56,7 @@ export function openHistory(id) {
   hist = { id, range: savedRange(), anchor: parseKey(lifeEnd(h)), back: null };
   const past = lifeEnd(h) === todayKey() && startAnchor(hist.range, h.created);
   if (past) Object.assign(hist, { anchor: past.anchor, back: past.start });
-  for (const id of ['hTrio', 'hWd', 'hNotes']) $(id)._html = null;
+  for (const id of ['hTrio', 'hWd', 'hHeat', 'hNotes']) $(id)._html = null;
   histSlider.reset();
   const real = hist;
   hist = { ...real, range: 'week', anchor: parseKey(lifeEnd(h)), back: null };
@@ -247,6 +248,7 @@ function paintPeriod(h = findHabit(hist.id), ds = periodDays()) {
     $('hDaysTitle').textContent = hist.range === 'year' ? 'По месяцам' : 'По дням';
     $('hChart').innerHTML = hist.range === 'year' ? yearRows(h, ds) : (hist.range === 'week' ? weekView(h, ds) : monthView(h, ds)) + '<div class="tip"></div>';
     $('hWdWrap').hidden = true;
+    paintHeatmap(h, ds);
     paintNotes(h, ds);
     return;
   }
@@ -262,6 +264,7 @@ function paintPeriod(h = findHabit(hist.id), ds = periodDays()) {
   if (hist.range === 'year') $('hChart').innerHTML = yearRows(h, ds);
   else $('hChart').innerHTML = (hist.range === 'week' ? (quant ? weekBars(h, ds) : weekView(h, ds)) : monthView(h, ds)) + (quant ? chartFoot(h, ds, p) : '') + '<div class="tip"></div>';
   paintWeekdays(h, cmp.cur);
+  paintHeatmap(h, ds);
   paintNotes(h, ds);
 }
 
@@ -345,6 +348,47 @@ function paintWeekdays(h, ds) {
     <p class="hwd-t">${spread ? `Лучше всего — ${WD_IN[top.i]}, слабее — ${WD_IN[bot.i]}` : 'Все дни недели примерно одинаково'}</p>`);
 }
 
+export const savedHeatMode = () => heatModeOf(getPref(HEAT_MODE_STORE, '12'));
+function syncHeatModes(mode) {
+  for (const b of $('hHeatModes').children) b.setAttribute('aria-pressed', heatModeOf(b.dataset.hm) === mode ? 'true' : 'false');
+}
+function paintHeatmap(h, ds) {
+  const wrap = $('hHeatWrap'), box = $('hHeat');
+  if (!ds.length) { wrap.hidden = true; return put(box, ''); }
+  const mode = savedHeatMode();
+  const hm = habitHeatmap(h, state, key(ds[0]), key(ds[ds.length - 1]), mode);
+  wrap.hidden = false;
+  syncHeatModes(mode);
+  if (hm.empty) {
+    return put(box, `<p class="hm-empty">Пока мало отметок — нужно хотя бы ${HEAT_MIN}, чтобы увидеть, когда Вы обычно выполняете привычку</p>`);
+  }
+  const cells = [];
+  for (let slot = 0; slot < hm.slots.length; slot++) {
+    const s = hm.slots[slot], band = s.band ? ' hm-band' : '';
+    cells.push(`<span class="hm-lab${band}" aria-hidden="true">${esc(s.label)}</span>`);
+    for (let wd = 0; wd < 7; wd++) {
+      const n = hm.grid[wd][slot], lv = heatLevel(n, hm.max);
+      const hot = hm.peak && hm.peak.wd === wd && hm.peak.slot === slot ? ' hm-hot' : '';
+      const tip = `${WEEKDAYS[wd]}, ${s.tip}: ${n} ${plural(n, 'раз', 'раза', 'раз')}`;
+      cells.push(`<button type="button" class="hm-cell${band}${hot}" data-l="${lv}" data-tip="${esc(tip)}" aria-label="${esc(tip)}"></button>`);
+    }
+  }
+  put(box, `<p class="hm-peak">${esc(hm.peakText)}</p>
+    <div class="hm-grid" data-mode="${mode}" role="grid" aria-label="Когда отмечали: дни недели и время">
+      <span class="hm-corner" aria-hidden="true"></span>${WEEKDAYS.map(w => `<span class="hm-hd" aria-hidden="true">${w}</span>`).join('')}
+      ${cells.join('')}
+    </div>
+    <div class="hm-leg" aria-hidden="true"><span>меньше</span><i class="hm-grad"></i><span>больше</span></div>
+    <div class="tip"></div>`);
+}
+$('hHeatWrap').addEventListener('click', e => {
+  const b = e.target.closest('[data-hm]');
+  if (!b || !hist) return;
+  const mode = heatModeOf(b.dataset.hm);
+  if (mode === savedHeatMode()) return;
+  setPref(HEAT_MODE_STORE, String(mode));
+  paintHeatmap(findHabit(hist.id), periodDays());
+});
 function paintNotes(h, ds) {
   const today = todayKey(), list = ds.filter(x => key(x) <= today && inLife(h, key(x)) && noteOf(h, x)).reverse().slice(0, 10);
   $('hNotesWrap').hidden = !list.length;
@@ -641,5 +685,6 @@ export function bindTips(box) {
   document.addEventListener('pointerdown', e => { if (on && !box.contains(e.target)) hide(); }, true);
 }
 bindTips($('hChart'));
+bindTips($('hHeat'));
 
 export function setHist(v) { hist = v; }

@@ -126,6 +126,8 @@ ok('plan block shown for quantity habit', !$('hPlan').hidden && $('hPlan').textC
 ok('norm history list', $('hPlan').querySelector('.plan-goals summary').textContent === 'Как менялась норма' && $('hPlan').querySelector('.plan-goals').textContent.includes('— 8') && $('hPlan').querySelector('.plan-goals').textContent.includes('— 6'));
 closeOverlay($('histOv')); hist = null; await wait(400);
 openHistory('b'); await wait(600);
+// В понедельник текущая неделя ещё без отметок — берём прошлую, где они есть.
+if ($('hRing').hidden || !/из \d+ (дня|дней)/.test($('hRing').textContent || '')) { shiftPeriod(-1); await wait(400); }
 ok('yes/no habit shows a ring instead of the plan block', $('hPlan').hidden && !$('hPlan').textContent && !$('hRing').hidden && /из \d+ (дня|дней)/.test($('hRing').textContent));
 closeOverlay($('histOv')); hist = null; await wait(400);
 

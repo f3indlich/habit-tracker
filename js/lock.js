@@ -260,7 +260,7 @@ function dropPrivate(remove) {
   const ids = state.habits.filter(isPrivate).map(h => h.id);
   if (remove) {
     state.habits = state.habits.filter(h => !isPrivate(h));
-    for (const map of [state.log, state.skip, state.notes]) for (const k in map) for (const id of ids) setMap(map, k, id, 0);
+    for (const map of [state.log, state.logAt, state.skip, state.notes]) for (const k in map) for (const id of ids) setMap(map, k, id, 0);
     state.goals = (state.goals || []).filter(g => !isPrivate(g));
     for (const g of state.goals) if (g.habitIds?.some(id => ids.includes(id))) { g.habitIds = g.habitIds.filter(id => !ids.includes(id)); g.updatedAt = Date.now(); }
   } else {

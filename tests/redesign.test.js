@@ -17,7 +17,10 @@ const closeAll = async () => { for (const o of [...document.querySelectorAll('.o
 {
   show({ habits: [H('r', { target: 5, unit: 'км' })], log: { [shift(-1)]: { r: 5 }, [shift(-2)]: { r: 2 } } });
   openHistory('r'); await until(() => $('histOv')._shown); await wait(300);
-  const tip = () => $('hChart').querySelector('.tip'), cell = $('hChart').querySelector(`[data-day="${shift(-1)}"]`);
+  const tip = () => $('hChart').querySelector('.tip');
+  // В понедельник вчера вне текущей недели — открываем месяц, чтобы ячейка была на графике.
+  let cell = $('hChart').querySelector(`[data-day="${shift(-1)}"]`);
+  if (!cell) { $('hTabs').querySelector('[data-r="month"]').click(); await wait(200); cell = $('hChart').querySelector(`[data-day="${shift(-1)}"]`); }
   cell.click(); await until(() => $('dayOv')._shown);
   ok('tapping a day opens it without a tip', $('dayOv')._shown && !tip()?.classList.contains('show') && !cell.classList.contains('on'));
   closeOverlay($('dayOv')); await until(() => $('dayOv').hidden);

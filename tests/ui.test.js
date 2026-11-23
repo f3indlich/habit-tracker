@@ -119,7 +119,7 @@ const symmetric = el => { const r = el.getBoundingClientRect(); return Math.abs(
 ok('no info buttons on the numbers', !$('hSheet').querySelector('.tile-i, .plan-i') && $('hTrio').children.length === 3);
 $('hHow').click(); await waitFor(() => menuEl?._anchor === $('hHow') && !menuEl.getAnimations().length);
 const secs = [...(menuEl?.querySelectorAll('.pop-sec b') || [])].map(b => b.textContent);
-ok('one how-it-works lists the numbers of this habit', menuEl && symmetric(menuEl) && secs.join() === 'Серия,Рекорд,Всего,Сделано и норма,Сравнение,По дням недели', secs);
+ok('one how-it-works lists the numbers of this habit', menuEl && symmetric(menuEl) && secs.join() === 'Серия,Рекорд,Всего,Сделано и норма,Сравнение,По дням недели,Когда отмечали', secs);
 $('hHow').click(); await waitFor(() => !menuEl);
 ok('second tap closes how-it-works', !menuEl);
 $('hInfo').click(); await waitFor(() => menuEl && symmetric(menuEl) && !menuEl.getAnimations().length);
