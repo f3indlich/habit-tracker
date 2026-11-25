@@ -1,11 +1,11 @@
-import { $, addDays, COLORS, days, EASE_IN, EASE_STD, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, scheduleOf, spring, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=1.1d';
-import { guessIcon, IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=1.1d';
-import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=1.1d';
-import { findHabit, goalOn, isAbstain, isStat, migrateAbstainOff, migrateAbstainOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=1.1d';
-import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.1d';
-import { catName, render } from './render.js?v=1.1d';
-import { hist, renderHistory } from './history.js?v=1.1d';
-import { renderRemindHint } from './push.js?v=1.1d';
+import { $, addDays, COLORS, days, EASE_IN, EASE_STD, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, scheduleOf, spring, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=1.1e';
+import { guessIcon, IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=1.1e';
+import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=1.1e';
+import { findHabit, goalOn, isAbstain, isStat, migrateAbstainOff, migrateAbstainOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=1.1e';
+import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.1e';
+import { catName, render } from './render.js?v=1.1e';
+import { hist, renderHistory } from './history.js?v=1.1e';
+import { renderRemindHint } from './push.js?v=1.1e';
 
 export let editingId = null;
 export const form = {

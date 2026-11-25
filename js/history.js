@@ -1,11 +1,11 @@
-import { $, addDays, days, ofDays, esc, fmtLong, getPref, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, setPref, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.1d';
-import { setIcon } from './icons.js?v=1.1d';
-import { at, count, counts, findHabit, habitHeatmap, heatByApproach, heatModeOf, heatProfile, HEAT_MIN, HEAT_MODE_STORE, isAbstain, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=1.1d';
-import { askConfirm, closeMenu, countTo, holdHeight, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=1.1d';
-import { catName, changeCount } from './render.js?v=1.1d';
-import { openForm } from './form.js?v=1.1d';
-import { queueTips } from './tips.js?v=1.1d';
-import { fmtNum, HIST_RANGES, HIST_STORE, planBar, planStats, unitChanged } from './plan.js?v=1.1d';
+import { $, addDays, days, ofDays, esc, fmtLong, getPref, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, setPref, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.1e';
+import { setIcon } from './icons.js?v=1.1e';
+import { at, count, counts, findHabit, habitHeatmap, heatByApproach, heatModeOf, heatProfile, HEAT_MIN, HEAT_MODE_STORE, isAbstain, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=1.1e';
+import { askConfirm, closeMenu, countTo, holdHeight, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=1.1e';
+import { catName, changeCount } from './render.js?v=1.1e';
+import { openForm } from './form.js?v=1.1e';
+import { queueTips } from './tips.js?v=1.1e';
+import { fmtNum, HIST_RANGES, HIST_STORE, planBar, planStats, unitChanged } from './plan.js?v=1.1e';
 
 export let hist = null;
 export const HABIT_HOW = [

@@ -1,11 +1,11 @@
-import { $, addDays, esc, key, parseKey, plural, todayKey, weekday, WEEKDAYS } from './core.js?v=1.1d';
-import { iconHTML } from './icons.js?v=1.1d';
-import { count, counts, inLife, isQuant, isStat, state, targetOn } from './storage.js?v=1.1d';
-import { closeMenu, holdHeight, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=1.1d';
-import { queueTips } from './tips.js?v=1.1d';
-import { visibleHabits } from './privacy.js?v=1.1d';
-import { overWeekday } from './plan.js?v=1.1d';
-import { bindTips, compareRange, compareText, keepRange, MONTHS_IN, openHistory, paintBack, rangeDays, rangeLabel, shiftAnchor, startAnchor, WD_NOM } from './history.js?v=1.1d';
+import { $, addDays, esc, key, parseKey, plural, todayKey, weekday, WEEKDAYS } from './core.js?v=1.1e';
+import { iconHTML } from './icons.js?v=1.1e';
+import { count, counts, inLife, isQuant, isStat, state, targetOn } from './storage.js?v=1.1e';
+import { closeMenu, holdHeight, menuEl, openOverlay, openPopover, periodSlider } from './ui.js?v=1.1e';
+import { queueTips } from './tips.js?v=1.1e';
+import { visibleHabits } from './privacy.js?v=1.1e';
+import { overWeekday } from './plan.js?v=1.1e';
+import { bindTips, compareRange, compareText, keepRange, MONTHS_IN, openHistory, paintBack, rangeDays, rangeLabel, shiftAnchor, startAnchor, WD_NOM } from './history.js?v=1.1e';
 export { compareRange, compareText, MONTHS_IN, WD_NOM };
 
 export const WD_DAT = ['понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам', 'воскресеньям'];

@@ -1,13 +1,13 @@
-import { $, ACCENT_STORE, DATA_STORE, EASE_STD, esc, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, isVivid, MOTION_MODES, MOTION_STORE, mv, NS, PRIVACY_EMAIL, reducedMotion, setPref, THEME_STORE, todayKey, UA, VIEWS, withYear } from './core.js?v=1.1d';
-import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=1.1d';
-import { normalize, save, setState, state } from './storage.js?v=1.1d';
-import { askConfirm, closeOverlay, morph, openOverlay, toast } from './ui.js?v=1.1d';
-import { CARDS, cards, render, renderViewPage, setWasAllDone, sparks } from './render.js?v=1.1d';
-import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=1.1d';
-import { hist, renderHistory } from './history.js?v=1.1d';
-import { cloud, deleteAccount, emailMatches, openAccount, renderAccount } from './sync.js?v=1.1d';
-import { sharedExport } from './shared.js?v=1.1d';
-import { pushState } from './push.js?v=1.1d';
+import { $, ACCENT_STORE, DATA_STORE, EASE_STD, esc, getPref, ICON_STORE, isAndroid, isIOS, isMacSafari, isStandalone, isVivid, MOTION_MODES, MOTION_STORE, mv, NS, PRIVACY_EMAIL, reducedMotion, setPref, THEME_STORE, todayKey, UA, VIEWS, withYear } from './core.js?v=1.1e';
+import { IC, ICON_ART, ICON_STYLES, ICONS } from './icons.js?v=1.1e';
+import { normalize, save, setState, state } from './storage.js?v=1.1e';
+import { askConfirm, closeOverlay, morph, openOverlay, toast } from './ui.js?v=1.1e';
+import { CARDS, cards, render, renderViewPage, setWasAllDone, sparks } from './render.js?v=1.1e';
+import { drawIconPickers, openCats, renderCatsInfo, syncForm } from './form.js?v=1.1e';
+import { hist, renderHistory } from './history.js?v=1.1e';
+import { cloud, deleteAccount, emailMatches, openAccount, renderAccount } from './sync.js?v=1.1e';
+import { sharedExport } from './shared.js?v=1.1e';
+import { pushState } from './push.js?v=1.1e';
 
 export function applyIcons(style) {
   document.body.dataset.icons = style;

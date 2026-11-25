@@ -1,16 +1,16 @@
-import { $, esc, getPref, NS, plural, setPref } from './core.js?v=1.1d';
-import { IC } from './icons.js?v=1.1d';
-import { askConfirm, closeOverlay, openMenu, openOverlay, toast } from './ui.js?v=1.1d';
-import { openAccount } from './sync.js?v=1.1d';
-import { userName } from './settings.js?v=1.1d';
-import { openTasks, parseLines, renderTasks, taskHooks, tv } from './tasksui.js?v=1.1d';
+import { $, esc, getPref, NS, plural, setPref } from './core.js?v=1.1e';
+import { IC } from './icons.js?v=1.1e';
+import { askConfirm, closeOverlay, openMenu, openOverlay, toast } from './ui.js?v=1.1e';
+import { openAccount } from './sync.js?v=1.1e';
+import { userName } from './settings.js?v=1.1e';
+import { openTasks, parseLines, renderTasks, taskHooks, tv } from './tasksui.js?v=1.1e';
 import {
   addSharedItems, addSharedRows, assignSharedItem, canInvite, clearShared, createSharedInvite, createSharedList, deleteSharedItem, deleteSharedList, editSharedItem, fetchShared,
   hintCount, isHead, isShoppingList, lastSection, listKind, moveSharedItem, ordered, outlineText, parseOutline, recentShared, renameMySharedName, sectionEnd, sectionLook, sectionRows, setListKind, setSharedIndent, setSharedListPrefs, splitQty,
   findOpenDup, findShared, flushQueue, hasNews, inviteUrl, isSharedOwner, joinSharedList, leaveSharedList, markSeen, memberName, myId, myNotify, normCode,
   pendingIds, rememberHint, removeSharedMember, renameSharedList, seedSeen, setSharedDone, setSharedNotify, setSharedSection, sh, sharedHints, transferSharedList,
   SHARED_LIM, SHARED_OK, SHARED_POLL_LIVE_MS, SHARED_POLL_MS, sharedReady, showCode, startLive, stopLive,
-} from './shared.js?v=1.1d';
+} from './shared.js?v=1.1e';
 const SHOP_TMPL = ['Молочка', 'Овощи и фрукты', 'Мясо и рыба', 'Бакалея', 'Бытовое'];
 const CHORES_TMPL = ['Сегодня', 'На неделе', 'Когда будет время'];
 
