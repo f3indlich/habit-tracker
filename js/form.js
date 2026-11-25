@@ -1,7 +1,7 @@
 import { $, addDays, COLORS, days, EASE_IN, EASE_STD, esc, fromMin, HHMM, isIOS, key, parseKey, plural, reducedMotion, redUi, schedText, scheduleOf, spring, TEMPLATES, TIMES, todayKey, toMin, weekday, WEEKDAYS } from './core.js?v=1.1d';
 import { guessIcon, IC, ICON_KEYS, iconHTML, setIcon } from './icons.js?v=1.1d';
 import { isPrivate, privateHabits, unlocked, visibleHabits } from './privacy.js?v=1.1d';
-import { findHabit, goalOn, isStat, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=1.1d';
+import { findHabit, goalOn, isAbstain, isStat, migrateAbstainOff, migrateAbstainOn, normRemind, normSchedule, noteGoalChange, sameSchedule, save, state } from './storage.js?v=1.1d';
 import { askConfirm, closeOverlay, openOverlay, toast } from './ui.js?v=1.1d';
 import { catName, render } from './render.js?v=1.1d';
 import { hist, renderHistory } from './history.js?v=1.1d';
@@ -373,10 +373,14 @@ export function syncForm() {
 export const pick = (box, fn) => box.onclick = e => { const b = e.target.closest('button'); if (b) { fn(b.dataset.v); syncForm(); } };
 pick($('emojis'), v => { form.icon = v; form.iconPicked = true; });
 pick($('colors'), v => form.color = v);
-pick($('goalSeg'), v => form.goal = v);
+pick($('goalSeg'), v => {
+  form.goal = v;
+  if (v !== 'once' && form.abstain) { form.abstain = false; syncAbstainRow(); }
+});
 pick($('schedSeg'), v => {
   if (v === 'everyNWeeks' && !['everyNWeeks', 'days'].includes(form.sched)) form.days = [weekday(new Date())];
   form.sched = v;
+  if (form.abstain && !['daily', 'days'].includes(v)) { form.abstain = false; syncAbstainRow(); }
 });
 pick($('timesChips'), v => form.times = +v);
 pick($('everyChips'), v => form.every = +v);
@@ -477,9 +481,10 @@ export function renderStep() {
   });
 }
 
-let privRow = null, statRow = null;
+let privRow = null, statRow = null, abstainRow = null;
 export function syncPrivRow() {
   syncStatRow();
+  syncAbstainRow();
   if (!unlocked) { privRow?.remove(); privRow = null; return; }
   if (!privRow) {
     privRow = document.createElement('div');
@@ -506,7 +511,29 @@ function syncStatRow() {
   statRow.querySelector('.rem').classList.toggle('on', form.stat);
   statRow.querySelector('.switch').setAttribute('aria-checked', form.stat);
 }
+function syncAbstainRow() {
+  if (!abstainRow) {
+    abstainRow = document.createElement('div');
+    abstainRow.className = 'field';
+    abstainRow.innerHTML = `<div class="rem abstain-rem"><div class="rem-head"><span class="rem-ic">${IC_ABSTAIN}</span>
+      <span class="rem-tt"><b>Воздержание</b><small>День выполнен сам; отмечаете только срыв</small></span>
+      <button type="button" class="switch" role="switch" aria-label="Воздержание"><span></span></button></div></div>`;
+    abstainRow.querySelector('.rem-head').onclick = () => {
+      form.abstain = !form.abstain;
+      if (form.abstain) {
+        form.goal = 'once';
+        if (!['daily', 'days'].includes(form.sched)) form.sched = 'daily';
+      }
+      syncAbstainRow();
+      syncForm();
+    };
+  }
+  if (!abstainRow.isConnected) statRow.after(abstainRow);
+  abstainRow.querySelector('.rem').classList.toggle('on', form.abstain);
+  abstainRow.querySelector('.switch').setAttribute('aria-checked', !!form.abstain);
+}
 const IC_STAT = '<svg class="ic" viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>';
+const IC_ABSTAIN = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/></svg>';
 
 export const nextColor = () => {
   const last = [...state.habits].sort((a, b) => (a.created < b.created ? -1 : a.created > b.created ? 1 : 0)).at(-1);
@@ -519,6 +546,7 @@ export function openForm(id = null, priv = false) {
   iconsOpen = false;
   form.priv = unlocked && (h ? isPrivate(h) : priv);
   form.stat = isStat(h);
+  form.abstain = isAbstain(h);
   syncPrivRow();
   $('form').reset();
   $('formTitle').textContent = h ? 'Изменить привычку' : 'Новая привычка';
@@ -551,7 +579,7 @@ export function openForm(id = null, priv = false) {
 }
 let formBase = '';
 export const formSnap = () => JSON.stringify([form.icon, form.color, form.goal, form.sched, form.days, form.times, form.every, form.anchor, form.dom, form.time, form.cat,
-  form.newCat && $('newCatName').value.trim(), { ...form.rem, touched: undefined }, form.priv, form.stat, ...['name', 'target', 'step', 'unit', 'why'].map(id => $(id).value)]);
+  form.newCat && $('newCatName').value.trim(), { ...form.rem, touched: undefined }, form.priv, form.stat, form.abstain, ...['name', 'target', 'step', 'unit', 'why'].map(id => $(id).value)]);
 $('formOv')._guard = () => formSnap() === formBase || askConfirm('Закрыть без сохранения?',
   editingId ? 'Изменения в привычке не сохранятся.' : 'Новая привычка не будет добавлена.', 'Закрыть');
 
@@ -658,25 +686,42 @@ $('form').onsubmit = async e => {
   if (priv) data.private = true;
   const stat = form.stat;
   if (stat) data.stat = true;
+  let abstain = !!form.abstain;
+  if (abstain) {
+    data.abstain = true;
+    data.target = 1;
+    delete data.step;
+    data.unit = '';
+    if (!['daily', 'days'].includes(form.sched)) form.sched = 'daily';
+  }
   const sc = formSchedule(h?.created), oldSc = h ? scheduleOf(h) : { type: 'daily' }, schedMoved = !sameSchedule(sc, oldSc);
   data.days = sc.type === 'weekdays' ? [...sc.days] : null;
   data.schedule = !['daily', 'weekdays'].includes(sc.type) || (h && (schedMoved || h.schedule)) ? sc : undefined;
   let scope = 'today';
-  const old = h && goalOn(h, new Date()).target, goalMoved = h && old > 1 && old !== target;
+  const old = h && goalOn(h, new Date()).target, goalMoved = h && old > 1 && old !== data.target;
   if (h && (goalMoved || schedMoved) && h.created < todayKey()) {
-    const what = [goalMoved && `цель: было ${old}, станет ${target}`, schedMoved && `расписание: было «${schedText(h)}», станет «${schedText({ schedule: sc })}»`].filter(Boolean).join('; ');
+    const what = [goalMoved && `цель: было ${old}, станет ${data.target}`, schedMoved && `расписание: было «${schedText(h)}», станет «${schedText({ schedule: sc })}»`].filter(Boolean).join('; ');
     scope = await askConfirm('С какого дня действуют изменения?', `Меняется ${what}.`, 'Сохранить', {
       items: [{ v: 'today', label: 'С сегодняшнего дня' }, { v: 'all', label: 'И для прошлых дней' }],
       hint: '«И для прошлых дней» — если ошиблись при вводе. «С сегодняшнего дня» — прошлые дни останутся как были.',
     });
     if (!scope || !findHabit(h.id)) return;
   }
+  const wasAbstain = isAbstain(h);
+  let abstainMigrated = false;
+  if (h && wasAbstain !== abstain) {
+    if (abstain) migrateAbstainOn(h);
+    else migrateAbstainOff(h);
+    abstainMigrated = true;
+  }
   if (h) {
-    noteGoalChange(h, data, scope);
+    if (!abstain) noteGoalChange(h, data, scope);
     Object.assign(h, data, { updated: todayKey() });
-    if (!step) delete h.step;
+    if (!step || abstain) delete h.step;
     if (!priv) delete h.private;
     if (!stat) delete h.stat;
+    if (!abstain) delete h.abstain;
+    if (abstain) { delete h.goals; h.unit = ''; }
   } else {
     added = crypto.randomUUID?.() || String(Date.now());
     state.habits.push({ id: added, created: todayKey(), ...data });
@@ -685,7 +730,10 @@ $('form').onsubmit = async e => {
   closeOverlay($('formOv'));
   if (added) window.dispatchEvent(new CustomEvent('habit-added', { detail: added }));
   if (hist) renderHistory();
-  if (moved) toast(priv ? 'Перенесено в личное' : 'Перенесено в обычные', null, '');
+  if (abstainMigrated) toast(abstain
+    ? 'История переведена: выполненные дни — чистые, остальные — срывы; дальше отмечайте только срывы'
+    : 'История переведена: чистые дни отмечены выполненными, срывы сняты', null, '');
+  else if (moved) toast(priv ? 'Перенесено в личное' : 'Перенесено в обычные', null, '');
 };
 
 $('name').addEventListener('input', () => {

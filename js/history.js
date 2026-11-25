@@ -1,6 +1,6 @@
 import { $, addDays, days, ofDays, esc, fmtLong, getPref, isToday, key, MONTHS, MONTHS_SHORT, parseKey, plural, reducedMotion, redUi, scheduleOf, schedText, setPref, TEST_MODE, TIMES, todayKey, weekday, WEEKDAYS } from './core.js?v=1.1d';
 import { setIcon } from './icons.js?v=1.1d';
-import { at, count, counts, findHabit, habitHeatmap, heatLevel, heatModeOf, heatProfile, heatViewOf, HEAT_MIN, HEAT_MODE_STORE, HEAT_VIEW_STORE, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=1.1d';
+import { at, count, counts, findHabit, habitHeatmap, heatByApproach, heatModeOf, heatProfile, HEAT_MIN, HEAT_MODE_STORE, isAbstain, isDue, isStat, statFacts, isWeekly, nextDue, streakText, weekDone, weekQuota, isQuant, state, frac, goalOn, inLife, isSkipped, lifeEnd, lifeStats, NOTE_MAX, noteOf, rawCount, setNote, setSkip, stepDown, stepUp, streak, targetOn } from './storage.js?v=1.1d';
 import { askConfirm, closeMenu, countTo, holdHeight, menuEl, numOf, openOverlay, openPopover, toast, periodSlider } from './ui.js?v=1.1d';
 import { catName, changeCount } from './render.js?v=1.1d';
 import { openForm } from './form.js?v=1.1d';
@@ -16,7 +16,7 @@ export const HABIT_HOW = [
   ['Выполнено', 'Для привычек «да/нет»: в сколько запланированных дней периода привычка выполнена. Пропуски и дни вне расписания не считаются, сегодняшний — после отметки.'],
   ['Сравнение', 'Сравнивается тот же процент, что указан выше: для привычек со счётом — сколько сделано от нормы, для «да/нет» — доля выполненных дней. Берётся то же число дней прошлого периода: в среду неделя сравнивается с понедельником–средой прошлой недели. Не показывается, если в прошлом периоде меньше 3 дней с планом.'],
   ['По дням недели', 'Появляется, когда в периоде хотя бы 21 день с планом.'],
-  ['Когда отмечали', 'Карта или график-профиль по часам (режимы 12 и 24). Только отметки со временем; нужно не меньше 5 таких.'],
+  ['Когда отмечали', 'График-профиль по часам (режимы 6, 12 и 24). Только отметки со временем; для привычек с шагом — число повторений отметки, не сумма единиц цели; нужно не меньше 5.'],
 ];
 export const WD_NOM = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
 const WD_IN = ['в понедельник', 'во вторник', 'в среду', 'в четверг', 'в пятницу', 'в субботу', 'в воскресенье'];
@@ -156,6 +156,7 @@ export function dayTip(h, d) {
   if (h.archived && k > h.archived) return `${date}: в архиве`;
   if (isSkipped(h, d)) return `${date}: пропуск`;
   if (!isDue(h, d) && !c) return `${date}: не по расписанию`;
+  if (isAbstain(h)) return `${date}: ${c ? 'чисто' : 'срыв'}`;
   if (h.target === 1) return `${date}: ${c ? 'выполнено' : 'не выполнено'}`;
   return `${date}: ${c} из ${h.target}${h.unit ? ' ' + h.unit : ''}${c > h.target ? ` (+${c - h.target})` : ''}`;
 }
@@ -236,9 +237,14 @@ function paintStatPeriod(h, ds) {
   $('hRing').hidden = true;
   box.hidden = false;
   box._id = null;
-  box.innerHTML = `<div class="plan-l1"><span class="plan-l1t">${f.n ? `Отмечено <b>${f.n}</b> ${plural(f.n, 'раз', 'раза', 'раз')}` : 'В этом периоде отметок нет'}</span></div>`
-    + (f.n ? `<div class="plan-l2"><span>${f.days.length > 12 ? `${f.days.slice(-12).map(fmtDay).join(', ')} и ещё ${f.days.length - 12}` : f.days.map(fmtDay).join(', ')}</span></div>` : '')
-    + `<p class="plan-note">${avg ? `В среднем раз в ${avg} ${plural(avg, 'день', 'дня', 'дней')}. ` : ''}Статистическая привычка: только отметки и серия, без сводки и сравнений</p>`;
+  const slip = isAbstain(h);
+  const head = f.n
+    ? (slip ? `Срывов <b>${f.n}</b>` : `Отмечено <b>${f.n}</b> ${plural(f.n, 'раз', 'раза', 'раз')}`)
+    : (slip ? 'В этом периоде срывов нет' : 'В этом периоде отметок нет');
+  const note = slip
+    ? `${avg ? `В среднем срыв раз в ${avg} ${plural(avg, 'день', 'дня', 'дней')}. ` : ''}Воздержание: день чистый сам, отмечаете только срыв`
+    : `${avg ? `В среднем раз в ${avg} ${plural(avg, 'день', 'дня', 'дней')}. ` : ''}Статистическая привычка: только отметки и серия, без сводки и сравнений`;
+  box.innerHTML = `<div class="plan-l1"><span class="plan-l1t">${head}</span></div><p class="plan-note">${note}</p>`;
 }
 
 function paintPeriod(h = findHabit(hist.id), ds = periodDays()) {
@@ -314,8 +320,11 @@ export function yearRows(h, ds) {
   if (!rows.length) return '<p class="s-empty">В этом году привычки ещё не было</p>';
   if (isStat(h)) {
     const top = Math.max(1, ...rows.map(r => r.n));
+    const slip = isAbstain(h);
     return `<div class="mrows">${rows.map(r => {
-      const val = r.n ? `${r.n} ${plural(r.n, 'раз', 'раза', 'раз')}` : 'нет отметок';
+      const val = r.n
+        ? (slip ? `${r.n} ${plural(r.n, 'срыв', 'срыва', 'срывов')}` : `${r.n} ${plural(r.n, 'раз', 'раза', 'раз')}`)
+        : (slip ? 'нет срывов' : 'нет отметок');
       return `<button type="button" class="mrow${r.now ? ' now' : ''}" data-m="${r.m}" aria-label="${esc(`${MONTHS[r.m]}: ${val}`)}"><b>${MONTHS[r.m]}${r.now ? '<small>идёт</small>' : ''}</b><span class="mbar"><i style="width:${Math.round(r.n / top * 100)}%"></i></span><span class="mv">${val}</span></button>`;
     }).join('')}</div><p class="s-hint">Касание месяца открывает его календарь</p>`;
   }
@@ -349,12 +358,8 @@ function paintWeekdays(h, ds) {
 }
 
 export const savedHeatMode = () => heatModeOf(getPref(HEAT_MODE_STORE, '12'));
-export const savedHeatView = () => heatViewOf(getPref(HEAT_VIEW_STORE, 'map'));
 function syncHeatModes(mode) {
   for (const b of $('hHeatModes').children) b.setAttribute('aria-pressed', heatModeOf(b.dataset.hm) === mode ? 'true' : 'false');
-}
-function syncHeatViews(view) {
-  for (const b of $('hHeatViews').children) b.setAttribute('aria-pressed', heatViewOf(b.dataset.hv) === view ? 'true' : 'false');
 }
 function heatChartTicks(yMax) {
   if (yMax <= 1) return [0, 1];
@@ -362,9 +367,19 @@ function heatChartTicks(yMax) {
   const mid = Math.max(1, Math.round(yMax / 2));
   return mid === yMax ? [0, yMax] : [0, mid, yMax];
 }
-function paintHeatChart(hm) {
+function heatMarkWord(n, byApproach) {
+  return byApproach
+    ? plural(n, 'повторение', 'повторения', 'повторений')
+    : plural(n, 'раз', 'раза', 'раз');
+}
+function heatFootWord(n, byApproach) {
+  return byApproach
+    ? plural(n, 'повторение', 'повторения', 'повторений')
+    : plural(n, 'отметка', 'отметки', 'отметок');
+}
+function paintHeatChart(hm, byApproach) {
   const { values, max, peakSlot } = heatProfile(hm);
-  const n = values.length, W = 320, H = 140, padL = 26, padR = 8, padT = 14, padB = 28;
+  const n = values.length, W = 320, H = 128, padL = 22, padR = 6, padT = 10, padB = 22;
   const plotW = W - padL - padR, plotH = H - padT - padB, yMax = Math.max(max, 1);
   const xAt = i => padL + (n <= 1 ? plotW / 2 : i * plotW / (n - 1));
   const yAt = v => padT + plotH - (v / yMax) * plotH;
@@ -375,73 +390,54 @@ function paintHeatChart(hm) {
   const grid = ticks.map(t => {
     const y = yAt(t).toFixed(1);
     return `<line class="hm-chart-grid" x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}"/>
-      <text class="hm-chart-ylab" x="${padL - 5}" y="${(+y + 3).toFixed(1)}" text-anchor="end">${t}</text>`;
+      <text class="hm-chart-ylab" x="${padL - 4}" y="${(+y + 3).toFixed(1)}" text-anchor="end">${t}</text>`;
   }).join('');
-  const step = hm.mode === 24 ? 3 : 1;
+  const labEvery = hm.mode === 24 ? 3 : 1;
   const labels = hm.slots.map((s, i) => {
-    if (i !== 0 && i !== n - 1 && i % step && !s.band) return '';
-    return `<text class="hm-chart-xlab" x="${xAt(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(s.label)}</text>`;
+    if (hm.mode !== 6 && i !== 0 && i !== n - 1 && i % labEvery && !s.band) return '';
+    return `<text class="hm-chart-xlab" x="${xAt(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(s.label)}</text>`;
   }).join('');
   const dots = values.map((v, i) => {
-    const s = hm.slots[i], tip = `${s.tip}: ${v} ${plural(v, 'раз', 'раза', 'раз')}`;
+    const s = hm.slots[i], tip = `${s.tip}: ${v} ${heatMarkWord(v, byApproach)}`;
     const hot = i === peakSlot && max ? ' hm-chart-hot' : '';
-    return `<button type="button" class="hm-chart-dot${hot}" style="left:${(xAt(i) / W * 100).toFixed(2)}%;top:${(yAt(v) / H * 100).toFixed(2)}%" data-tip="${esc(tip)}" aria-label="${esc(tip)}"></button>`;
+    const z = v ? '' : ' hm-chart-z';
+    return `<button type="button" class="hm-chart-dot${hot}${z}" style="left:${(xAt(i) / W * 100).toFixed(2)}%;top:${(yAt(v) / H * 100).toFixed(2)}%" data-tip="${esc(tip)}" aria-label="${esc(tip)}"></button>`;
   }).join('');
   const peak = hm.slots[peakSlot], when = hm.mode === 24 ? String(peak.hour) : `${peak.hour}–${peak.to}`;
   return `<p class="hm-peak">${esc(hm.peakText)}</p>
     <div class="hm-chart" data-mode="${hm.mode}">
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Когда отмечали: профиль по часам">
+        <defs>
+          <linearGradient id="hmChartFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="currentColor" stop-opacity=".2"/>
+            <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
         ${grid}
-        <path class="hm-chart-area" d="${area}"/>
+        <path class="hm-chart-area" d="${area}" fill="url(#hmChartFill)"/>
         <path class="hm-chart-line" d="${line}" fill="none"/>
         ${labels}
       </svg>
       ${dots}
     </div>
-    <p class="hm-chart-foot">${esc(when)} · ${max} ${plural(max, 'отметка', 'отметки', 'отметок')} в пиковый слот</p>
+    <p class="hm-chart-foot">${esc(when)} · ${max} ${heatFootWord(max, byApproach)}</p>
     <div class="tip"></div>`;
 }
 function paintHeatmap(h, ds) {
   const wrap = $('hHeatWrap'), box = $('hHeat');
   if (!ds.length) { wrap.hidden = true; return put(box, ''); }
-  const mode = savedHeatMode(), view = savedHeatView();
+  const mode = savedHeatMode();
   const hm = habitHeatmap(h, state, key(ds[0]), key(ds[ds.length - 1]), mode);
+  const byApproach = heatByApproach(h);
   wrap.hidden = false;
   syncHeatModes(mode);
-  syncHeatViews(view);
   if (hm.empty) {
-    return put(box, `<p class="hm-empty">Пока мало отметок — нужно хотя бы ${HEAT_MIN}, чтобы увидеть, когда Вы обычно выполняете привычку</p>`);
+    return put(box, `<p class="hm-empty">Пока мало отметок — нужно хотя бы ${HEAT_MIN}, чтобы увидеть, когда Вы обычно ${isAbstain(h) ? 'отмечаете срывы' : 'выполняете привычку'}</p>`);
   }
-  if (view === 'chart') return put(box, paintHeatChart(hm));
-  const cells = [];
-  for (let slot = 0; slot < hm.slots.length; slot++) {
-    const s = hm.slots[slot], band = s.band ? ' hm-band' : '';
-    cells.push(`<span class="hm-lab${band}" aria-hidden="true">${esc(s.label)}</span>`);
-    for (let wd = 0; wd < 7; wd++) {
-      const n = hm.grid[wd][slot], lv = heatLevel(n, hm.max);
-      const hot = hm.peak && hm.peak.wd === wd && hm.peak.slot === slot ? ' hm-hot' : '';
-      const tip = `${WEEKDAYS[wd]}, ${s.tip}: ${n} ${plural(n, 'раз', 'раза', 'раз')}`;
-      cells.push(`<button type="button" class="hm-cell${band}${hot}" data-l="${lv}" data-tip="${esc(tip)}" aria-label="${esc(tip)}"></button>`);
-    }
-  }
-  put(box, `<p class="hm-peak">${esc(hm.peakText)}</p>
-    <div class="hm-grid" data-mode="${mode}" role="grid" aria-label="Когда отмечали: дни недели и время">
-      <span class="hm-corner" aria-hidden="true"></span>${WEEKDAYS.map(w => `<span class="hm-hd" aria-hidden="true">${w}</span>`).join('')}
-      ${cells.join('')}
-    </div>
-    <div class="hm-leg" aria-hidden="true"><span>меньше</span><i class="hm-grad"></i><span>больше</span></div>
-    <div class="tip"></div>`);
+  put(box, paintHeatChart(hm, byApproach));
 }
 $('hHeatWrap').addEventListener('click', e => {
   if (!hist) return;
-  const hv = e.target.closest('[data-hv]');
-  if (hv) {
-    const view = heatViewOf(hv.dataset.hv);
-    if (view === savedHeatView()) return;
-    setPref(HEAT_VIEW_STORE, view);
-    paintHeatmap(findHabit(hist.id), periodDays());
-    return;
-  }
   const b = e.target.closest('[data-hm]');
   if (!b) return;
   const mode = heatModeOf(b.dataset.hm);
@@ -498,6 +494,7 @@ export function dayState(h, d) {
   if (isSkipped(h, d)) return 'skip';
   if (c >= targetOn(h, d)) return 'full';
   if (c > 0) return 'part';
+  if (isAbstain(h) && isDue(h, d)) return k === todayKey() ? 'pending' : 'miss';
   if (!isDue(h, d) || isStat(h)) return 'off';
   return k === todayKey() ? 'pending' : 'miss';
 }
@@ -517,8 +514,8 @@ export function weekView(h, ds) {
     const st = dayState(h, d), c = count(h, d), t = targetOn(h, d), multi = t > 1;
     const w = s => `<span class="wk-w">${s}</span>`, of = n => t >= 1000 ? `${n}<span class="wk-t"><wbr>/${t}</span>` : `${n}<wbr>/${t}`;
     return {
-      full: multi ? of(c) : w('готово'), part: of(c), skip: w('пропуск'), off: isStat(h) ? '' : w('не в плане'),
-      miss: multi ? of(0) : w('нет'), pending: multi ? of(0) : w('сегодня'),
+      full: multi ? of(c) : w(isAbstain(h) ? 'чисто' : 'готово'), part: of(c), skip: w('пропуск'), off: isStat(h) && !isAbstain(h) ? '' : w('не в плане'),
+      miss: multi ? of(0) : w(isAbstain(h) ? 'срыв' : 'нет'), pending: multi ? of(0) : w(isAbstain(h) ? 'сегодня' : 'сегодня'),
     }[st] || '';
   };
   return `<div class="wk">${ds.map((d, i) => `
@@ -562,9 +559,10 @@ export function renderDay() {
   setIcon($('dIcon'), h.icon);
   $('dName').textContent = h.name;
   $('dDate').textContent = fmtLong(key(d)) + (isToday(d) ? ' · сегодня' : '');
-  const g = goalOn(h, d), c = rawCount(h, d), part = `${c} из ${g.target} ${g.unit || 'раз'}`;
+  const g = goalOn(h, d), raw = rawCount(h, d), c = count(h, d), part = `${raw} из ${g.target} ${g.unit || 'раз'}`;
   const [done, sub] = isSkipped(h, d) ? ['Пропуск', '']
-    : g.target > 1 && c > g.target ? ['Перевыполнено', `${part} (+${c - g.target})`]
+    : isAbstain(h) ? (c >= g.target ? ['Чистый день', ''] : [isToday(d) ? 'Срыв сегодня' : 'Срыв', ''])
+    : g.target > 1 && raw > g.target ? ['Перевыполнено', `${part} (+${raw - g.target})`]
     : c >= g.target ? ['Полностью', g.target > 1 ? part : '']
     : c > 0 ? ['Частично', part]
     : !isDue(h, d) ? ['Не по расписанию', '']
@@ -576,10 +574,11 @@ export function renderDay() {
 }
 function markUi(h, d) {
   const g = at(h, d), c = count(h, d), skipped = isSkipped(h, d);
-  const skip = skipped || (isDue(h, d) && !c && !isWeekly(h, d))
+  const skip = skipped || (isDue(h, d) && (!c || isAbstain(h)) && !isWeekly(h, d))
     ? `<button type="button" class="d-btn" data-m="skip">${skipped ? 'Отменить пропуск' : 'Пропустить день'}</button>` : '';
   if (g.target === 1) {
-    $('dMark').innerHTML = `<div class="d-toggle${skipped ? ' off' : ''}"><span id="dDoneLbl">Выполнено</span>
+    const lbl = isAbstain(h) ? 'Чистый день' : 'Выполнено';
+    $('dMark').innerHTML = `<div class="d-toggle${skipped ? ' off' : ''}"><span id="dDoneLbl">${lbl}</span>
       <button type="button" class="switch" data-m="toggle" role="switch" aria-checked="${c > 0}" aria-labelledby="dDoneLbl"${skipped ? ' disabled' : ''}><span></span></button></div>
       ${skip ? `<div class="d-row">${skip}</div>` : ''}`;
     return;
@@ -669,6 +668,8 @@ $('hChart').addEventListener('keydown', e => {
 
 export const legend = (h, norm) => norm != null ? `<div class="cal-legend hb-legend">
   <span><i class="lg norm"></i>норма ${fmtNum(norm)}</span><span><i class="lg sq full"></i>есть</span><span><i class="lg sq part"></i>часть</span><span><i class="lg sq over"></i>сверх</span>
+</div>` : isAbstain(h) ? `<div class="cal-legend">
+  <span><i class="lg full"></i>чисто</span><span><i class="lg miss"></i>срыв</span><span><i class="lg skip"></i>пропуск</span>
 </div>` : isStat(h) ? `<div class="cal-legend">
   <span><i class="lg full"></i>отмечено</span>
 </div>` : isQuant(h) ? `<div class="cal-legend">

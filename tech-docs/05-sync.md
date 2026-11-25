@@ -102,6 +102,8 @@ RLS: каждый видит и меняет только свою строку.
 | `supabase-shared-lists.sql` (+ `-test.sql`) | Общие списки и их проверка |
 | `supabase-shared-lists-2.sql` (+ `-2-test.sql`) | Обновление 2: мгновенные обновления, разделы, назначение, уведомления |
 | `supabase-shared-lists-3.sql` (+ `-3-test.sql`) | Обновление 3: заголовки, подзаголовки, подпункты, порядок строк |
+| `supabase-shared-lists-4.sql` (+ `-4-test.sql`) | Обновление 4: тип списка, multi-invite, invite от участников, передача владельца |
+| `supabase-shared-lists-4.sql` (+ `-4-test.sql`) | Обновление 4: тип списка, multi-invite, invite от участников, передача владельца |
 | `supabase-delete-account.sql` | Удаление аккаунта |
 | `supabase/functions/send-reminders/index.ts` | Серверная функция напоминаний |
 

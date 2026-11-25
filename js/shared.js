@@ -3,18 +3,41 @@ import { cloud } from './sync.js?v=1.1d';
 
 export const SHARED_LIM = { lists: 10, members: 5, items: 500, text: 200, name: 40, who: 24, batch: 50, paste: 300, section: 24, hints: 200 };
 export const SHARED_CACHE = NS + '-shared-cache', SHARED_OK = NS + '-shared-ok', SHARED_QUEUE = NS + '-shared-queue', SHARED_SEEN = NS + '-shared-seen';
+export const SHARED_KIND = NS + '-shared-kind';
 export const SHARED_CACHE_MAX = 600000;
 export const SHARED_POLL_MS = 30000;
 export const SHARED_POLL_LIVE_MS = 120000;
 export const OFFLINE_EDIT = 'Нет сети. Изменения сейчас не сохранить';
+export const listKindOf = v => v === 'chores' ? 'chores' : 'shopping';
 
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+function kindMap() { try { const v = JSON.parse(localStorage.getItem(SHARED_KIND) || '{}'); return isObj(v) ? v : {}; } catch { return {}; } }
+export function setListKind(listId, kind) {
+  if (!listId) return;
+  const k = listKindOf(kind);
+  const m = kindMap();
+  m[listId] = k;
+  try { localStorage.setItem(SHARED_KIND, JSON.stringify(m)); } catch {}
+  const l = sh.lists.find(x => x.id === listId);
+  if (l) l.kind = k;
+}
+export function listKind(listId) {
+  const l = sh.lists.find(x => x.id === listId);
+  if (l?.kind) return listKindOf(l.kind);
+  return listKindOf(kindMap()[listId]);
+}
+export const isShoppingList = listId => listKind(listId) === 'shopping';
+export const membersCanInvite = listId => !!(sh.lists.find(x => x.id === listId)?.members_can_invite);
+export function canInvite(listId) {
+  const l = sh.lists.find(x => x.id === listId);
+  return !!(l && (l.owner_id === myId() || l.members_can_invite));
+}
 const isId = v => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v);
 const isTime = v => typeof v === 'string' && v.length <= 40 && !isNaN(Date.parse(v));
 const str = (v, n) => typeof v === 'string' ? v.trim().slice(0, n) : '';
 const newId = () => crypto.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => (Math.random() * 16 | 0).toString(16));
 
-export const sh = { uid: null, lists: [], members: {}, items: {}, at: 0, offline: false, error: '', loaded: false, v2: null, v3: null, live: false, queue: [] };
+export const sh = { uid: null, lists: [], members: {}, items: {}, at: 0, offline: false, error: '', loaded: false, v2: null, v3: null, v4: null, live: false, queue: [] };
 const KINDS = new Set(['item', 'h1', 'h2']);
 const num = v => typeof v === 'number' && Number.isFinite(v) ? v : null;
 
@@ -27,7 +50,11 @@ export function normShared(raw) {
     const name = str(l.name, SHARED_LIM.name);
     if (!name) continue;
     ids.add(l.id);
-    out.lists.push({ id: l.id, name, owner_id: l.owner_id });
+    out.lists.push({
+      id: l.id, name, owner_id: l.owner_id,
+      kind: listKindOf(l.kind || kindMap()[l.id]),
+      members_can_invite: l.members_can_invite === true,
+    });
     if (out.lists.length >= SHARED_LIM.lists) break;
   }
   for (const id of ids) {
@@ -85,7 +112,7 @@ function saveQueue() {
 }
 export function clearShared() {
   stopLive();
-  Object.assign(sh, { uid: null, lists: [], members: {}, items: {}, at: 0, offline: false, error: '', loaded: false, v2: null, v3: null, queue: [] });
+  Object.assign(sh, { uid: null, lists: [], members: {}, items: {}, at: 0, offline: false, error: '', loaded: false, v2: null, v3: null, v4: null, queue: [] });
   try { localStorage.removeItem(SHARED_CACHE); localStorage.removeItem(SHARED_QUEUE); } catch {}
 }
 
@@ -126,6 +153,15 @@ function guard() {
 const noColumn = e => /column|does not exist|schema cache/i.test(String(e?.message || ''));
 
 const ITEM_COLS = 'id, list_id, text, done, done_by, done_at, created_by, created_at, updated_at';
+async function selectLists() {
+  if (sh.v4 !== false) {
+    const r = await cloud.sb.from('shared_lists').select('id, name, owner_id, kind, members_can_invite').order('created_at');
+    if (!r.error) { sh.v4 = true; return r.data || []; }
+    if (!noColumn(r.error)) return check(r) || [];
+    sh.v4 = false;
+  }
+  return check(await cloud.sb.from('shared_lists').select('id, name, owner_id').order('created_at')) || [];
+}
 const ITEM_COLS2 = ITEM_COLS + ', assigned_to, assigned_by, assigned_at, section';
 async function selectV(table, cols, cols2, ids, order) {
   const sb = cloud.sb;
@@ -153,11 +189,11 @@ export async function fetchShared() {
   if (!sharedReady()) return false;
   const gen = ++fetchGen;
   const uid = myId();
-  if (sh.uid !== uid) { Object.assign(sh, { lists: [], members: {}, items: {}, at: 0, loaded: false, v2: null, v3: null }); sh.uid = uid; loadSharedCache(uid); }
+  if (sh.uid !== uid) { Object.assign(sh, { lists: [], members: {}, items: {}, at: 0, loaded: false, v2: null, v3: null, v4: null }); sh.uid = uid; loadSharedCache(uid); }
   if (!navigator.onLine) { sh.offline = true; return false; }
   try {
     if (sh.queue.length) await flushQueue();
-    const lists = check(await cloud.sb.from('shared_lists').select('id, name, owner_id').order('created_at')) || [];
+    const lists = await selectLists();
     const ids = lists.map(l => l.id), members = {}, items = {};
     if (ids.length) {
       for (const m of await selectV('shared_members', 'list_id, user_id, display_name', 'list_id, user_id, display_name, notify', ids, 'joined_at')) (members[m.list_id] ??= []).push(m);
@@ -165,6 +201,7 @@ export async function fetchShared() {
     }
     if (gen !== fetchGen) return false;
     Object.assign(sh, normShared({ lists, members, items, at: Date.now() }), { uid, offline: false, error: '', loaded: true });
+    for (const l of sh.lists) setListKind(l.id, l.kind);
     applyQueue();
     saveSharedCache();
     return true;
@@ -186,7 +223,7 @@ function applyOp(o) {
   if (o.op === 'done') Object.assign(x, { done: o.done, done_by: o.done ? sh.uid : null, done_at: o.done ? o.at : null });
   else if (o.op === 'edit') x.text = o.text;
   else if (o.op === 'del') list.splice(i, 1);
-  else if (o.op === 'assign') Object.assign(x, { assigned_to: o.to, assigned_by: o.to ? sh.uid : null });
+  else if (o.op === 'assign') Object.assign(x, { assigned_to: o.to, assigned_by: o.to ? sh.uid : null, updated_at: o.at || x.updated_at });
   else if (o.op === 'section') x.section = o.section;
   else if (o.op === 'move') { if (o.pos != null) x.pos = o.pos; if (x.kind === 'item' && o.indent != null) x.indent = o.indent; }
   else if (o.op === 'indent') { if (x.kind === 'item') x.indent = o.indent; }
@@ -220,10 +257,15 @@ export function flushQueue() {
     let failed = 0;
     while (sh.queue.length && navigator.onLine && sharedReady()) {
       const o = sh.queue[0];
-      try { await sendOp(o); }
-      catch (e) { if (e?.code === 'offline') break; failed++; }
-      sh.queue.shift();
-      saveQueue();
+      try {
+        await sendOp(o);
+        sh.queue.shift();
+        saveQueue();
+      } catch (e) {
+        if (e?.code === 'offline') break;
+        failed++;
+        break;
+      }
     }
     return failed;
   })().finally(() => { flushing = null; });
@@ -346,7 +388,52 @@ export async function setSharedNotify(listId, on) {
   const m = sh.members[listId]?.find(x => x.user_id === myId());
   if (m) m.notify = !!on;
 }
-export async function createSharedList(name, who) { guard(); return check(await cloud.sb.rpc('create_shared_list', { p_name: name, p_display_name: who })); }
+export async function createSharedList(name, who, kind = 'shopping') {
+  guard();
+  const k = listKindOf(kind);
+  if (sh.v4 === true) {
+    const id = check(await cloud.sb.rpc('create_shared_list', { p_name: name, p_display_name: who, p_kind: k }));
+    if (id) setListKind(id, k);
+    return id;
+  }
+  if (sh.v4 == null) {
+    const r = await cloud.sb.rpc('create_shared_list', { p_name: name, p_display_name: who, p_kind: k });
+    if (!r.error) {
+      sh.v4 = true;
+      if (r.data) setListKind(r.data, k);
+      return r.data;
+    }
+    sh.v4 = false;
+  }
+  const id = check(await cloud.sb.rpc('create_shared_list', { p_name: name, p_display_name: who }));
+  if (id) setListKind(id, k);
+  return id;
+}
+export async function setSharedListPrefs(listId, { kind, membersCanInvite } = {}) {
+  guard();
+  if (sh.v4) {
+    check(await cloud.sb.rpc('set_shared_list_prefs', {
+      p_list_id: listId,
+      p_kind: kind == null ? null : listKindOf(kind),
+      p_members_can_invite: membersCanInvite == null ? null : !!membersCanInvite,
+    }));
+  }
+  if (kind != null) setListKind(listId, kind);
+  const l = sh.lists.find(x => x.id === listId);
+  if (l && membersCanInvite != null) l.members_can_invite = !!membersCanInvite;
+}
+export async function transferSharedList(listId, userId) {
+  guard();
+  check(await cloud.sb.rpc('transfer_shared_list', { p_list_id: listId, p_new_owner: userId }));
+}
+export async function renameMySharedName(listId, who) {
+  guard();
+  const name = String(who || '').trim().slice(0, SHARED_LIM.who);
+  if (!name) throw new SharedError('shared_bad_display_name');
+  check(await cloud.sb.from('shared_members').update({ display_name: name }).eq('list_id', listId).eq('user_id', myId()));
+  const m = sh.members[listId]?.find(x => x.user_id === myId());
+  if (m) m.display_name = name;
+}
 export async function joinSharedList(code, who) {
   guard();
   const r = check(await cloud.sb.rpc('join_shared_list', { p_code: normCode(code), p_display_name: who }));
@@ -391,7 +478,28 @@ export function markSeen(listId) {
 export function hasNews(listId, uid = myId()) {
   const seen = seenMap()[listId];
   if (!seen) return false;
-  return (sh.items[listId] || []).some(x => stamp(x) > seen && ((x.created_by && x.created_by !== uid && x.created_at > seen) || (x.done_by && x.done_by !== uid && (x.done_at || '') > seen) || (x.assigned_to === uid && x.assigned_by !== uid)));
+  return (sh.items[listId] || []).some(x => {
+    if (!(stamp(x) > seen)) return false;
+    if (x.created_by && x.created_by !== uid && (x.created_at || '') > seen) return true;
+    if (x.done_by && x.done_by !== uid && (x.done_at || '') > seen) return true;
+    if (x.assigned_by && x.assigned_by !== uid && stamp(x) > seen) return true;
+    if ((x.updated_at || '') > seen && x.created_by && x.created_by !== uid) return true;
+    return false;
+  });
+}
+/** Недавние пункты для быстрого re-add (hints + выполненные, без открытых дублей). */
+export function recentShared(listId, n = 6) {
+  const open = new Set((sh.items[listId] || []).filter(x => !x.done && !isHead(x)).map(x => String(x.text).trim().toLowerCase().replace(/ё/g, 'е')));
+  const out = [], seen = new Set();
+  const push = t => {
+    const k = String(t || '').trim().toLowerCase().replace(/ё/g, 'е');
+    if (!k || open.has(k) || seen.has(k)) return;
+    seen.add(k); out.push(String(t).trim());
+  };
+  for (const h of hintList(listId)) { push(h.t); if (out.length >= n) return out; }
+  const done = (sh.items[listId] || []).filter(x => x.done && !isHead(x)).sort((a, b) => ((b.done_at || b.updated_at || '') > (a.done_at || a.updated_at || '') ? 1 : -1));
+  for (const x of done) { push(x.text); if (out.length >= n) break; }
+  return out;
 }
 export function seedSeen() {
   const m = seenMap();

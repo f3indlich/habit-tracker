@@ -5,12 +5,14 @@ import { openAccount } from './sync.js?v=1.1d';
 import { userName } from './settings.js?v=1.1d';
 import { openTasks, parseLines, renderTasks, taskHooks, tv } from './tasksui.js?v=1.1d';
 import {
-  addSharedItems, addSharedRows, assignSharedItem, clearShared, createSharedInvite, createSharedList, deleteSharedItem, deleteSharedList, editSharedItem, fetchShared,
-  hintCount, isHead, lastSection, moveSharedItem, ordered, outlineText, parseOutline, sectionEnd, sectionLook, sectionRows, setSharedIndent, splitQty,
+  addSharedItems, addSharedRows, assignSharedItem, canInvite, clearShared, createSharedInvite, createSharedList, deleteSharedItem, deleteSharedList, editSharedItem, fetchShared,
+  hintCount, isHead, isShoppingList, lastSection, listKind, moveSharedItem, ordered, outlineText, parseOutline, recentShared, renameMySharedName, sectionEnd, sectionLook, sectionRows, setListKind, setSharedIndent, setSharedListPrefs, splitQty,
   findOpenDup, findShared, flushQueue, hasNews, inviteUrl, isSharedOwner, joinSharedList, leaveSharedList, markSeen, memberName, myId, myNotify, normCode,
-  pendingIds, rememberHint, removeSharedMember, renameSharedList, seedSeen, setSharedDone, setSharedNotify, setSharedSection, sh, sharedHints,
+  pendingIds, rememberHint, removeSharedMember, renameSharedList, seedSeen, setSharedDone, setSharedNotify, setSharedSection, sh, sharedHints, transferSharedList,
   SHARED_LIM, SHARED_OK, SHARED_POLL_LIVE_MS, SHARED_POLL_MS, sharedReady, showCode, startLive, stopLive,
 } from './shared.js?v=1.1d';
+const SHOP_TMPL = ['Молочка', 'Овощи и фрукты', 'Мясо и рыба', 'Бакалея', 'Бытовое'];
+const CHORES_TMPL = ['Сегодня', 'На неделе', 'Когда будет время'];
 
 const IC_PEOPLE = '<svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 5.2a3 3 0 0 1 0 5.6M17.5 13.6A5.5 5.5 0 0 1 20.5 19"/></svg>';
 const IC_CHECK = '<svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -18,7 +20,7 @@ const IC_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></sv
 const IC_DN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
 const SW = 80, UNDO_MS = 5200, SEC_ORDER = NS + '-shared-secorder', JOIN_KEY = NS + '-shared-join';
 export const CONSENT = 'Участники списка видят название списка, его пункты и Ваше имя в этом списке. Они не видят Ваши привычки, задачи и цели.';
-const ui = { doneOpen: false, open: null, invite: null, timer: 0, tick: 0, edit: null, hidden: new Set(), fetching: false, toldQueue: false, join: null, kind: 'item', after: null, reorder: false, paste: null, filter: 'all' };
+const ui = { doneOpen: false, open: null, invite: null, timer: 0, tick: 0, edit: null, hidden: new Set(), fetching: false, toldQueue: false, toldRetry: false, join: null, kind: 'item', after: null, reorder: false, paste: null, filter: 'all' };
 const v3 = () => sh.v3 === true;
 const KIND_PH = { item: 'Добавить пункт', h1: 'Новая группа разделов', h2: 'Новый раздел' };
 const KIND_NAME = { item: 'Пункт', h1: 'Группа', h2: 'Раздел' };
@@ -51,14 +53,21 @@ function avatar(listId, uid) {
   const ms = sh.members[listId] || [], i = Math.max(0, ms.findIndex(m => m.user_id === uid)), name = who(listId, uid);
   return `<span class="sh-av" style="--av:${PALETTE[i % PALETTE.length]}" title="${esc(name)}" aria-label="Назначено: ${esc(uid === myId() ? 'Вам' : name)}">${esc(([...name.trim()][0] || '?').toUpperCase())}</span>`;
 }
+function claimBtn(listId, x) {
+  if (!sh.v2 || x.done || ui.reorder || isHead(x)) return '';
+  const me = myId(), mine = x.assigned_to === me;
+  if (x.assigned_to && !mine) return avatar(listId, x.assigned_to);
+  return `<button type="button" class="sh-claim${mine ? ' is-mine' : ''}" data-sact="claim" aria-pressed="${mine}">${mine ? 'Я' : 'Взять'}</button>`;
+}
 function itemRow(listId, x, wait, notes = false, shop = false) {
-  const me = myId(), meta = notes ? [] : [`<span>Добавил(а) ${esc(who(listId, x.created_by))}</span>`];
+  const me = myId(), buy = isShoppingList(listId);
+  const meta = notes ? [] : [`<span>Добавил(а) ${esc(who(listId, x.created_by))}</span>`];
   if (x.assigned_to && !x.done && !shop) meta.unshift(`<span class="sh-to">→ ${x.assigned_to === me ? 'Вам' : esc(who(listId, x.assigned_to))}</span>`);
-  if (x.done && !notes) meta.push(`<span>Отметил(а) ${esc(who(listId, x.done_by))}${x.done_at ? ', ' + esc(fmtDay(x.done_at)) : ''}</span>`);
+  if (x.done && !notes) meta.push(`<span>${buy ? 'Отметил(а)' : 'Сделал(а)'} ${esc(who(listId, x.done_by))}${x.done_at ? ', ' + esc(fmtDay(x.done_at)) : ''}</span>`);
   if (wait) meta.push('<span class="sh-wait">ждёт отправки</span>');
   return `<div class="t-row sh-row${x.done ? ' done' : ''}${wait ? ' wait' : ''}${notes ? ' sh-note-row' : ''}${x.indent ? ' sub' : ''}" data-sid="${esc(x.id)}" style="--sw:${SW}px">
     <div class="t-acts"><button type="button" data-sact="del"><i aria-hidden="true">${IC.trash.replace(' del-ic', '')}</i><span>Удалить</span></button></div>
-    <div class="t-fg"><button type="button" class="t-box" role="checkbox" aria-checked="${x.done}" aria-label="${esc(x.text)}"${ui.reorder ? ' disabled' : ''}>${IC_CHECK}</button><button type="button" class="t-main sh-main">${shop ? shopText(x) : `<span class="t-text">${esc(x.text)}</span>`}${meta.length ? `<span class="t-meta sh-meta">${meta.join('')}</span>` : ''}</button>${shop && x.assigned_to && !x.done ? avatar(listId, x.assigned_to) : ''}${grip(x)}</div>
+    <div class="t-fg"><button type="button" class="t-box" role="checkbox" aria-checked="${x.done}" aria-label="${esc(x.text)}"${ui.reorder ? ' disabled' : ''}>${IC_CHECK}</button><button type="button" class="t-main sh-main">${shop ? shopText(x) : `<span class="t-text">${esc(x.text)}</span>`}${meta.length ? `<span class="t-meta sh-meta">${meta.join('')}</span>` : ''}</button>${claimBtn(listId, x)}${grip(x)}</div>
   </div>`;
 }
 function shopText(x) {
@@ -135,6 +144,7 @@ export function renderShared(id) {
   $('shBanner').hidden = !sh.offline;
   $('shTitle').textContent = l.name;
   paintFresh();
+  ui.hadNews = hasNews(id);
   markSeen(id);
   paintAddBar(id);
   $('shReorderDone').hidden = !ui.reorder;
@@ -161,16 +171,29 @@ function agoText(iso) {
   return h < 24 ? `${h} ч назад` : h < 48 ? 'вчера' : fmtDay(iso);
 }
 function lastAction(listId) {
-  const me = myId(), ev = [];
+  const me = myId(), buy = isShoppingList(listId), ev = [];
   for (const x of sh.items[listId] || []) {
     if (isHead(x)) continue;
-    if (x.created_by && x.created_by !== me && x.created_at) ev.push([x.created_at, `${who(listId, x.created_by)} добавил(а) «${splitQty(x.text).name}»`]);
-    if (x.done && x.done_by && x.done_by !== me && x.done_at) ev.push([x.done_at, `${who(listId, x.done_by)} отметил(а) «${splitQty(x.text).name}»`]);
+    const name = splitQty(x.text).name;
+    if (x.created_by && x.created_by !== me && x.created_at) ev.push([x.created_at, `${who(listId, x.created_by)} добавил(а) «${name}»`]);
+    if (x.done && x.done_by && x.done_by !== me && x.done_at) ev.push([x.done_at, `${who(listId, x.done_by)} ${buy ? 'отметил(а)' : 'сделал(а)'} «${name}»`]);
+    if (x.assigned_to && x.assigned_by && x.assigned_by !== me && (x.updated_at || x.created_at)) {
+      const claim = x.assigned_by === x.assigned_to;
+      ev.push([x.updated_at || x.created_at, x.assigned_to === me
+        ? `${who(listId, x.assigned_by)} назначил(а) вам «${name}»`
+        : `${who(listId, x.assigned_by)} ${claim ? 'взял(а)' : 'назначил(а)'} «${name}»`]);
+    }
   }
   ev.sort((a, b) => (a[0] < b[0] ? 1 : -1));
   if (ev.length) return `${ev[0][1]} · ${agoText(ev[0][0])}`;
   const others = (sh.members[listId] || []).filter(m => m.user_id !== me).map(m => m.display_name);
   return others.length ? `Вместе с: ${others.join(', ')}` : 'Пригласите участников в карточке списка';
+}
+function liveBanner(listId) {
+  const text = lastAction(listId);
+  if (!text || text.startsWith('Вместе с') || text.startsWith('Пригласите')) return '';
+  if (!ui.hadNews && !text.includes('только что') && !/\d+ мин/.test(text)) return '';
+  return `<div class="sh-live" role="status">${esc(text)}</div>`;
 }
 function shopGroups(rows) {
   const out = [];
@@ -184,11 +207,19 @@ function shopGroups(rows) {
   return out;
 }
 function renderShop(id) {
-  const me = myId(), wait = pendingIds(), rows = ordered(id).filter(x => !ui.hidden.has(x.id)), items = rows.filter(x => !isHead(x));
+  const me = myId(), buy = isShoppingList(id), wait = pendingIds(), rows = ordered(id).filter(x => !ui.hidden.has(x.id)), items = rows.filter(x => !isHead(x));
   const total = items.length, doneN = items.filter(x => x.done).length, mine = items.filter(x => !x.done && x.assigned_to === me).length, f = ui.filter;
-  if (!rows.length) { $('shItems').innerHTML = '<p class="t-snone">Пока пусто. Добавьте первый пункт или вставьте готовый список</p>'; return; }
+  if (!rows.length) {
+    const tmpls = buy ? SHOP_TMPL : CHORES_TMPL;
+    $('shItems').innerHTML = `<p class="t-snone">Пока пусто. Добавьте первый пункт или вставьте готовый список</p>
+      <div class="sh-tmpl"><div class="sh-tmpl-h">${buy ? 'Быстрые разделы для магазина' : 'Быстрые разделы для дел'}</div>
+      <div class="sh-tmpl-row">${tmpls.map(t => `<button type="button" class="sh-pill" data-sact="tmpl" data-text="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+      <button type="button" class="t-link" data-sact="tmpl-all">Добавить все разделы</button></div>`;
+    return;
+  }
   const pct = total ? Math.round(doneN / total * 100) : 0;
-  const hero = `<div class="card sh-hero"><div class="sh-ring" style="--p:${pct}"><b>${doneN}</b></div><div class="sh-hero-t"><b>${!total ? 'Пунктов пока нет' : doneN === total ? 'Всё куплено' : `Осталось ${total - doneN} из ${total}`}</b><small>${esc(lastAction(id))}</small></div></div>`;
+  const heroDone = buy ? 'Всё куплено' : 'Всё сделано';
+  const hero = `<div class="card sh-hero"><div class="sh-ring" style="--p:${pct}"><b>${doneN}</b></div><div class="sh-hero-t"><b>${!total ? 'Пунктов пока нет' : doneN === total ? heroDone : `Осталось ${total - doneN} из ${total}`}</b><small>${esc(lastAction(id))}</small></div></div>`;
   const tabs = `<div class="seg sh-filter" role="group" aria-label="Что показывать">${[['all', 'Все'], ['me', mine ? `Мне · ${mine}` : 'Мне'], ['left', 'Осталось']].map(([k, l]) => `<button type="button" data-filter="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>`;
   const fm = foldMap(id), keep = b => f === 'all' || (f === 'left' ? !b.item.done || b.subs.some(s => !s.done) : (!b.item.done && b.item.assigned_to === me) || b.subs.some(s => !s.done && s.assigned_to === me));
   const subsOf = b => f === 'left' ? b.subs.filter(s => !s.done) : f === 'me' ? b.subs.filter(s => !s.done && (b.item.assigned_to === me || s.assigned_to === me)) : b.subs;
@@ -202,16 +233,18 @@ function renderShop(id) {
     shown++;
     body += label; label = '';
     const closed = fm[g.key] === 1 || (fm[g.key] !== 0 && full && f === 'all');
-    const look = g.head ? sectionLook(g.head.text) : { icon: '📝', title: 'Без раздела' };
-    const count = full ? '<span class="sh-sec-n ok">всё куплено ✓</span>' : `<span class="sh-sec-n">${d} из ${n}</span>`;
+    const look = g.head ? sectionLook(g.head.text) : { icon: buy ? '🛒' : '📝', title: 'Без раздела' };
+    const count = full ? `<span class="sh-sec-n ok">${buy ? 'всё куплено' : 'всё сделано'} ✓</span>` : `<span class="sh-sec-n">${d} из ${n}</span>`;
     body += `<section class="card sh-card${closed ? ' closed' : ''}${g.head && wait.has(g.head.id) ? ' wait' : ''}"${g.head ? ` data-sid="${esc(g.head.id)}"` : ''}>
       <div class="sh-card-h"><button type="button" class="sh-fold" data-sact="fold" data-key="${esc(g.key)}" aria-expanded="${!closed}"><span class="sh-sec-ic" aria-hidden="true">${esc(look.icon)}</span><span class="sh-sec-t">${esc(look.title)}</span>${count}${IC_CHEV}</button>${g.head ? `<button type="button" class="ghost icon-btn sh-sec-more" data-sact="head" aria-haspopup="menu" aria-label="Раздел «${esc(look.title)}»: действия">${IC_MORE}</button>` : ''}</div>
       ${closed ? '' : `${n ? `<div class="sh-bar" aria-hidden="true"><i style="width:${Math.round(d / n * 100)}%"></i></div>` : ''}<div class="t-list sh-card-list">${blocks.map(b => itemRow(id, b.item, wait.has(b.item.id), true, true) + subsOf(b).map(s => itemRow(id, s, wait.has(s.id), true, true)).join('')).join('') || '<p class="sh-sec-empty">Пусто. Нажмите «⋯» → «Добавить пункт сюда»</p>'}</div>`}
     </section>`;
   }
-  if (!shown && f !== 'all') body += `<p class="t-snone">${f === 'me' ? 'Вам ничего не назначено' : 'Всё куплено'}</p>`;
-  const foot = f === 'all' && doneN ? `<div class="sh-foot"><button type="button" class="t-link" data-sact="clear">Очистить купленные (${doneN})</button></div>` : '';
-  $('shItems').innerHTML = hero + tabs + body + foot;
+  if (!shown && f !== 'all') body += `<p class="t-snone">${f === 'me' ? 'Вам ничего не назначено' : heroDone}</p>`;
+  const recent = buy && f === 'all' ? recentShared(id, 6) : [];
+  const recentHtml = recent.length ? `<div class="sh-recent"><div class="sh-recent-h">Недавно</div><div class="sh-recent-row">${recent.map(t => `<button type="button" class="sh-pill" data-sact="recent" data-text="${esc(t)}">${esc(splitQty(t).name)}</button>`).join('')}</div></div>` : '';
+  const foot = f === 'all' && doneN ? `<div class="sh-foot"><button type="button" class="t-link" data-sact="clear">${buy ? 'Очистить купленные' : 'Очистить сделанные'} (${doneN})</button></div>` : '';
+  $('shItems').innerHTML = liveBanner(id) + hero + tabs + body + recentHtml + foot;
 }
 function renderNotes(id) {
   const wait = pendingIds(), rows = ordered(id).filter(x => !ui.hidden.has(x.id));
@@ -233,7 +266,11 @@ export async function refresh() {
   const failed = sh.queue.length && navigator.onLine ? await flushQueue() : 0;
   await fetchShared();
   seedSeen();
-  if (failed) toast(`Не удалось отправить: ${failed}. Список обновлён с сервера`);
+  if (failed && sh.queue.length && !ui.toldRetry) {
+    ui.toldRetry = true;
+    toast('Не удалось отправить. Повторите отправку', () => { ui.toldRetry = false; refresh(); }, 'Повторить');
+  }
+  if (!sh.queue.length) ui.toldRetry = false;
   if ($('tasksOv')._shown && !tv.sel) renderTasks();
   if ($('shOv')._shown) paintManage();
 }
@@ -444,13 +481,28 @@ $('shItems').addEventListener('click', async e => {
   if (a?.dataset.sact === 'secup' || a?.dataset.sact === 'secdown') return moveSec(listId, a.closest('.sh-sec').dataset.sec, a.dataset.sact === 'secup' ? -1 : 1);
   if (a?.dataset.sact === 'clear') {
     const ids = (sh.items[listId] || []).filter(x => x.done && !isHead(x) && !ui.hidden.has(x.id)).map(x => x.id), n = ids.length;
-    if (await askConfirm(v3() ? 'Очистить купленные?' : 'Очистить выполненные?', `${n} ${plural(n, 'пункт будет удалён', 'пункта будут удалены', 'пунктов будут удалены')} для всех участников.`, 'Удалить')) deleteLater(listId, ids, `Удалено: ${n}`);
+    const title = !v3() ? 'Очистить выполненные?' : (isShoppingList(listId) ? 'Очистить купленные?' : 'Очистить сделанные?');
+    if (await askConfirm(title, `${n} ${plural(n, 'пункт будет удалён', 'пункта будут удалены', 'пунктов будут удалены')} для всех участников.`, 'Удалить')) deleteLater(listId, ids, `Удалено: ${n}`);
+    return;
+  }
+  if (a?.dataset.sact === 'recent') {
+    const text = a.dataset.text;
+    if (text) act(() => addSharedItems(listId, [text]));
+    return;
+  }
+  if (a?.dataset.sact === 'tmpl' || a?.dataset.sact === 'tmpl-all') {
+    const names = a.dataset.sact === 'tmpl-all' ? (isShoppingList(listId) ? SHOP_TMPL : CHORES_TMPL) : [a.dataset.text].filter(Boolean);
+    if (names.length) act(() => addSharedRows(listId, names.map(text => ({ kind: 'h2', text }))));
     return;
   }
   if (a?.dataset.sact === 'head' && !ui.reorder) return headMenu(listId, a);
   if (!item || ui.reorder) return;
   if (row.classList.contains('open') && !e.target.closest('.t-acts')) return closeRow();
   if (a?.dataset.sact === 'del') { closeRow(); return deleteLater(listId, [item.id], 'Пункт удалён'); }
+  if (a?.dataset.sact === 'claim') {
+    const to = item.assigned_to === myId() ? null : myId();
+    return act(() => assignSharedItem(listId, item.id, to));
+  }
   if (e.target.closest('.t-box')) return act(() => setSharedDone(listId, item.id, !item.done));
   if (e.target.closest('.sh-main')) openEdit(item);
 });
@@ -499,6 +551,28 @@ function headMenu(listId, anchor) {
   ]);
 }
 $('shReorderDone').onclick = () => { ui.reorder = false; if (tv.shared) renderShared(tv.shared); };
+{
+  const area = $('shItems');
+  let hold = null;
+  const clearHold = () => { if (hold) { clearTimeout(hold.t); hold = null; } };
+  area.addEventListener('pointerdown', e => {
+    if (!v3() || ui.reorder || e.button !== 0 || e.target.closest('.t-box, .sh-claim, [data-sact], .sh-fold, a, input')) return;
+    if (!e.target.closest('.sh-row, .sh-head, .sh-card-h, .sh-group')) return;
+    hold = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    hold.t = setTimeout(() => {
+      hold = null;
+      if (!tv.shared) return;
+      ui.reorder = true; closeRow(); renderShared(tv.shared);
+      toast('Переставьте строки, затем нажмите «Готово»');
+    }, 520);
+  });
+  area.addEventListener('pointermove', e => {
+    if (!hold || e.pointerId !== hold.id) return;
+    if (Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 10) clearHold();
+  });
+  area.addEventListener('pointerup', clearHold);
+  area.addEventListener('pointercancel', clearHold);
+}
 function dropAt(listId, id, toIndex, indent) {
   const rows = ordered(listId).filter(x => !ui.hidden.has(x.id)), me = rows.find(x => x.id === id);
   if (!me) return;
@@ -584,9 +658,10 @@ $('shEditSub').onclick = () => { if (!ui.edit) return; ui.edit.sub = !ui.edit.su
 $('shEditForm').onsubmit = async e => {
   e.preventDefault();
   const v = $('shEditText').value.trim(), { kind, id } = ui.edit || {};
-  if (!v) return toast(kind === 'list' ? 'Введите название списка' : 'Введите текст');
+  if (!v) return toast(kind === 'list' ? 'Введите название списка' : kind === 'who' ? 'Введите имя' : 'Введите текст');
   closeOverlay($('shEditOv'));
   if (kind === 'list') return findShared(id) && run(() => renameSharedList(id, v), 'Список переименован');
+  if (kind === 'who') { if (await run(() => renameMySharedName(id, v), 'Имя обновлено')) paintManage(); return; }
   const listId = tv.shared, item = (sh.items[listId] || []).find(x => x.id === id);
   if (!item) return;
   if (v !== item.text) await act(() => editSharedItem(listId, id, v));
@@ -610,23 +685,38 @@ function paintManage() {
     body.innerHTML = `<p class="sh-note">${ui.join ? 'Чтобы вступить в список по приглашению, войдите в аккаунт.' : 'Войдите в аккаунт, чтобы вести общие списки.'}</p><button type="button" class="primary sh-wide" data-m="login">Войти</button>`;
     return;
   }
-  const me = myId(), lists = sh.lists;
+  const me = myId(), lists = sh.lists, invHint = sh.v4 ? 'Действует 7 дней, до 5 входов. Старые ссылки не сгорают сразу' : 'Действует 48 часов, один раз. По ссылке вступить ещё проще';
   const rows = lists.map(l => {
-    const own = isSharedOwner(l, me), ms = sh.members[l.id] || [], opened = ui.open === l.id;
-    const members = ms.map(m => `<li><span>${esc(m.display_name)}${(t => t ? ` <small>${t}</small>` : '')([m.user_id === l.owner_id ? 'владелец' : '', m.user_id === me ? 'это Вы' : ''].filter(Boolean).join(' · '))}</span>${own && m.user_id !== me ? `<button type="button" class="t-link" data-m="remove" data-u="${esc(m.user_id)}" aria-label="Убрать участника ${esc(m.display_name)}">Убрать</button>` : ''}</li>`).join('');
-    const inv = own && ui.invite?.list === l.id ? `<div class="sh-invite"><b class="sh-code">${esc(showCode(ui.invite.code))}</b><small>Действует 48 часов, один раз. По ссылке вступить ещё проще</small><div class="sh-actions"><button type="button" data-m="copylink">Скопировать ссылку</button><button type="button" data-m="copy">Скопировать код</button>${navigator.share ? '<button type="button" data-m="share">Поделиться</button>' : ''}</div></div>` : '';
+    const own = isSharedOwner(l, me), ms = sh.members[l.id] || [], opened = ui.open === l.id, buy = listKind(l.id) === 'shopping', inviteOk = canInvite(l.id);
+    const members = ms.map(m => {
+      const tags = [m.user_id === l.owner_id ? 'владелец' : '', m.user_id === me ? 'это Вы' : ''].filter(Boolean).join(' · ');
+      const transfer = own && m.user_id !== me ? `<button type="button" class="t-link" data-m="transfer" data-u="${esc(m.user_id)}" aria-label="Сделать владельцем ${esc(m.display_name)}">Владелец</button>` : '';
+      const kick = own && m.user_id !== me ? `<button type="button" class="t-link" data-m="remove" data-u="${esc(m.user_id)}" aria-label="Убрать участника ${esc(m.display_name)}">Убрать</button>` : '';
+      return `<li><span>${esc(m.display_name)}${tags ? ` <small>${tags}</small>` : ''}</span><span class="sh-mem-acts">${transfer}${kick}</span></li>`;
+    }).join('');
+    const inv = inviteOk && ui.invite?.list === l.id ? `<div class="sh-invite"><b class="sh-code">${esc(showCode(ui.invite.code))}</b><small>${esc(invHint)}</small><div class="sh-actions"><button type="button" data-m="copylink">Скопировать ссылку</button><button type="button" data-m="copy">Скопировать код</button>${navigator.share ? '<button type="button" data-m="share">Поделиться</button>' : ''}</div></div>` : '';
     const notify = (sh.v2 === true ? `<div class="set-row static sh-notify"><span class="set-txt"><b id="shN-${esc(l.id)}">Сообщать о новых пунктах</b><small>Одним уведомлением. О назначенном Вам сообщаем всегда</small></span><button type="button" class="switch" role="switch" data-m="notify" aria-checked="${myNotify(l.id)}" aria-labelledby="shN-${esc(l.id)}"><span></span></button></div>` : '');
+    const kindRow = own ? `<div class="seg sh-kind-seg" role="group" aria-label="Тип списка"><button type="button" data-m="kind" data-kind="shopping" aria-pressed="${buy}">Покупки</button><button type="button" data-m="kind" data-kind="chores" aria-pressed="${!buy}">Дела</button></div>` : `<p class="sh-note">${buy ? 'Тип: покупки' : 'Тип: общие дела'}</p>`;
+    const inviteToggle = own && sh.v4 ? `<div class="set-row static sh-notify"><span class="set-txt"><b id="shInv-${esc(l.id)}">Участники могут приглашать</b><small>Общий код на несколько входов</small></span><button type="button" class="switch" role="switch" data-m="caninvite" aria-checked="${!!l.members_can_invite}" aria-labelledby="shInv-${esc(l.id)}"><span></span></button></div>` : '';
     const send = (sh.items[l.id] || []).length ? '<button type="button" data-m="sendtext">Поделиться текстом</button>' : '';
-    const acts = own
-      ? `<button type="button" data-m="invite"${ms.length >= SHARED_LIM.members ? ' disabled' : ''}>Пригласить</button>${send}<button type="button" data-m="rename">Переименовать</button><button type="button" class="danger" data-m="delete">Удалить список</button>`
-      : `${send}<button type="button" class="danger" data-m="leave">Выйти из списка</button>`;
-    return `<div class="sh-list" data-id="${esc(l.id)}"><button type="button" class="sh-list-head" data-m="open" aria-expanded="${opened}"><span>${esc(l.name)}${hasNews(l.id) ? dot : ''}</span><small>${own ? 'Вы владелец' : 'Вы участник'} · ${ms.length} ${plural(ms.length, 'участник', 'участника', 'участников')}</small></button>${opened ? `<ul class="sh-members">${members}</ul>${notify}${inv}<div class="sh-actions">${acts}</div>` : ''}</div>`;
+    const acts = [
+      (own || inviteOk) && ms.length < SHARED_LIM.members ? `<button type="button" data-m="invite">Пригласить</button>` : '',
+      send,
+      `<button type="button" data-m="myname">Моё имя</button>`,
+      own ? `<button type="button" data-m="rename">Переименовать</button>` : '',
+      own ? `<button type="button" class="danger" data-m="delete">Удалить список</button>` : `<button type="button" class="danger" data-m="leave">Выйти из списка</button>`,
+    ].filter(Boolean).join('');
+    return `<div class="sh-list" data-id="${esc(l.id)}"><button type="button" class="sh-list-head" data-m="open" aria-expanded="${opened}"><span>${esc(l.name)}${hasNews(l.id) ? dot : ''}</span><small>${own ? 'Вы владелец' : 'Вы участник'} · ${buy ? 'покупки' : 'дела'} · ${ms.length} ${plural(ms.length, 'участник', 'участника', 'участников')}</small></button>${opened ? `${kindRow}${inviteToggle}<ul class="sh-members">${members}</ul>${notify}${inv}<div class="sh-actions">${acts}</div>` : ''}</div>`;
   }).join('');
   const full = lists.length >= SHARED_LIM.lists;
   body.innerHTML = `${sh.offline ? '<p class="sh-banner">Нет сети. Показаны сохранённые данные</p>' : ''}
     ${rows ? `<div class="sh-lists">${rows}</div>` : '<p class="sh-note">Общих списков пока нет. Создайте свой или присоединитесь по коду.</p>'}
     <form class="sh-form" data-f="create"><h3>Новый общий список</h3>
       <input type="text" name="name" maxlength="${SHARED_LIM.name}" placeholder="Название, например «Покупки»" aria-label="Название списка" autocomplete="off"${full ? ' disabled' : ''}>
+      <fieldset class="sh-kind" ${full ? 'disabled' : ''}><legend>Тип списка</legend>
+        <label><input type="radio" name="kind" value="shopping" checked> Покупки</label>
+        <label><input type="radio" name="kind" value="chores"> Дела</label>
+      </fieldset>
       <input type="text" name="who" maxlength="${SHARED_LIM.who}" aria-label="Ваше имя в списке" placeholder="Ваше имя в списке" autocomplete="off"${full ? ' disabled' : ''}>
       <button type="submit" class="primary"${full ? ' disabled' : ''}>Создать</button></form>
     <form class="sh-form" data-f="join"><h3>Присоединиться по коду</h3>
@@ -643,7 +733,8 @@ export async function openManage() {
   ui.invite = null;
   paintManage();
   openOverlay($('shOv'));
-  if (sharedReady()) refresh();
+  if (sharedReady()) await refresh();
+  if ($('shOv')._shown) paintManage();
 }
 
 $('shBody').addEventListener('submit', async e => {
@@ -654,19 +745,25 @@ $('shBody').addEventListener('submit', async e => {
   if (kind === 'create') {
     const name = String(d.name || '').trim();
     if (!name) return toast('Введите название списка');
-    const id = await run(() => createSharedList(name, nm), 'Список создан');
-    if (id) { ui.open = id; paintManage(); }
+    const listType = d.kind === 'chores' ? 'chores' : 'shopping';
+    const id = await run(() => createSharedList(name, nm, listType), 'Список создан');
+    if (!sh.lists.length) await refresh();
+    const openId = typeof id === 'string' ? id : sh.lists[sh.lists.length - 1]?.id;
+    if (openId) { ui.open = openId; paintManage(); }
+    else if (sh.lists.length) { ui.open = sh.lists[0].id; paintManage(); }
   } else {
     const code = String(d.code || '').trim();
     if (!code) return toast('Введите код приглашения');
     const id = await run(() => joinSharedList(code, nm), 'Вы в списке');
-    if (id) { ui.open = id; ui.join = null; try { sessionStorage.removeItem(JOIN_KEY); } catch {} paintManage(); }
+    if (!sh.lists.length) await refresh();
+    const openId = typeof id === 'string' ? id : sh.lists[sh.lists.length - 1]?.id;
+    if (openId) { ui.open = openId; ui.join = null; try { sessionStorage.removeItem(JOIN_KEY); } catch {} paintManage(); }
   }
 });
 $('shBody').addEventListener('click', async e => {
   const b = e.target.closest('[data-m]');
   if (!b) return;
-  const m = b.dataset.m, id = b.closest('.sh-list')?.dataset.id, l = id && findShared(id);
+  const me = myId(), m = b.dataset.m, id = b.closest('.sh-list')?.dataset.id, l = id && findShared(id);
   if (m === 'login') { closeOverlay($('shOv')); return openAccount(); }
   if (m === 'open') { ui.open = ui.open === id ? null : id; return paintManage(); }
   if (!l) return;
@@ -685,11 +782,40 @@ $('shBody').addEventListener('click', async e => {
   }
   if (m === 'share') { try { await navigator.share({ text: inviteShareText(ui.invite.code) }); } catch {} return; }
   if (m === 'rename') return openEdit(l, 'list');
+  if (m === 'myname') {
+    ui.edit = { kind: 'who', id };
+    $('shEditTitle').textContent = 'Ваше имя в списке';
+    $('shEditText').maxLength = SHARED_LIM.who;
+    $('shEditText').value = memberName(id, me) || '';
+    $('shEditEx').hidden = true; $('shEditSubRow').hidden = true; $('shEditInfo').hidden = true;
+    openOverlay($('shEditOv'));
+    setTimeout(() => $('shEditText').focus({ preventScroll: true }), 60);
+    return;
+  }
+  if (m === 'kind') {
+    const kind = b.dataset.kind === 'chores' ? 'chores' : 'shopping';
+    if (listKind(id) === kind) return;
+    if (await run(() => setSharedListPrefs(id, { kind }), kind === 'shopping' ? 'Тип: покупки' : 'Тип: дела')) paintManage();
+    return;
+  }
+  if (m === 'caninvite') {
+    const on = !l.members_can_invite;
+    if (await run(() => setSharedListPrefs(id, { membersCanInvite: on }), on ? 'Участники могут приглашать' : 'Приглашает только владелец')) paintManage();
+    return;
+  }
+  if (m === 'transfer') {
+    const name = memberName(id, b.dataset.u) || 'участника';
+    if (await askConfirm('Передать владение?', `${name} станет владельцем списка «${l.name}». Вы останетесь участником.`, 'Передать')) {
+      if (await run(() => transferSharedList(id, b.dataset.u), 'Владение передано')) paintManage();
+    }
+    return;
+  }
   if (m === 'delete') {
     if (await askConfirm('Удалить список?', `Список «${l.name}» и все его пункты будут удалены для всех участников.`, 'Удалить')) { if (await run(() => deleteSharedList(id), 'Список удалён') && tv.shared === id) tv.shared = null; }
     return;
   }
   if (m === 'leave') {
+    if (isSharedOwner(l, me)) return toast('Сначала передайте владение другому участнику');
     if (await askConfirm('Выйти из списка?', `Список «${l.name}» пропадёт у Вас. Вернуться можно только по новому коду.`, 'Выйти')) { if (await run(() => leaveSharedList(id), 'Вы вышли из списка') && tv.shared === id) tv.shared = null; }
     return;
   }

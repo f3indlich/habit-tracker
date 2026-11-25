@@ -122,6 +122,13 @@ export function normalize(s) {
     if (!h.goals.length) delete h.goals;
     if (h.private !== true) delete h.private;
     if (h.stat !== true) delete h.stat;
+    if (h.abstain !== true) delete h.abstain;
+    else {
+      h.target = 1;
+      delete h.step;
+      h.unit = '';
+      delete h.goals;
+    }
   });
   const pname = isObj(s.profile) && typeof s.profile.name === 'string' ? s.profile.name.trim().slice(0, 40) : '';
   if (pname) s.profile = { name: pname }; else delete s.profile;
@@ -144,11 +151,14 @@ export function normalize(s) {
     }
     if (!Object.keys(map[k]).length) delete map[k];
   }
+  const habitsById = new Map(s.habits.map(h => [h.id, h]));
   for (const k of Object.keys(s.logAt)) {
     if (!isKey(k) || !isObj(s.logAt[k])) { delete s.logAt[k]; continue; }
     for (const id of Object.keys(s.logAt[k])) {
       const c = s.log[k]?.[id] || 0;
-      const times = (Array.isArray(s.logAt[k][id]) ? s.logAt[k][id] : []).filter(t => typeof t === 'string' && HHMM.test(t)).slice(0, c || 0);
+      const h = habitsById.get(id);
+      const step = h ? stepOf(goalOn(h, parseKey(k))) : 1;
+      const times = compressLogAtTimes(s.logAt[k][id], c, step);
       if (!seen.has(id) || !c || !times.length) delete s.logAt[k][id]; else s.logAt[k][id] = times;
     }
     if (!Object.keys(s.logAt[k]).length) delete s.logAt[k];
@@ -172,11 +182,20 @@ export function save() {
   cloudQueue();
 }
 
-export const rawCount = (h, d) => state.log[key(d)]?.[h.id] || 0;
+export const logVal = (h, d, s = state) => Math.min(MAX_COUNT, Math.max(0, Math.floor(s.log?.[key(d)]?.[h.id] || 0)));
+export const rawCount = (h, d) => logVal(h, d, state);
 export const targetOn = (h, d) => h.goals ? goalOn(h, d).target : h.target;
 export const MAX_COUNT = 100000;
 export const countCap = t => t > 1 ? Math.min(MAX_COUNT, 20 * t) : 1;
-export const count = (h, d) => targetOn(h, d) > 1 ? Math.min(rawCount(h, d), MAX_COUNT) : Math.min(rawCount(h, d), 1);
+/** Эффективное выполнение: для воздержания нет записи = успех, запись = срыв. */
+export function countIn(h, d, s = state) {
+  const t = Math.max(1, goalOn(h, d).target), raw = logVal(h, d, s), k = key(d);
+  if (!isAbstain(h)) return t > 1 ? Math.min(raw, MAX_COUNT) : Math.min(raw, 1);
+  if (k > todayKey() || !inLifeKey(h, k) || s.skip?.[k]?.[h.id]) return 0;
+  if (!isDue(h, d, s)) return 0;
+  return raw > 0 ? 0 : 1;
+}
+export const count = (h, d) => countIn(h, d, state);
 export const frac = (h, d) => Math.min(count(h, d) / targetOn(h, d), 1);
 export function at(h, d) {
   if (!h?.goals) return h;
@@ -224,28 +243,132 @@ export function setMap(map, k, id, v) {
   if (v) map[k][id] = v; else delete map[k][id];
   if (!Object.keys(map[k]).length) delete map[k];
 }
+/** Убрать все записи привычки в map-ах лога (служебно). */
+export function clearHabitMarks(id) {
+  let n = 0;
+  for (const map of [state.log, state.logAt, state.skip]) {
+    if (!map) continue;
+    for (const k of Object.keys(map)) {
+      if (!map[k]?.[id]) continue;
+      delete map[k][id];
+      n++;
+      if (!Object.keys(map[k]).length) delete map[k];
+    }
+  }
+  return n;
+}
+/** Включение воздержания: было выполнено → чисто, не выполнено → срыв; пропуски сохраняются. */
+export function migrateAbstainOn(h) {
+  if (!h?.id || !h.created) return 0;
+  const id = h.id, end = lifeEnd(h);
+  let n = 0;
+  state.logAt ??= {};
+  for (let d = parseKey(h.created); key(d) <= end; d = addDays(d, 1)) {
+    const k = key(d);
+    if (state.skip?.[k]?.[id]) {
+      setMap(state.log, k, id, 0);
+      setMap(state.logAt, k, id, 0);
+      continue;
+    }
+    if (!isDue(h, d)) {
+      if (state.log?.[k]?.[id]) { setMap(state.log, k, id, 0); n++; }
+      setMap(state.logAt, k, id, 0);
+      continue;
+    }
+    const need = Math.max(1, goalOn(h, d).target);
+    const done = (state.log?.[k]?.[id] || 0) >= need;
+    setMap(state.log, k, id, done ? 0 : 1);
+    setMap(state.logAt, k, id, 0);
+    n++;
+  }
+  return n;
+}
+/** Выключение воздержания: чисто → выполнено, срыв → без отметки; пропуски сохраняются. */
+export function migrateAbstainOff(h) {
+  if (!h?.id || !h.created) return 0;
+  const id = h.id, end = lifeEnd(h);
+  let n = 0;
+  state.logAt ??= {};
+  for (let d = parseKey(h.created); key(d) <= end; d = addDays(d, 1)) {
+    const k = key(d);
+    if (state.skip?.[k]?.[id]) {
+      setMap(state.log, k, id, 0);
+      setMap(state.logAt, k, id, 0);
+      continue;
+    }
+    if (!isDue(h, d)) {
+      if (state.log?.[k]?.[id]) { setMap(state.log, k, id, 0); n++; }
+      setMap(state.logAt, k, id, 0);
+      continue;
+    }
+    const slip = (state.log?.[k]?.[id] || 0) > 0;
+    setMap(state.log, k, id, slip ? 0 : 1);
+    setMap(state.logAt, k, id, 0);
+    n++;
+  }
+  return n;
+}
 export function stepOf(h) { return h.step || 1; }
 export function units(h) { return Math.ceil(h.target / stepOf(h)); }
 export function stepUp(h, c) { return Math.min(countCap(h.target), c + stepOf(h)); }
 export function stepDown(h, c) { return Math.max(0, c - (c % stepOf(h) || stepOf(h))); }
+/** Сколько подходов (или отметок при step=1) в сыром счётчике повторений. */
+export function approachesOf(count, step = 1) {
+  step = Math.max(1, parseInt(step, 10) || 1);
+  if (!(count > 0)) return 0;
+  return Math.floor(count / step);
+}
+/** Сжать старый logAt (1 метка на повтор) до 1 метки на подход; уже сжатый список и смену шага не ломает. */
+export function compressLogAtTimes(times, count, step = 1) {
+  step = Math.max(1, parseInt(step, 10) || 1);
+  const want = approachesOf(count, step);
+  if (!want) return [];
+  const clean = (Array.isArray(times) ? times : []).filter(t => typeof t === 'string' && HHMM.test(t));
+  if (!clean.length) return [];
+  if (step === 1) return clean.slice(0, want);
+  if (clean.length <= want) return clean.slice(0, want);
+  // Старый формат: примерно по метке на каждый повтор
+  if (clean.length >= Math.min(count, want * step)) {
+    const out = [];
+    for (let i = 0; i < clean.length && out.length < want; i += step) out.push(clean[i]);
+    return out;
+  }
+  // Уже подходы (в т.ч. после смены шага) — оставляем как есть
+  return clean;
+}
+export const heatByApproach = h => !!(h && (stepOf(h) > 1 || (h.goals || []).some(g => (g.step || 0) > 1)));
 export function nowHHMM(d = new Date()) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
-export function syncLogAt(id, k, prev, n, atTime) {
+export function syncLogAt(id, k, prev, n, atTime, step = 1) {
+  step = Math.max(1, parseInt(step, 10) || 1);
   state.logAt ??= {};
-  const times = [...(state.logAt[k]?.[id] || [])];
-  if (n > prev) {
+  let times = [...(state.logAt[k]?.[id] || [])];
+  const prevU = approachesOf(prev, step), nextU = approachesOf(n, step), delta = nextU - prevU;
+  if (step > 1 && times.length > prevU && times.length >= Math.min(prev || 0, prevU * step || 0)) {
+    times = compressLogAtTimes(times, prev, step);
+  }
+  if (delta > 0) {
     const stamp = typeof atTime === 'string' && HHMM.test(atTime) ? atTime : nowHHMM();
-    while (times.length < n) times.push(stamp);
-  } else if (n < times.length) times.length = n;
-  setMap(state.logAt, k, id, n && times.length ? times.slice(0, n) : 0);
+    for (let i = 0; i < delta; i++) times.push(stamp);
+  } else if (delta < 0) times.length = Math.max(0, times.length + delta);
+  setMap(state.logAt, k, id, n && times.length ? times : 0);
 }
 export function setCount(h, d, n, atTime) {
   const k = key(d), prev = state.log[k]?.[h.id] || 0;
+  if (isAbstain(h)) {
+    const slip = n < 1 ? 1 : 0;
+    setMap(state.log, k, h.id, slip);
+    setMap(state.skip, k, h.id, 0);
+    syncLogAt(h.id, k, prev ? 1 : 0, slip, atTime, 1);
+    save(); render();
+    return;
+  }
   n = Math.max(0, Math.min(countCap(targetOn(h, d)), n));
+  const step = stepOf(goalOn(h, d));
   setMap(state.log, k, h.id, n);
   if (n) setMap(state.skip, k, h.id, 0);
-  syncLogAt(h.id, k, prev, n, atTime);
+  syncLogAt(h.id, k, prev, n, atTime, step);
   save(); render();
 }
 export function setSkip(h, d, on) {
@@ -260,12 +383,11 @@ export function setSkip(h, d, on) {
 }
 
 export const HEAT_MIN = 5;
-export const HEAT_MODES = [12, 24];
+export const HEAT_MODES = [6, 12, 24];
 export const HEAT_MODE_STORE = NS + '-heat-mode';
-export const HEAT_VIEW_STORE = NS + '-heat-view';
 export const HEAT_WD_SHORT = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-export const heatModeOf = v => +v === 12 ? 12 : 24;
-export const heatViewOf = v => v === 'chart' ? 'chart' : 'map';
+export const heatModeOf = v => { const n = +v; return n === 6 || n === 24 ? n : 12; };
+export const heatStepOf = mode => ({ 6: 4, 12: 2, 24: 1 }[heatModeOf(mode)] || 2);
 /** Сумма отметок по слотам времени (все дни недели). */
 export function heatProfile(hm) {
   const values = (hm?.slots || []).map((_, s) => {
@@ -279,18 +401,18 @@ export function heatProfile(hm) {
 }
 export const heatHour = t => Math.min(23, Math.max(0, parseInt(String(t).slice(0, 2), 10) || 0));
 export const heatPeriod = hour => hour < 6 ? { noun: 'ночь', adv: 'ночью' } : hour < 12 ? { noun: 'утро', adv: 'утром' } : hour < 18 ? { noun: 'день', adv: 'днём' } : { noun: 'вечер', adv: 'вечером' };
-export const heatSlotOfHour = (hour, mode = 24) => heatModeOf(mode) === 12 ? Math.floor(hour / 2) : hour;
-export const heatSlotOfHHMM = (t, mode = 24) => heatSlotOfHour(heatHour(t), mode);
+export const heatSlotOfHour = (hour, mode = 12) => Math.floor(Math.min(23, Math.max(0, hour | 0)) / heatStepOf(mode));
+export const heatSlotOfHHMM = (t, mode = 12) => heatSlotOfHour(heatHour(t), mode);
 export const heatBandStart = hour => hour === 6 || hour === 12 || hour === 18;
-export function heatSlots(mode = 24) {
+export function heatSlots(mode = 12) {
   mode = heatModeOf(mode);
-  const step = mode === 12 ? 2 : 1, out = [];
+  const step = heatStepOf(mode), out = [];
   for (let h = 0; h < 24; h += step) {
-    const p = heatPeriod(h);
+    const p = heatPeriod(h), to = h + step - 1;
     out.push({
-      hour: h, from: h, to: h + step - 1,
+      hour: h, from: h, to,
       label: String(h),
-      tip: mode === 24 ? `${h}:00` : `${p.noun} ${h}–${h + 1}`,
+      tip: mode === 24 ? `${h}:00` : `${p.noun} ${h}–${to}`,
       adv: p.adv,
       band: heatBandStart(h),
     });
@@ -298,7 +420,7 @@ export function heatSlots(mode = 24) {
   return out;
 }
 export const heatLevel = (n, max) => !n || !max ? 0 : Math.max(1, Math.ceil(n / max * 3));
-export function heatPeakText(peak, mode = 24, slots = heatSlots(mode)) {
+export function heatPeakText(peak, mode = 12, slots = heatSlots(mode)) {
   if (!peak?.n) return '';
   const s = slots[peak.slot];
   if (!s) return '';
@@ -306,8 +428,8 @@ export function heatPeakText(peak, mode = 24, slots = heatSlots(mode)) {
   const when = mode === 24 ? String(s.hour) : `${s.hour}–${s.to}`;
   return `Чаще: ${HEAT_WD_SHORT[peak.wd]} · ${when}`;
 }
-/** Чистая агрегация отметок по слотам «день недели × час». mode: 12 (по 2 ч) или 24 (по часу). Без DOM. */
-export function habitHeatmap(h, s, from, to, mode = 24) {
+/** Чистая агрегация отметок по слотам «день недели × час». mode: 6/12/24. Без DOM. */
+export function habitHeatmap(h, s, from, to, mode = 12) {
   mode = heatModeOf(mode);
   const slots = heatSlots(mode);
   const grid = Array.from({ length: 7 }, () => Array(slots.length).fill(0));
@@ -319,9 +441,10 @@ export function habitHeatmap(h, s, from, to, mode = 24) {
     if (k < h.created || k < from || k > lifeTo) continue;
     const c = log[k]?.[h.id] || 0;
     if (!(c > 0)) continue;
-    const wd = weekday(parseKey(k));
-    const times = Array.isArray(logAt[k]?.[h.id]) ? logAt[k][h.id] : [];
-    for (const t of times.slice(0, c)) {
+    const day = parseKey(k), wd = weekday(day);
+    const step = stepOf(goalOn(h, day));
+    const times = compressLogAtTimes(logAt[k]?.[h.id], c, step);
+    for (const t of times) {
       grid[wd][heatSlotOfHHMM(t, mode)]++;
       total++;
     }
@@ -395,6 +518,7 @@ export function nextDue(h, from = new Date()) {
 }
 export const counts = (h, d) => isDue(h, d) && !isSkipped(h, d);
 export const isStat = h => h?.stat === true;
+export const isAbstain = h => h?.abstain === true;
 
 export function weekRun(h, end = lifeEnd(h)) {
   let s = 0, best = 0, run = 0;
@@ -470,12 +594,27 @@ export function statFacts(h, from = h.created, to = lifeEnd(h)) {
 }
 export function statLead(h) {
   const { last } = statFacts(h);
+  if (isAbstain(h)) {
+    if (!last) return 'Срывов ещё не было';
+    const n = daysSince(last);
+    return n === 0 ? 'Срыв сегодня' : n === 1 ? 'Срыв вчера' : `Срыв ${agoText(n)}`;
+  }
   if (!last) return 'Ещё не отмечалась';
   const n = daysSince(last);
   return n === 0 ? 'Последний раз сегодня' : n === 1 ? 'Последний раз вчера' : `Последний раз ${agoText(n)}`;
 }
 export function missBadge(h) {
   if (isAnyDayOfMonth(scheduleOn(h, new Date()))) return null;
+  if (isAbstain(h)) {
+    const todayDone = count(h, new Date()) >= targetOn(h, new Date());
+    const { m, last } = missRun(h);
+    if (!m) return null;
+    if (m === 1 && todayDone) return { texts: ['Вчера срыв', 'Срыв'], title: 'Вчера был срыв — сегодня снова чистый день, пока не отметите иначе', calm: false };
+    if (m === 1) return { texts: ['Вчера срыв', 'Срыв'], title: 'Вчера был срыв', calm: false };
+    if (!last) return null;
+    const ago = agoText(daysSince(last));
+    return { texts: [`Срыв ${ago}`, `Срыв`], title: `Последний чистый день был ${ago}`, ago, calm: true };
+  }
   const c = count(h, new Date());
   if (c >= targetOn(h, new Date())) return null;
   const { m, last } = missRun(h);

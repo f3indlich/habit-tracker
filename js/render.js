@@ -1,6 +1,6 @@
 import { $, addDays, COLORS, DAY_C, days, EASE, EASE_IN, EASE_STD, esc, fmtLong, getPref, GROUP_STORE, HERO_C, isToday, isVivid, key, LEGEND_STORE, MONTHS_SHORT, mv, NS, ofDays, OVER_HINT, parseKey, plural, reducedMotion, RING_C, schedText, setPref, spring, STORE, TIMES, todayKey, VIEW_STORE, VIEWS, weekday, WEEKDAYS, withYear } from './core.js?v=1.1d';
 import { IC, setIcon } from './icons.js?v=1.1d';
-import { activeOn, at, count, isDue, isStat, statLead, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=1.1d';
+import { activeOn, at, count, isAbstain, isDue, isStat, statLead, isWeekly, nextDue, streakText, weekDone, weekQuota, countCap, dayProgress, findHabit, inLife, isSkipped, lifeEnd, load, missBadge, noteOf, perfectStreak, rawCount, save, setCount, setMap, setSkip, setState, state, targetOn, stepDown, stepOf, stepUp, streak, units } from './storage.js?v=1.1d';
 import { askConfirm, buildSegments, closeMenu, closeOverlay, countTo, flash, menuEl, openMenu, openOverlay, openPopover, paintSegments, rollNumber, SEG_MAX, shownOverlays, toast, flipAfter } from './ui.js?v=1.1d';
 import { drawEmptyTpl, openCats, openForm } from './form.js?v=1.1d';
 import { day, dayTip, hist, openDay, openHistory, renderDay, renderHistory, setHist } from './history.js?v=1.1d';
@@ -30,10 +30,13 @@ export function habitMenu(anchor, id) {
   openMenu(anchor, [
     { icon: IC.history, label: 'История и статистика', run: () => openHistory(id) },
     '-',
-    h.target > 1 && c < h.target && { icon: IC.full, label: 'Выполнить полностью', run: () => changeCount(h, viewDate, h.target) },
-    h.target > 1 && c > 0 && { icon: IC.minus, label: h.step ? `Убрать ${c % h.step || h.step}` : 'Убрать одно', run: () => changeCount(h, viewDate, stepDown(h, c)) },
-    c > 0 && { icon: IC.reset, label: 'Сбросить отметку', run: () => changeCount(h, viewDate, 0) },
-    key(viewDate) <= todayKey() && (skipped || (isDue(h, viewDate) && !c && !isWeekly(h, viewDate))) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
+    !isAbstain(h) && h.target > 1 && c < h.target && { icon: IC.full, label: 'Выполнить полностью', run: () => changeCount(h, viewDate, h.target) },
+    !isAbstain(h) && h.target > 1 && c > 0 && { icon: IC.minus, label: h.step ? `Убрать ${c % h.step || h.step}` : 'Убрать одно', run: () => changeCount(h, viewDate, stepDown(h, c)) },
+    !skipped && isAbstain(h)
+      ? (c ? { icon: IC.reset, label: 'Отметить срыв', run: () => changeCount(h, viewDate, 0) }
+        : { icon: IC.full, label: 'Снова чистый день', run: () => changeCount(h, viewDate, 1) })
+      : !skipped && !isAbstain(h) && c > 0 && { icon: IC.reset, label: 'Сбросить отметку', run: () => changeCount(h, viewDate, 0) },
+    key(viewDate) <= todayKey() && (skipped || (isDue(h, viewDate) && (!c || isAbstain(h)) && !isWeekly(h, viewDate))) && { icon: IC.skip, label: skipped ? `Отменить пропуск` : `Пропустить ${dayWord}`, run: () => setSkip(h, viewDate, !skipped) },
     inLife(h, key(viewDate)) && { icon: IC.note, label: noteOf(h, viewDate) ? 'Заметка' : 'Добавить заметку', run: () => openDay(id, viewDate) },
     '-',
     { icon: IC.edit, label: 'Изменить', run: () => openForm(id) },
@@ -353,7 +356,10 @@ export function addSwipe(el, id) {
     el.style.transform = '';
     const h = at(findHabit(id), viewDate);
     if (dx >= LIMIT) { if (count(h, viewDate) < h.target) changeCount(h, viewDate, h.target); }
-    else if (dx <= -LIMIT && (count(h, viewDate) || isSkipped(h, viewDate))) changeCount(h, viewDate, 0, true);
+    else if (dx <= -LIMIT && (count(h, viewDate) || isSkipped(h, viewDate))) {
+      if (isSkipped(h, viewDate) && isAbstain(h)) changeCount(h, viewDate, 1, true);
+      else changeCount(h, viewDate, 0, true);
+    }
   };
   el.addEventListener('pointerup', end);
   el.addEventListener('pointercancel', end);
@@ -362,7 +368,7 @@ export function addSwipe(el, id) {
 export function changeCount(h, d, n, clearSkip = false, announce = false) {
   if (key(d) > todayKey()) return;
   h = at(h, d);
-  const k = key(d), prev = count(h, d), prevSkip = isSkipped(h, d);
+  const k = key(d), prev = count(h, d), prevRaw = rawCount(h, d), prevSkip = isSkipped(h, d);
   const prevAt = [...(state.logAt?.[k]?.[h.id] || [])];
   n = Math.max(0, Math.min(countCap(h.target), n));
   if (n === prev && !(clearSkip && prevSkip)) return;
@@ -373,12 +379,14 @@ export function changeCount(h, d, n, clearSkip = false, announce = false) {
   navigator.vibrate?.(wasDone && isDone && n > prev ? 6 : n > prev ? 12 : [6, 40, 6]);
   if (announce || wasDone !== isDone || (n === 0 && prev > 1)) {
     const dayNote = isToday(d) ? '' : ` (${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })})`;
-    let text = `${h.name}${dayNote}: ${isDone && !(announce && h.target > 1) ? 'выполнено' : n ? `${n} из ${h.target}` : 'отметка снята'}`;
-    if (isDone && !wasDone && h.target > 1 && getPref(OVER_HINT, '') !== '1') { setPref(OVER_HINT, '1'); text = 'Цель выполнена! Нажмите ещё раз, чтобы записать сверх плана'; }
+    let text = isAbstain(h)
+      ? `${h.name}${dayNote}: ${isDone ? 'день снова чистый' : 'записан срыв'}`
+      : `${h.name}${dayNote}: ${isDone && !(announce && h.target > 1) ? 'выполнено' : n ? `${n} из ${h.target}` : 'отметка снята'}`;
+    if (!isAbstain(h) && isDone && !wasDone && h.target > 1 && getPref(OVER_HINT, '') !== '1') { setPref(OVER_HINT, '1'); text = 'Цель выполнена! Нажмите ещё раз, чтобы записать сверх плана'; }
     if (isPrivate(h) && text.startsWith(h.name)) text = 'Привычка' + text.slice(h.name.length);
     toast(text, () => {
       if (!findHabit(h.id)) return;
-      setMap(state.log, k, h.id, prev);
+      setMap(state.log, k, h.id, prevRaw);
       state.logAt ??= {};
       setMap(state.logAt, k, h.id, prevAt.length ? prevAt : 0);
       if (prevSkip) setMap(state.skip, k, h.id, 1);
@@ -401,6 +409,7 @@ export function updateCard(el, h) {
 
   el.style.setProperty('--c', h.color);
   el.classList.toggle('stat', stat);
+  el.classList.toggle('abstain', isAbstain(h));
   el.classList.toggle('complete', done);
   el.classList.toggle('skipped', skipped);
   el.classList.toggle('offday', !due && !done);
@@ -418,12 +427,17 @@ export function updateCard(el, h) {
   ringSvg.classList.toggle('segmented', segmented);
   el.querySelector('.prog').style.strokeDashoffset = RING_C * (1 - Math.min(c / h.target, 1));
   const check = el.querySelector('.check'), extra = c - h.target;
-  check.title = !multi ? (done ? 'Выполнено — нажмите, чтобы снять отметку' : 'Отметить выполненной')
-    : `Нажмите: +${stepOf(h)}, кнопка − убирает лишнее` + (done ? '' : ' · удерживайте: выполнить целиком');
-  check.setAttribute('aria-label', `${h.name}: ` + (!multi ? `${done ? 'выполнено' : 'не выполнено'}. ${check.title}`
-    : extra > 0 ? `${c} из ${h.target}, перевыполнено на ${extra}. Нажмите, чтобы добавить ещё`
-    : extra === 0 ? `${c} из ${h.target}, выполнено. Нажмите, чтобы добавить сверх цели`
-    : `${c} из ${h.target}. ${check.title}`));
+  if (isAbstain(h)) {
+    check.title = done ? 'Чистый день — нажмите, чтобы отметить срыв' : 'Срыв — нажмите, чтобы снова сделать чистым';
+    check.setAttribute('aria-label', `${h.name}: ${done ? 'чистый день' : 'срыв'}. ${check.title}`);
+  } else {
+    check.title = !multi ? (done ? 'Выполнено — нажмите, чтобы снять отметку' : 'Отметить выполненной')
+      : `Нажмите: +${stepOf(h)}, кнопка − убирает лишнее` + (done ? '' : ' · удерживайте: выполнить целиком');
+    check.setAttribute('aria-label', `${h.name}: ` + (!multi ? `${done ? 'выполнено' : 'не выполнено'}. ${check.title}`
+      : extra > 0 ? `${c} из ${h.target}, перевыполнено на ${extra}. Нажмите, чтобы добавить ещё`
+      : extra === 0 ? `${c} из ${h.target}, выполнено. Нажмите, чтобы добавить сверх цели`
+      : `${c} из ${h.target}. ${check.title}`));
+  }
   check.setAttribute('aria-pressed', done);
   const ob = check.querySelector('.over'), overState = multi && done ? (extra > 0 ? '+' + shortNum(extra) : '+') : '';
   check.classList.toggle('overdone', multi && extra > 0);
@@ -464,7 +478,7 @@ export function updateCard(el, h) {
     : nd ? `<span>Следующий раз: ${nd.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</span>`
     : multi ?`<span>${c} / ${h.target}${h.unit ? `<span class="m-unit"> ${esc(h.unit)}</span>` : ''}</span>`
     : `<span class="m-sched">${esc(schedText(h)[0].toUpperCase() + schedText(h).slice(1))}</span>`;
-  const badge = !stat && isToday(viewDate) && !skipped && due ? missBadge(h) : null, warn = !!badge;
+  const badge = (!stat || isAbstain(h)) && isToday(viewDate) && !skipped && due ? missBadge(h) : null, warn = !!badge;
   if (meta.dataset.lead !== lead) {
     meta.querySelector('.m-lead').innerHTML = lead; meta.dataset.lead = lead;
     if (multi && grew && !reducedMotion) meta.querySelector('.m-lead > span').animate([{ color: h.color }, { color: h.color, offset: .35 }, {}], { duration: 700, easing: 'ease-out' });
@@ -508,7 +522,7 @@ export function updateCard(el, h) {
   const todayK = todayKey();
   el.querySelectorAll('.dcol').forEach((col, i) => {
     const d = addDays(viewDate, i - 6), k = key(d), v = count(h, d), dot = col.lastElementChild;
-    dot.className = 'dot ' + (v >= targetOn(h, d) ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : !isDue(h, d) || isStat(h) ? 'off' : '');
+    dot.className = 'dot ' + (v >= targetOn(h, d) ? 'full' : v > 0 ? 'part' : isSkipped(h, d) ? 'skip' : isAbstain(h) && isDue(h, d) ? '' : !isDue(h, d) || isStat(h) ? 'off' : '');
     col.classList.toggle('cur', i === 6);
     col.classList.toggle('today', k === todayK);
     dot.textContent = d.getDate();
@@ -526,14 +540,20 @@ export function updateCard(el, h) {
   const { log, skip } = state, id = h.id, end = lifeEnd(h);
   let dueN = 0, fullN = 0, marks = 0;
   mh._cells.forEach((cell, i) => {
-    const k = L.keys[i], tgt = targetOn(h, L.days[i]), v = log[k]?.[id] || 0, sk = !!skip[k]?.[id], out = k > todayK || k < h.created;
+    const k = L.keys[i], tgt = targetOn(h, L.days[i]), sk = !!skip[k]?.[id], out = k > todayK || k < h.created;
+    const v = out || sk ? 0 : count(h, L.days[i]);
+    const raw = log[k]?.[id] || 0;
     const cls = (out ? 'x' : v >= tgt ? 'l3' : v * 2 >= tgt ? 'l2' : v > 0 ? 'l1' : sk ? 'sk' : '')
       + (k === day ? ' cur' : '');
     if (cell.className !== cls) cell.className = cls;
-    if (!out && v > 0) marks++;
+    if (!out && (isAbstain(h) ? raw > 0 : v > 0)) marks++;
     if (!out && k <= end && !sk && isDue(h, L.days[i]) && !(k === todayK && v < tgt)) { dueN++; if (v >= tgt) fullN++; }
   });
-  mh.querySelector('.sh-r').textContent = isStat(h) ? (marks ? `${marks} ${plural(marks, 'раз', 'раза', 'раз')}` : 'отметок нет') : dueN ? `${fullN} из ${ofDays(dueN)} · ${Math.round(fullN / dueN * 100)}%` : 'пока нет данных';
+  mh.querySelector('.sh-r').textContent = isStat(h)
+    ? (isAbstain(h)
+      ? (marks ? `${marks} ${plural(marks, 'срыв', 'срыва', 'срывов')}` : 'срывов нет')
+      : (marks ? `${marks} ${plural(marks, 'раз', 'раза', 'раз')}` : 'отметок нет'))
+    : dueN ? `${fullN} из ${ofDays(dueN)} · ${Math.round(fullN / dueN * 100)}%` : 'пока нет данных';
 }
 
 export const stripCache = new Map();

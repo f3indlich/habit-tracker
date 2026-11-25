@@ -1,5 +1,5 @@
 import { addDays, key, NS, parseKey, weekday } from './core.js?v=1.1d';
-import { goalOn, isDue, MAX_COUNT } from './storage.js?v=1.1d';
+import { countIn, goalOn, isAbstain, isDue, MAX_COUNT } from './storage.js?v=1.1d';
 
 export const HIST_STORE = NS + '-hist-period';
 export const HIST_RANGES = ['week', 'month', 'year'];
@@ -14,7 +14,8 @@ export function planStats(h, s, from, to, today) {
   for (let d = parseKey(from > h.created ? from : h.created); key(d) <= end; d = addDays(d, 1)) {
     const k = key(d);
     if (skip[k]?.[h.id] || !isDue(h, d, s)) continue;
-    const t = Math.max(1, goalOn(h, d).target), c = Math.min(MAX_COUNT, Math.max(0, Math.floor(log[k]?.[h.id] || 0)));
+    const t = Math.max(1, goalOn(h, d).target);
+    const c = isAbstain(h) ? countIn(h, d, s) : Math.min(MAX_COUNT, Math.max(0, Math.floor(log[k]?.[h.id] || 0)));
     if (k === today && !c) continue;
     out.plannedDays++;
     out.plan += t;

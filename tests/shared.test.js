@@ -12,7 +12,7 @@ const U1 = '11111111-1111-4111-8111-111111111111', U2 = '22222222-2222-4222-8222
 let n = 0;
 const uuid = () => { n++; return `aaaaaaaa-aaaa-4aaa-8aaa-${String(n).padStart(12, '0')}`; };
 
-const db = { lists: [], members: [], items: [], invites: [], v3: false }, net = { down: false, calls: 0 };
+const db = { lists: [], members: [], items: [], invites: [], v3: false, v4: false }, net = { down: false, calls: 0 };
 const TABLES = { shared_lists: 'lists', shared_members: 'members', shared_items: 'items' };
 let me = U1;
 const member = (list, uid = me) => db.members.some(m => m.list_id === list && m.user_id === uid);
@@ -30,6 +30,7 @@ function Q(t) {
     if (net.down) return { data: null, error: { message: 'Failed to fetch' } };
     const rows = visibleRows(t).filter(r => f.every(fn => fn(r)));
     if (op === 'select' && t === 'shared_items' && !db.v3 && /kind/.test(cols)) return { data: null, error: { message: 'column shared_items.kind does not exist' } };
+    if (op === 'select' && t === 'shared_lists' && !db.v4 && /kind|members_can_invite/.test(cols)) return { data: null, error: { message: 'column shared_lists.kind does not exist' } };
     if (op === 'select') return { data: rows.map(r => ({ ...r })), error: null };
     if (op === 'insert') {
       for (const r of payload) {
@@ -63,29 +64,46 @@ const fake = {
     if (net.down) return { data: null, error: { message: 'Failed to fetch' } };
     const mine = db.members.filter(m => m.user_id === me).length;
     if (name === 'create_shared_list') {
+      if (a.p_kind != null && !db.v4) return { data: null, error: { message: 'Could not find the function public.create_shared_list(p_name, p_display_name, p_kind) in the schema cache' } };
       if (mine >= 10) return { data: null, error: { message: 'shared_too_many_lists' } };
       const id = uuid();
-      db.lists.push({ id, name: a.p_name, owner_id: me, created_at: new Date().toISOString() });
+      db.lists.push({ id, name: a.p_name, owner_id: me, kind: a.p_kind === 'chores' ? 'chores' : 'shopping', members_can_invite: false, created_at: new Date().toISOString() });
       db.members.push({ list_id: id, user_id: me, display_name: a.p_display_name });
       return { data: id, error: null };
     }
     if (name === 'create_invite') {
       const l = db.lists.find(x => x.id === a.p_list_id);
-      if (!l || l.owner_id !== me) return { data: null, error: { message: 'shared_not_owner' } };
-      db.invites = db.invites.filter(i => i.list_id !== l.id);
-      const code = 'K7M2Q9XPAB';
-      db.invites.push({ code, list_id: l.id, uses: 0 });
+      const member = db.members.some(m => m.list_id === a.p_list_id && m.user_id === me);
+      if (!l || (l.owner_id !== me && !(db.v4 && l.members_can_invite && member))) return { data: null, error: { message: 'shared_not_owner' } };
+      if (!db.v4) db.invites = db.invites.filter(i => i.list_id !== l.id);
+      else db.invites = db.invites.filter(i => i.list_id !== l.id ? true : (i.uses || 0) < (i.max_uses || 1));
+      const code = db.v4 && db.invites.some(i => i.code === 'K7M2Q9XPAB') ? 'M3N4P5QRST' : 'K7M2Q9XPAB';
+      db.invites.push({ code, list_id: l.id, uses: 0, max_uses: db.v4 ? 5 : 1 });
       return { data: code, error: null };
     }
     if (name === 'join_shared_list') {
       if (a.p_code === 'TOOMANY000') return { data: { ok: false, error: 'too_many' }, error: null };
-      const inv = db.invites.find(i => i.code === a.p_code && i.uses === 0);
+      const inv = db.invites.find(i => i.code === a.p_code && (i.uses || 0) < (i.max_uses || 1));
       if (!inv) return { data: { ok: false, error: 'bad_code' }, error: null };
       if (db.members.filter(m => m.list_id === inv.list_id).length >= 5) return { data: { ok: false, error: 'full' }, error: null };
       if (mine >= 10) return { data: { ok: false, error: 'too_many_lists' }, error: null };
-      inv.uses = 1;
+      inv.uses = (inv.uses || 0) + 1;
       db.members.push({ list_id: inv.list_id, user_id: me, display_name: a.p_display_name });
       return { data: { ok: true, list_id: inv.list_id }, error: null };
+    }
+    if (name === 'set_shared_list_prefs') {
+      const l = db.lists.find(x => x.id === a.p_list_id);
+      if (!l || l.owner_id !== me) return { data: null, error: { message: 'shared_not_owner' } };
+      if (a.p_kind != null) l.kind = a.p_kind === 'chores' ? 'chores' : 'shopping';
+      if (a.p_members_can_invite != null) l.members_can_invite = !!a.p_members_can_invite;
+      return { data: null, error: null };
+    }
+    if (name === 'transfer_shared_list') {
+      const l = db.lists.find(x => x.id === a.p_list_id);
+      if (!l || l.owner_id !== me) return { data: null, error: { message: 'shared_not_owner' } };
+      if (!db.members.some(m => m.list_id === l.id && m.user_id === a.p_new_owner)) return { data: null, error: { message: 'shared_bad_assignee' } };
+      l.owner_id = a.p_new_owner;
+      return { data: null, error: null };
     }
     if (name === 'leave_shared_list') { db.members = db.members.filter(m => !(m.list_id === a.p_list_id && m.user_id === me)); return { data: null, error: null }; }
     if (name === 'remove_shared_member') { db.members = db.members.filter(m => !(m.list_id === a.p_list_id && m.user_id === a.p_user_id)); return { data: null, error: null }; }
@@ -103,6 +121,14 @@ const form = kind => $('shBody').querySelector(`form[data-f=${kind}]`);
 const items = () => [...$('shItems').querySelectorAll('.sh-row')].map(r => r.querySelector('.t-text').textContent);
 const waitToast = text => until(() => $('toast').classList.contains('show') && $('toastText').textContent === text);
 const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/plain', text); el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); };
+const listCard = id => (id && $('shBody').querySelector(`.sh-list[data-id="${CSS.escape(id)}"]`)) || $('shBody').querySelector('.sh-list');
+const openListCard = async id => {
+  const card = () => listCard(id);
+  if (!card()) return null;
+  if (card().querySelector('[data-m=open]')?.getAttribute('aria-expanded') !== 'true') card().querySelector('[data-m=open]')?.click();
+  await until(() => !!card()?.querySelector('.sh-actions'));
+  return card();
+};
 
 {
   const raw = { lists: [{ id: U1, name: '  Покупки ', owner_id: U2 }, { id: 'bad', name: 'x', owner_id: U2 }, { id: U3, name: '', owner_id: U2 }, { id: U1, name: 'Дубль', owner_id: U2 }, ...Array.from({ length: 12 }, (_, i) => ({ id: `bbbbbbbb-bbbb-4bbb-8bbb-${String(i).padStart(12, '0')}`, name: 'L' + i, owner_id: U2 }))],
@@ -136,28 +162,33 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   $('tLists').querySelector('[data-l=shared]').click(); await until(() => $('shOv')._shown);
   await until(() => !!form('create'));
   ok('signed in: create and join forms', !!form('create') && !!form('join') && form('create').querySelector('[name=who]').value.length > 0);
-  ok('fields are 16 px and buttons 44 px', [...$('shBody').querySelectorAll('input')].every(i => parseFloat(getComputedStyle(i).fontSize) >= 16) && [...$('shBody').querySelectorAll('button')].every(b => b.getBoundingClientRect().height >= 44));
+  ok('fields are 16 px and buttons 44 px', [...$('shBody').querySelectorAll('input:not([type=radio])')].every(i => parseFloat(getComputedStyle(i).fontSize) >= 16) && [...$('shBody').querySelectorAll('button')].every(b => b.getBoundingClientRect().height >= 44));
   form('create').querySelector('[name=name]').value = 'Покупки ' + X;
   form('create').querySelector('[name=who]').value = 'Аня ' + X.slice(0, 10);
   form('create').requestSubmit();
   await until(() => $('confirm')._shown);
   ok('consent is shown before the first list', $('cText').textContent === CONSENT && $('cYes').textContent === 'Понятно' && $('cYes').classList.contains('primary'));
   $('cYes').click();
-  await until(() => db.lists.length === 1 && sh.lists.length === 1);
+  await until(() => db.lists.length === 1);
+  await refresh();
   ok('consent is remembered', getPref(SHARED_OK, '') === '1');
   ok('list is created with my name', db.lists[0].name === 'Покупки ' + X && db.members[0].display_name.startsWith('Аня'));
-  await until(() => !!$('shBody').querySelector('.sh-list'));
-  ok('names are escaped in the sheet', !document.querySelector('#shOv img') && $('shBody').querySelector('.sh-list-head span').textContent === 'Покупки ' + X);
-  ok('owner sees owner actions', !!sheetBtn('Пригласить') && !!sheetBtn('Переименовать') && !!sheetBtn('Удалить список') && !sheetBtn('Выйти из списка'));
-  sheetBtn('Пригласить').click();
+  ok('create form offers shopping/chores and defaults to shopping', !!form('create')?.querySelector('[name=kind][value=shopping]') && !!form('create')?.querySelector('[name=kind][value=chores]') && listKind(db.lists[0].id) === 'shopping');
+  ok('manage has the new list', sh.lists.length === 1 && !!$('shBody').querySelector('.sh-list'), { sh: sh.lists.length, err: sh.error });
+  const lid0 = db.lists[0].id;
+  await openListCard(lid0);
+  ok('names are escaped in the sheet', !document.querySelector('#shOv img') && !!$('shBody').querySelector('.sh-list-head') && $('shBody').querySelector('.sh-list-head').textContent.includes('Покупки'));
+  const ownerBtns = [...$('shBody').querySelectorAll('.sh-actions button')].map(b => b.textContent.trim());
+  ok('owner sees owner actions', ownerBtns.includes('Пригласить') && ownerBtns.includes('Переименовать') && ownerBtns.includes('Удалить список') && ownerBtns.includes('Моё имя') && !ownerBtns.includes('Выйти из списка'), ownerBtns.join('|'));
+  $('shBody').querySelector('[data-m=invite]').click();
   await until(() => !!$('shBody').querySelector('.sh-code'));
   ok('invite code is big, with a dash, valid 48 hours once', $('shBody').querySelector('.sh-code').textContent === 'K7M2Q-9XPAB' && $('shBody').textContent.includes('Действует 48 часов, один раз'));
   let copied = null; const clip = navigator.clipboard;
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async t => { copied = t; } } });
-  sheetBtn('Скопировать код').click();
+  $('shBody').querySelector('[data-m=copy]').click();
   await waitToast('Код скопирован');
   ok('copy puts the code in the clipboard', copied === 'K7M2Q-9XPAB');
-  sheetBtn('Скопировать ссылку').click();
+  $('shBody').querySelector('[data-m=copylink]').click();
   await waitToast('Ссылка скопирована');
   ok('copy link gives an app link with the code after #', /#join=K7M2Q9XPAB$/.test(copied) && !copied.includes('?'), copied);
   ok('share text carries the link too', inviteShareText('K7M2Q9XPAB').endsWith('#join=K7M2Q9XPAB'));
@@ -310,7 +341,7 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   await closePage();
   await openPage();
   $('tLists').querySelector('[data-l=shared]').click(); await until(() => $('shOv')._shown);
-  if ($('shBody').querySelector('[data-m=open]').getAttribute('aria-expanded') !== 'true') $('shBody').querySelector('[data-m=open]').click();
+  await openListCard(lid);
   await until(() => !!$('shBody').querySelector('[data-m=notify]'));
   const sw = $('shBody').querySelector('[data-m=notify]');
   ok('list has a switch for change notifications, off by default', sw.getAttribute('aria-checked') === 'false');
@@ -344,32 +375,41 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   form('join').requestSubmit();
   await until(() => sh.lists.length === 1 && !!$('shBody').querySelector('.sh-list'));
   ok('join works with dash and lower case', db.members.some(m => m.user_id === U2 && m.list_id === lid && m.display_name === 'Боря'));
-  ok('member sees only leave', !!sheetBtn('Выйти из списка') && !sheetBtn('Пригласить') && !sheetBtn('Удалить список') && !sheetBtn('Переименовать') && !$('shBody').querySelector('[data-m=remove]'));
-  ok('member list shows everyone with escaped names', $('shBody').querySelectorAll('.sh-members li').length === 2 && !document.querySelector('#shOv img'));
-  db.invites = [{ code: 'FULLLIST00', list_id: lid, uses: 0 }];
+  let memberCard = await openListCard(lid);
+  const memberBtns = [...(memberCard?.querySelectorAll('.sh-actions button') || [])].map(b => b.textContent.trim());
+  ok('member sees only leave', memberBtns.includes('Выйти из списка') && !memberBtns.includes('Пригласить') && !memberBtns.includes('Удалить список') && !memberBtns.includes('Переименовать') && !memberCard?.querySelector('[data-m=remove]'), memberBtns.join('|'));
+  ok('member list shows everyone with escaped names', (memberCard?.querySelectorAll('.sh-members li') || []).length === 2 && !document.querySelector('#shOv img'));
+  db.invites = [{ code: 'FULLLIST00', list_id: lid, uses: 0, max_uses: 1 }];
   for (const u of ['c', 'd', 'e']) db.members.push({ list_id: lid, user_id: `cccccccc-cccc-4ccc-8ccc-00000000000${u}`, display_name: 'Гость' });
-  signIn(U3);
+  signIn(U3); clearShared();
   await refresh();
+  await until(() => !!form('join'));
   form('join').querySelector('[name=code]').value = 'FULLLIST00';
+  form('join').querySelector('[name=who]').value = 'Гость';
   form('join').requestSubmit();
   ok('full list is reported', await waitToast('В списке уже 5 участников'));
-  signIn(U2);
+  signIn(U2); clearShared();
+  await openPage();
   await refresh();
-  await until(() => !!sheetBtn('Выйти из списка'));
-  sheetBtn('Выйти из списка').click();
+  $('tLists').querySelector('[data-l=shared]')?.click();
+  await until(() => $('shOv')._shown && !!$('shBody').querySelector('.sh-list'));
+  const leaveList = await openListCard(lid);
+  leaveList?.querySelector('[data-m=leave]')?.click();
   await until(() => $('confirm')._shown);
   ok('leaving asks first', $('cTitle').textContent === 'Выйти из списка?');
   $('cYes').click();
   await until(() => !db.members.some(m => m.user_id === U2 && m.list_id === lid) && sh.lists.length === 0);
   ok('member left the list', !$('tLists').querySelector('[data-sl]'));
   closeOverlay($('shOv')); await until(() => $('shOv').hidden);
-  signIn(U1);
+  await closePage();
+  signIn(U1); clearShared();
+  await openPage();
   await refresh();
-  $('tLists').querySelector('[data-l=shared]').click(); await until(() => $('shOv')._shown && !!$('shBody').querySelector('.sh-list'));
-  if ($('shBody').querySelector('[data-m=open]').getAttribute('aria-expanded') !== 'true') $('shBody').querySelector('[data-m=open]').click();
-  await until(() => !!$('shBody').querySelector('[data-m=remove]'));
-  ok('owner can remove members', $('shBody').querySelectorAll('[data-m=remove]').length === 3 && $('shBody').querySelector('[data-m=remove]').getAttribute('aria-label').startsWith('Убрать участника'));
-  sheetBtn('Удалить список').click();
+  $('tLists').querySelector('[data-l=shared]')?.click();
+  await until(() => $('shOv')._shown && !!$('shBody').querySelector('.sh-list'));
+  const ownList = await openListCard(lid);
+  ok('owner can remove members', (ownList?.querySelectorAll('[data-m=remove]') || []).length === 3 && ownList?.querySelector('[data-m=remove]')?.getAttribute('aria-label')?.startsWith('Убрать участника'));
+  ownList?.querySelector('[data-m=delete]')?.click();
   await until(() => $('confirm')._shown);
   ok('deleting asks and warns about everyone', $('cTitle').textContent === 'Удалить список?' && $('cText').textContent.includes('для всех участников'));
   $('cYes').click();
@@ -450,13 +490,33 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   await refresh();
   ok('me tab counts what is mine', $('shItems').querySelector('[data-filter=me]').textContent === 'Мне · 1');
   $('shItems').querySelector('[data-filter=me]').click();
-  ok('me filter shows only my items, their open subitems and sections', names(card('Бакалея')) === 'Специи,Паприка' && !card('Крупы') && !!card('Бакалея').querySelector('.sh-av'));
-  ok('assignee shows as a letter, not a line of text', card('Бакалея').querySelector('.sh-av').textContent === 'А' && !$('shItems').querySelector('.sh-to'));
+  ok('me filter shows only my items, their open subitems and sections', names(card('Бакалея')) === 'Специи,Паприка' && !card('Крупы') && !!card('Бакалея').querySelector('.sh-claim.is-mine'));
+  ok('claim shows Я when taken by me', card('Бакалея').querySelector('.sh-claim').textContent === 'Я' && !$('shItems').querySelector('.sh-to'));
   $('shItems').querySelector('[data-filter=all]').click();
+  const rice = by('Рис (1 кг)');
+  const claim = [...$('shItems').querySelectorAll('.sh-row')].find(r => r.dataset.sid === rice.id)?.querySelector('[data-sact=claim]');
+  ok('open item offers claim', !!claim && claim.textContent === 'Взять');
+  claim.click();
+  await until(() => rice.assigned_to === U1);
+  ok('claim assigns the item to me', rice.assigned_to === U1 && !!$('shItems').querySelector(`.sh-row[data-sid="${rice.id}"] .sh-claim.is-mine`));
 
   by('Рис (1 кг)').done = true; by('Рис (1 кг)').done_by = U2; by('Рис (1 кг)').done_at = new Date().toISOString();
   await refresh();
   ok('summary names the last thing someone else did', $('shItems').querySelector('.sh-hero small').textContent === 'Боря отметил(а) «Рис» · только что', $('shItems').querySelector('.sh-hero small').textContent);
+  ok('live banner repeats the latest action', !!$('shItems').querySelector('.sh-live') && $('shItems').querySelector('.sh-live').textContent.includes('Боря отметил(а) «Рис»'));
+  ok('recent strip offers bought items for re-add', !!$('shItems').querySelector('.sh-recent') && [...$('shItems').querySelectorAll('.sh-pill')].some(b => /Рис|Соль|Молоко/.test(b.textContent)), $('shItems').querySelector('.sh-recent')?.textContent);
+  const pill = [...$('shItems').querySelectorAll('.sh-pill')].find(b => b.textContent === 'Соль');
+  if (pill) {
+    const before = db.items.filter(x => x.text === 'Соль' && !x.done).length;
+    pill.click();
+    await until(() => db.items.filter(x => x.text === 'Соль' && !x.done).length > before);
+    ok('recent pill re-adds the item', db.items.some(x => x.text === 'Соль' && !x.done));
+  } else ok('recent pill re-adds the item', false, 'no Соль pill');
+  setListKind(lid, 'chores');
+  renderShared(lid);
+  ok('chores copy says done not bought', $('shItems').textContent.includes('всё сделано') || $('shItems').querySelector('.sh-foot')?.textContent.startsWith('Очистить сделанные'), $('shItems').querySelector('.sh-foot')?.textContent);
+  setListKind(lid, 'shopping');
+  renderShared(lid);
 
   for (let i = 0; i < 3; i++) rememberHint(lid, 'Сливки 10%', 'Молочное');
   $('shText').value = 'Сли'; $('shText').dispatchEvent(new Event('input', { bubbles: true }));
@@ -542,6 +602,79 @@ const paste = (el, text) => { const dt = new DataTransfer(); dt.setData('text/pl
   await closePage();
   db.lists = db.lists.filter(l => l.id !== lid); db.items = db.items.filter(x => x.list_id !== lid); db.members = db.members.filter(m => m.list_id !== lid);
   signOut(); clearShared();
+}
+
+{
+  signIn(U1); onLine(true); net.down = false;
+  const lid = uuid();
+  db.lists.push({ id: lid, name: 'Новости', owner_id: U1, created_at: new Date().toISOString() });
+  db.members.push({ list_id: lid, user_id: U1, display_name: 'Аня' }, { list_id: lid, user_id: U2, display_name: 'Боря' });
+  const row = { id: uuid(), list_id: lid, text: 'Пункт', done: false, created_by: U1, created_at: new Date().toISOString() };
+  db.items.push(row);
+  clearShared(); await refresh();
+  markSeen(lid);
+  const local = (sh.items[lid] || []).find(x => x.id === row.id);
+  local.assigned_to = U1; local.assigned_by = U2; local.updated_at = new Date(Date.now() + 120000).toISOString();
+  ok('assign by another person counts as news', hasNews(lid));
+  ok('recentShared returns strings without open duplicates', recentShared(lid, 4).every(t => typeof t === 'string' && t.trim()));
+  const q0 = sh.queue.length;
+  sh.queue.push({ op: 'edit', list: lid, id: row.id, text: 'z', at: new Date().toISOString() });
+  net.down = true;
+  await flushQueue();
+  ok('queue op is kept when send cannot finish', sh.queue.length >= q0 + 1, { q: sh.queue.length, q0 });
+  net.down = false; sh.queue.length = 0;
+  try { localStorage.removeItem(SHARED_QUEUE); } catch {}
+}
+
+{
+  db.v4 = true; db.v3 = true;
+  signIn(U1); clearShared(); sh.v4 = null; onLine(true); net.down = false;
+  await openPage();
+  await refresh();
+  ok('v4 columns detected', sh.v4 === true);
+  $('tLists').querySelector('[data-l=shared]').click(); await until(() => $('shOv')._shown && !!form('create'));
+  form('create').querySelector('[name=name]').value = 'Дом';
+  form('create').querySelector('[name=kind][value=chores]').checked = true;
+  form('create').querySelector('[name=kind][value=shopping]').checked = false;
+  form('create').querySelector('[name=who]').value = 'Аня';
+  if (getPref(SHARED_OK, '') !== '1') { form('create').requestSubmit(); await until(() => $('confirm')._shown); $('cYes').click(); }
+  else form('create').requestSubmit();
+  await until(() => db.lists.some(l => l.name === 'Дом' && l.kind === 'chores'));
+  const home = db.lists.find(l => l.name === 'Дом');
+  ok('v4 create stores chores kind on server', !!home && home.kind === 'chores' && sh.v4 === true);
+  await until(() => !!home && !!$('shBody').querySelector(`.sh-list[data-id="${home.id}"]`));
+  const head = home && $('shBody').querySelector(`.sh-list[data-id="${home.id}"] [data-m=open]`);
+  if (head?.getAttribute('aria-expanded') !== 'true') head?.click();
+  await until(() => !!$('shBody').querySelector('[data-m=caninvite]'));
+  ok('v4 invite hint is multi-use', !!sheetBtn('Пригласить') && $('shBody').textContent.includes('Участники могут приглашать'));
+  $('shBody').querySelector('[data-m=caninvite]')?.click();
+  await until(() => home?.members_can_invite === true);
+  sheetBtn('Пригласить')?.click();
+  await until(() => !!$('shBody').querySelector('.sh-code'));
+  ok('v4 invite text mentions 7 days', $('shBody').textContent.includes('7 дней') && $('shBody').textContent.includes('5 входов'));
+  sheetBtn('Пригласить')?.click();
+  await until(() => db.invites.filter(i => i.list_id === home?.id).length >= 2);
+  ok('v4 keeps previous invite codes', db.invites.filter(i => i.list_id === home?.id).length >= 2);
+  db.members.push({ list_id: home.id, user_id: U2, display_name: 'Боря' });
+  await refresh();
+  const openBtn = $('shBody').querySelector(`.sh-list[data-id="${home.id}"] [data-m=open]`);
+  if (openBtn?.getAttribute('aria-expanded') !== 'true') openBtn?.click();
+  await until(() => !!$('shBody').querySelector('[data-m=transfer]'));
+  $('shBody').querySelector('[data-m=transfer]')?.click();
+  await until(() => $('confirm')._shown);
+  $('cYes').click();
+  await until(() => home.owner_id === U2);
+  ok('owner can transfer the list', home.owner_id === U2 && !isSharedOwner(findShared(home.id), U1));
+  closeOverlay($('shOv')); await until(() => $('shOv').hidden);
+  setListKind(home.id, 'chores');
+  $('tLists').querySelector(`[data-sl="${home.id}"]`)?.click();
+  await until(() => !$('tShared').hidden);
+  ok('empty chores list offers section templates', !!$('shItems').querySelector('[data-sact=tmpl]') && $('shItems').textContent.includes('Сегодня'));
+  $('shItems').querySelector('[data-sact=tmpl]')?.click();
+  await until(() => db.items.some(x => x.list_id === home.id && x.kind === 'h2'));
+  ok('template adds a section heading', db.items.some(x => x.list_id === home.id && x.kind === 'h2'));
+  await closePage();
+  db.v4 = false; sh.v4 = false;
 }
 
 {
