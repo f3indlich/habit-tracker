@@ -30,8 +30,6 @@ import * as tasksUi from './js/tasksui.js?v=1.1e';
 import * as taskParse from './js/taskparse.js?v=1.1e';
 import * as repeatMod from './js/repeat.js?v=1.1e';
 import * as wheelMod from './js/wheel.js?v=1.1e';
-import * as sharedMod from './js/shared.js?v=1.1e';
-import * as sharedUi from './js/sharedui.js?v=1.1e';
 import * as tabsMod from './js/tabs.js?v=1.1e';
 
 if (framedByOther(window)) {
@@ -47,7 +45,7 @@ if (framedByOther(window)) {
 }
 
 if (TEST_MODE) {
-  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod, privacyMod, lockMod, planMod, goalsMod, goalsUi, tasksMod, tasksUi, taskParse, repeatMod, wheelMod, sharedMod, sharedUi, tabsMod]) {
+  for (const m of [core, icons, storage, ui, renderMod, formMod, historyMod, settings, sync, pushMod, summaryMod, tipsMod, guideMod, privacyMod, lockMod, planMod, goalsMod, goalsUi, tasksMod, tasksUi, taskParse, repeatMod, wheelMod, tabsMod]) {
     for (const k of Object.keys(m)) {
       const set = typeof m[k] !== 'function' && m['set' + k[0].toUpperCase() + k.slice(1)];
       try { Object.defineProperty(window, k, { configurable: true, get: () => m[k], set: set || undefined }); } catch {}

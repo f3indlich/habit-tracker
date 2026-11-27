@@ -180,7 +180,7 @@ for (const [id, open] of [['catOv', openCats], ['nameOv', () => openName(false)]
   await swipe(ts.querySelector('.sheet-head'), [W / 2, 180], [W / 2, 640], 8, 12);
   await wait(450);
   ok('pull down closes an unchanged task', !$('tFormOv')._shown);
-  for (const id of ['tPickOv', 'tRemOv', 'tRepOv', 'tDateOv', 'tListsOv', 'tListOv', 'shOv', 'shEditOv']) ok(`${id} closes with a pull too`, $(id).querySelector('.sheet').classList.contains('pull'));
+  for (const id of ['tPickOv', 'tRemOv', 'tRepOv', 'tDateOv', 'tListsOv', 'tListOv']) ok(`${id} closes with a pull too`, $(id).querySelector('.sheet').classList.contains('pull'));
 }
 
 ok('no page errors', __errs.length === 0, __errs);

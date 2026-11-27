@@ -34,7 +34,7 @@
 | Карточка привычки, сводка, заметки, жесты | `notes`, `summary`, `gestures` |
 | Задачи | `tasks`, `tasks0`, `tasksA`–`tasksF`, `tasksM`, `tasksR`, `tasksS`, `taskparse` |
 | Цели | `goals`, `goals3` |
-| Облако, личное, общие списки, аккаунт | `sync`, `private`, `shared`, `account`, `smart` |
+| Облако, личное, аккаунт | `sync`, `private`, `account`, `smart` |
 | Интерфейс, адаптивность, вёрстка, анимации, цвета | `ui`, `responsive`, `layout`, `motion`, `colors`, `redesign`, `guide` |
 | Безопасность и тексты | `audit` |
 

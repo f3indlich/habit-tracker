@@ -31,10 +31,9 @@ const IC_MOVE = '<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16
 const monthOf = k => { const d = parseKey(k); return new Date(d.getFullYear(), d.getMonth(), 1); };
 
 const IC_DOWN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
-export const tv = { sel: null, lateOpen: false, wday: null, wkOff: 0, tab: 'list', day: todayKey(), month: monthOf(todayKey()), dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20, shared: null };
+export const tv = { sel: null, lateOpen: false, wday: null, wkOff: 0, tab: 'list', day: todayKey(), month: monthOf(todayKey()), dayOpen: null, shown: {}, subOpen: new Set(), smart: null, smartShown: 20 };
 export const doneDelay = { ms: 600 };
 const pendingDone = new Map();
-export const taskHooks = { chips: () => '', render: null, open: null, select: null, leave: null };
 export const tasksOf = (s = state) => s.tasks || (s.tasks = []);
 export const findTask = id => tasksOf().find(t => t.id === id);
 export const visTasks = () => shownTasks(tasksOf());
@@ -327,14 +326,7 @@ function renderMonth() {
 
 export function renderTasks() {
   for (const b of $('tTabs').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.t === tv.tab);
-  $('tShared').hidden = !tv.shared;
-  if (tv.sel && (tv.shared || (!tv.smart && tv.tab !== 'list'))) exitSelect(false);
-  if (tv.shared) {
-    for (const id of ['tTabs', 'tsFilters', 'tListView', 'tMonthView', 'tsResults', 'tWkHead', 'tWeekRow']) $(id).hidden = true;
-    paintListChips();
-    return taskHooks.render?.(tv.shared);
-  }
-  taskHooks.leave?.();
+  if (tv.sel && (!tv.smart && tv.tab !== 'list')) exitSelect(false);
   const sm = tv.smart && (tv.smart !== 'priv' || unlocked) && (isSection(tv.smart) || !$('tSearch').hidden) ? tv.smart : (tv.smart = null);
   $('tTabs').hidden = !!sm;
   $('tWeekRow').hidden = $('tWkHead').hidden = !!sm || tv.tab !== 'list';
@@ -354,7 +346,6 @@ export function openTasks() {
   tv.tab = 'list';
   tv.shown = {};
   tv.smart = null;
-  tv.shared = null;
   closeSearch();
   tv.day = todayKey();
   tv.month = monthOf(tv.day);
@@ -380,7 +371,7 @@ const IC_SELECT = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r
 const IC_MONTH = '<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8 3v4M16 3v4"/></svg>';
 const IC_LISTS = '<svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>';
 $('tMoreBtn').onclick = () => {
-  const all = screenTasks(), today = todayKey(), sm = tv.smart && !tv.shared ? tv.smart : null;
+  const all = screenTasks(), today = todayKey(), sm = tv.smart ? tv.smart : null;
   openMenu($('tMoreBtn'), [
     { header: 'Разделы' },
     ...SECTIONS.map(([id, name]) => {
@@ -388,8 +379,8 @@ $('tMoreBtn').onclick = () => {
       return { icon: IC_SEC[id], label: name, note: String(n), disabled: !n && sm !== id, run: () => { closeSearch(); setSmart(id); } };
     }),
     '-',
-    { icon: IC_SELECT, label: 'Выбрать задачи', disabled: !!tv.shared || (!sm && tv.tab !== 'list'), run: () => enterSelect() },
-    { icon: IC_MONTH, label: tv.tab === 'month' ? 'Только неделя' : 'Месяц целиком', disabled: !!sm || !!tv.shared, run: () => toggleMonth() },
+    { icon: IC_SELECT, label: 'Выбрать задачи', disabled: !sm && tv.tab !== 'list', run: () => enterSelect() },
+    { icon: IC_MONTH, label: tv.tab === 'month' ? 'Только неделя' : 'Месяц целиком', disabled: !!sm, run: () => toggleMonth() },
     { icon: IC_LISTS, label: listsOf().length ? 'Изменить списки' : 'Создать список', run: () => (listsOf().length ? openListsSheet() : openListEditor()) },
   ]);
 };
@@ -756,7 +747,9 @@ function pickOpts(today) {
   const tom = tomorrowOf(today);
   if (ds.mode === 'due' || ds.mode === 'until') return [[IC_D.today, 'Сегодня', today], [IC_D.tom, 'Завтра', tom], [IC_D.week, 'Через неделю', key(addDays(parseKey(today), 7))], [IC_D.month, 'Конец месяца', monthEnd(today)], null, [IC_D.none, ds.mode === 'due' ? 'Без срока' : 'Без ограничения', '']];
   const mon = nextMonday(today), week = mon === tom ? key(addDays(parseKey(mon), 7)) : mon;
-  const out = [[IC_D.today, 'Сегодня', today], [IC_D.tom, 'Завтра', tom], [IC_D.wknd, 'Выходные', nextWeekend(today)], [IC_D.week, 'Следующая неделя', week]];
+  let wknd = nextWeekend(today);
+  if (wknd === today || wknd === tom) wknd = key(addDays(parseKey(wknd), 7));
+  const out = [[IC_D.today, 'Сегодня', today], [IC_D.tom, 'Завтра', tom], [IC_D.wknd, 'Выходные', wknd], [IC_D.week, 'Следующая неделя', week]];
   if (!ds.rep) out.push(null, [IC_D.someday, 'Когда-нибудь', SOMEDAY], [IC_D.none, 'Без даты', '']);
   return out;
 }
@@ -797,7 +790,6 @@ $('tdCal').onclick = e => {
 function selRows() { return [...$('tItems').querySelectorAll('.t-row.t-sel')]; }
 function selTasks() { return [...(tv.sel || [])].map(findTask).filter(Boolean); }
 export function enterSelect() {
-  if (tv.shared) return;
   closeRow();
   closeSearch();
   tv.sel = new Set();
@@ -1379,15 +1371,13 @@ const IC_PLUS_S = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14
 function paintListChips() {
   const lists = listsOf(), v = curList(), box = $('tLists'), lc = findList(v)?.color;
   if (lc) $('tasksOv').style.setProperty('--list-c', lc); else $('tasksOv').style.removeProperty('--list-c');
-  const sec = !tv.shared && isSection(tv.smart) ? tv.smart : null, vis = visTasks().filter(t => !t.done && !t.archivedAt && !(t.someday && !t.date && !t.due));
+  const sec = isSection(tv.smart) ? tv.smart : null, vis = visTasks().filter(t => !t.done && !t.archivedAt && !(t.someday && !t.date && !t.due));
   const open = id => vis.filter(t => inList(t, id)).length;
   const chip = (id, label, color) => { const n = open(id); return `<button type="button" class="t-chip" data-l="${esc(id)}" aria-pressed="${!sec && v === id}">${color ? `<i class="t-ldot" style="--c:${esc(color)}"></i>` : ''}<span>${esc(label)}</span>${n ? `<span class="cnt">${n}</span>` : ''}</button>`; };
   const secName = sec && SECTIONS.find(x => x[0] === sec)[1];
   const secTab = sec ? `<button type="button" class="t-chip t-chip-on" data-sec="${sec}" aria-pressed="true" aria-label="${secName}, закрыть раздел">${IC_SEC[sec]}<span>${secName}</span><span class="cnt">${smartList(sec).length}</span><span class="t-x" aria-hidden="true">${IC_X}</span></button>` : '';
   box.innerHTML = secTab + chip('all', 'Все') + (lists.length ? chip('inbox', inboxName()) + lists.map(l => chip(l.id, l.name, l.color)).join('') : '')
-    + taskHooks.chips(tv.shared)
     + `<button type="button" class="t-chip t-chip-add" data-l="+" aria-label="Создать список">${IC_PLUS_S}</button>`;
-  if (tv.shared) box.querySelectorAll('[data-l][aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false'));
   const on = box.querySelector('[aria-pressed=true]');
   if (on && (on.offsetLeft < box.scrollLeft || on.offsetLeft + on.offsetWidth > box.scrollLeft + box.clientWidth)) box.scrollLeft = on.offsetLeft - 16;
   fadeTabs();
@@ -1400,13 +1390,9 @@ $('tLists').addEventListener('scroll', fadeTabs, { passive: true });
 const isSection = id => SECTIONS.some(x => x[0] === id);
 $('tLists').onclick = e => {
   if (e.target.closest('[data-sec]')) return setSmart(null);
-  const sl = e.target.closest('[data-sl]');
-  if (sl) return taskHooks.select?.(sl.dataset.sl);
   const b = e.target.closest('[data-l]');
   if (!b) return;
   if (b.dataset.l === '+') return openListEditor();
-  if (b.dataset.l === 'shared') return taskHooks.open?.();
-  tv.shared = null;
   if (isSection(tv.smart)) tv.smart = null;
   setPref(TASKS_LIST_STORE, b.dataset.l);
   tv.shown = {};
@@ -1732,7 +1718,6 @@ function renderSearch() {
 }
 export function openSearch() {
   exitSelect(false);
-  if (tv.shared) { tv.shared = null; renderTasks(); }
   $('tSearch').hidden = false;
   $('tSearchBtn').setAttribute('aria-expanded', 'true');
   $('tsText').value = '';
@@ -1877,7 +1862,6 @@ export const smartList = id => smartFilter(id, screenTasks(), todayKey(), { unlo
 export function setSmart(id) {
   exitSelect(false);
   tv.smart = id;
-  if (id) tv.shared = null;
   tv.smartShown = LIST_STEP;
   renderTasks();
 }

@@ -9,7 +9,7 @@ const SHELL_FILES = [
   './index.html',
   `./styles.css?v=${VERSION}`,
   `./app.js?v=${VERSION}`,
-  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide', 'privacy', 'lock', 'plan', 'goals', 'goalsui', 'tasks', 'tasksui', 'taskparse', 'repeat', 'wheel', 'shared', 'sharedui', 'tabs'].map(m => `./js/${m}.js?v=${VERSION}`),
+  ...['core', 'icons', 'storage', 'ui', 'render', 'form', 'history', 'settings', 'sync', 'push', 'summary', 'tips', 'guide', 'privacy', 'lock', 'plan', 'goals', 'goalsui', 'tasks', 'tasksui', 'taskparse', 'repeat', 'wheel', 'tabs'].map(m => `./js/${m}.js?v=${VERSION}`),
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/apple-touch-icon.png',
@@ -105,7 +105,6 @@ async function notifyMode() {
 
 function notifyView(d, mode) {
   const ids = Array.isArray(d.ids) ? d.ids : [];
-  if (mode === 'hide' && d.shared) return { title: 'Общие списки', body: 'В общем списке есть изменения', ids: [], done: false };
   if (mode === 'hide' && (d.goal || d.task)) return { title: 'Трекер привычек', body: 'Пора заглянуть в приложение', ids: [], done: false };
   if (mode === 'hide') return { title: 'Трекер привычек', body: ids.length > 1 ? `Пора отметить привычки: ${ids.length}` : 'Пора отметить привычку', ids, done: false };
   return { title: d.title || 'Трекер привычек', body: d.body || '', ids, done: ids.length === 1 && !d.smart };
@@ -121,7 +120,7 @@ self.addEventListener('push', e => {
       icon: './icons/icon-192.png',
       tag: d.tag || 'habit-reminder',
       renotify: true,
-      data: { ids: v.ids, shared: d.shared ? (typeof d.list === 'string' ? d.list : '') : null },
+      data: { ids: v.ids },
       actions: v.done ? [{ action: 'done', title: 'Выполнено' }] : [],
     });
   })());
@@ -130,16 +129,15 @@ self.addEventListener('push', e => {
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const ids = e.notification.data?.ids || [];
-  const done = e.action === 'done' && ids.length === 1 ? ids[0] : null, shared = e.notification.data?.shared ?? null;
+  const done = e.action === 'done' && ids.length === 1 ? ids[0] : null;
   e.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const win = wins.find(w => w.url.startsWith(self.registration.scope));
     if (win) {
       if (done) win.postMessage({ type: 'done', id: done });
-      if (shared !== null) win.postMessage({ type: 'shared', id: shared });
       return win.focus();
     }
-    const to = done ? `./?done=${encodeURIComponent(done)}` : shared !== null ? `./?shared=${encodeURIComponent(shared)}` : './';
+    const to = done ? `./?done=${encodeURIComponent(done)}` : './';
     return self.clients.openWindow(new URL(to, self.registration.scope).href);
   })());
 });

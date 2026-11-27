@@ -107,7 +107,7 @@ const rowIds = box => [...box.querySelectorAll('.t-row')].map(r => r.dataset.id)
   ok('empty state keeps an empty list of lists', Array.isArray(normalize({ habits: [], log: {} }).taskLists));
   await openPage();
   const chips = () => [...$('tLists').querySelectorAll('.t-chip')].map(b => b.textContent || b.getAttribute('aria-label'));
-  ok('tabs: all, inbox, lists, shared lists and plus', chips().join() === 'Все3,Входящие1,Дом1,Работа1,Общие,Создать список', chips());
+  ok('tabs: all, inbox, lists and plus', chips().join() === 'Все3,Входящие1,Дом1,Работа1,Создать список', chips());
   ok('tab counts leave out someday tasks the list does not show', !rowIds($('tItems')).includes('s'));
   ok('tab row never scrolls up and down', getComputedStyle($('tLists')).overflowY === 'hidden');
   ok('list tabs show open counts', $('tLists').querySelector('[data-l=all] .cnt').textContent === '3' && $('tLists').querySelector('[data-l=work] .cnt').textContent === '1');
