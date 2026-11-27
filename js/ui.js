@@ -1,8 +1,8 @@
-import { $, EASE, EASE_IN, EASE_STD, esc, isIOS, isStandalone, mv, reducedMotion, RING_C, spring, TEST_MODE, viewportHeight } from './core.js?v=1.1e';
-import { IC } from './icons.js?v=1.1e';
-import { reordering, setReorder } from './render.js?v=1.1e';
-import { setHist } from './history.js?v=1.1e';
-import { hintPull } from './tips.js?v=1.1e';
+import { $, EASE, EASE_IN, EASE_STD, esc, isIOS, isStandalone, mv, reducedMotion, RING_C, spring, TEST_MODE, viewportHeight } from './core.js?v=1.1f';
+import { IC } from './icons.js?v=1.1f';
+import { reordering, setReorder } from './render.js?v=1.1f';
+import { setHist } from './history.js?v=1.1f';
+import { hintPull } from './tips.js?v=1.1f';
 
 export function rollNumber(slot, text, dir, animate) {
   if (slot._val === text) return;

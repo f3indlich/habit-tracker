@@ -1,9 +1,9 @@
-import { $, EASE_STD, esc, getPref, isToday, NS, reducedMotion, setPref, TEST_MODE, todayKey, viewportHeight } from './core.js?v=1.1e';
-import { confirmResolve, menuEl, shownOverlays } from './ui.js?v=1.1e';
-import { reordering, viewDate } from './render.js?v=1.1e';
-import { state } from './storage.js?v=1.1e';
-import { cloud } from './sync.js?v=1.1e';
-import { visibleHabits } from './privacy.js?v=1.1e';
+import { $, EASE_STD, esc, getPref, isToday, NS, reducedMotion, setPref, TEST_MODE, todayKey, viewportHeight } from './core.js?v=1.1f';
+import { confirmResolve, menuEl, shownOverlays } from './ui.js?v=1.1f';
+import { reordering, viewDate } from './render.js?v=1.1f';
+import { state } from './storage.js?v=1.1f';
+import { cloud } from './sync.js?v=1.1f';
+import { visibleHabits } from './privacy.js?v=1.1f';
 
 export const TIPS_STORE = NS + '-tips';
 export const USED_STORE = NS + '-used';

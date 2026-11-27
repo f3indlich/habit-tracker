@@ -1,12 +1,12 @@
-import { $, addDays, COLORS, esc, getPref, key, NS, plural, setPref, todayKey } from './core.js?v=1.1e';
-import { IC, iconHTML } from './icons.js?v=1.1e';
-import { count, findHabit, isDue, isQuant, isStat, save, state, streak, streakText, targetOn } from './storage.js?v=1.1e';
-import { askConfirm, closeMenu, closeOverlay, openMenu, openOverlay, toast } from './ui.js?v=1.1e';
-import { queueTips } from './tips.js?v=1.1e';
-import { addLongPress, isPrivate, unlocked } from './privacy.js?v=1.1e';
-import { autoHabit, canAuto, dayDiff, dueText, GOAL_LIM, goalColor, goalProgress, goalStatus, habitPace, isActive, leftParts, newId, paceText, progressText, sortActive, sortFinished, statusText, unitOf } from './goals.js?v=1.1e';
-import { openHistory } from './history.js?v=1.1e';
-import { openForm } from './form.js?v=1.1e';
+import { $, addDays, COLORS, esc, getPref, key, NS, plural, setPref, todayKey } from './core.js?v=1.1f';
+import { IC, iconHTML } from './icons.js?v=1.1f';
+import { count, findHabit, isDue, isQuant, isStat, save, state, streak, streakText, targetOn } from './storage.js?v=1.1f';
+import { askConfirm, closeMenu, closeOverlay, openMenu, openOverlay, toast } from './ui.js?v=1.1f';
+import { queueTips } from './tips.js?v=1.1f';
+import { addLongPress, isPrivate, unlocked } from './privacy.js?v=1.1f';
+import { autoHabit, canAuto, dayDiff, dueText, GOAL_LIM, goalColor, goalProgress, goalStatus, habitPace, isActive, leftParts, newId, paceText, progressText, sortActive, sortFinished, statusText, unitOf } from './goals.js?v=1.1f';
+import { openHistory } from './history.js?v=1.1f';
+import { openForm } from './form.js?v=1.1f';
 
 export const gv = { tab: 'active', id: null, hist: false };
 const IC_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
